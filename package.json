@@ -1,0 +1,32 @@
+{
+	"name": "mpcs_testbench_dashboard",
+	"version": "1.0.0",
+	"description": "",
+	"main": "src/main.js",
+	"scripts": {
+		"start": "electron .",
+		"pack": "electron-builder --dir",
+		"dist": "electron-builder",
+		"test": "jest",
+		"format:check": "biome format .",
+		"format:fix": "biome format --write .",
+		"lint": "biome lint .",
+		"lint:fix": "biome check --write .",
+		"ci": "biome check ."
+	},
+	"keywords": [],
+	"author": "",
+	"license": "ISC",
+	"type": "commonjs",
+	"dependencies": {
+		"electron-log": "^5.4.3",
+		"modbus-serial": "^8.0.25",
+		"sqlite3": "^6.0.1"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "2.4.15",
+		"electron": "^42.0.1",
+		"electron-builder": "^26.8.1",
+		"jest": "^30.4.2"
+	}
+}
