@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html>
+
 <head>
   <meta charset="UTF-8">
   <title>MPCS Testbench Dashboard</title>
@@ -9,8 +10,10 @@
       margin: 0;
       padding: 20px;
       background-color: #f4f4f9;
-      user-select: none; /* Helps with dragging */
+      user-select: none;
+      /* Helps with dragging */
     }
+
     /* Existing tabs styles */
     .tabs {
       overflow: hidden;
@@ -18,6 +21,7 @@
       background-color: #e9e9e9;
       border-radius: 8px 8px 0 0;
     }
+
     .tabs button {
       background-color: inherit;
       float: left;
@@ -28,13 +32,16 @@
       transition: 0.3s;
       font-size: 16px;
     }
+
     .tabs button:hover {
       background-color: #ddd;
     }
+
     .tabs button.active {
       background-color: white;
       border-bottom: 2px solid #007bff;
     }
+
     .tab-content {
       display: none;
       padding: 20px;
@@ -44,23 +51,28 @@
       border-radius: 0 0 8px 8px;
       margin-bottom: 20px;
     }
+
     .action-btn {
       padding: 8px 16px;
       margin-right: 10px;
       cursor: pointer;
     }
+
     .control-group {
       margin-bottom: 15px;
     }
+
     .control-label {
       font-weight: bold;
       display: inline-block;
       width: 100px;
     }
+
     /* Canvas specific styles */
     #manual-dashboard {
       position: relative;
     }
+
     #canvas-container {
       position: relative;
       width: 100%;
@@ -70,37 +82,53 @@
       overflow: hidden;
       margin-top: 15px;
     }
+
     .canvas-widget {
       position: absolute;
       cursor: grab;
       border: 1px solid transparent;
       padding: 5px;
-      background: rgba(255,255,255,0.8);
+      background: rgba(255, 255, 255, 0.8);
       border-radius: 5px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
       display: flex;
       flex-direction: column;
       align-items: center;
     }
+
     .canvas-widget:active {
       cursor: grabbing;
       border: 1px solid #007bff;
     }
+
     .widget-label {
       font-size: 12px;
       font-weight: bold;
       margin-bottom: 5px;
     }
+
     /* Simple SVG styles */
     .svg-switch {
-      width: 40px; height: 60px;
+      width: 40px;
+      height: 60px;
     }
+
     .svg-led {
-      width: 30px; height: 30px; border-radius: 50%;
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
     }
-    .led-off { background: #555; box-shadow: inset 0 3px 5px rgba(0,0,0,0.5); }
-    .led-on { background: #0f0; box-shadow: 0 0 10px #0f0, inset 0 3px 5px rgba(255,255,255,0.5); }
-    
+
+    .led-off {
+      background: #555;
+      box-shadow: inset 0 3px 5px rgba(0, 0, 0, 0.5);
+    }
+
+    .led-on {
+      background: #0f0;
+      box-shadow: 0 0 10px #0f0, inset 0 3px 5px rgba(255, 255, 255, 0.5);
+    }
+
     .number-display {
       background: #222;
       color: #0f0;
@@ -110,10 +138,13 @@
       min-width: 60px;
       text-align: center;
     }
-    
+
     .lockout-overlay {
       position: absolute;
-      top: 0; left: 0; right: 0; bottom: 0;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
       background: rgba(100, 100, 100, 0.7);
       z-index: 9999;
       display: flex;
@@ -121,6 +152,7 @@
       align-items: center;
       display: none;
     }
+
     .lockout-banner {
       background: red;
       color: white;
@@ -131,26 +163,27 @@
     }
   </style>
 </head>
+
 <body>
   <h1>MPCS Testbench Dashboard</h1>
 
   <div class="tabs">
-    <button class="tablinks active" onclick="openTab(event, 'manual-dashboard')">Manual Dashboard</button>
-    <button class="tablinks" onclick="openTab(event, 'sequence-dashboard')">Sequence Execution</button>
-    <button class="tablinks" onclick="openTab(event, 'device-registry')">Device Registry</button>
-    <button class="tablinks" onclick="openTab(event, 'raw-registers')">Raw Registers Explorer</button>
-    <button class="tablinks" onclick="openTab(event, 'signal-mapping')">Signal Mapping</button>
-    <button class="tablinks" onclick="openTab(event, 'calibration-dashboard')">Calibration</button>
+    <button id="tab-manual" class="tablinks active" onclick="openTab(event, 'manual-dashboard')">Manual Dashboard</button>
+    <button id="tab-sequence" class="tablinks" onclick="openTab(event, 'sequence-dashboard')">Sequence Execution</button>
+    <button id="tab-device-registry" class="tablinks" onclick="openTab(event, 'device-registry')">Device Registry</button>
+    <button id="tab-raw-registers" class="tablinks" onclick="openTab(event, 'raw-registers')">Raw Registers Explorer</button>
+    <button id="tab-signal-mapping" class="tablinks" onclick="openTab(event, 'signal-mapping')">Signal Mapping</button>
+    <button id="tab-calibration" class="tablinks" onclick="openTab(event, 'calibration-dashboard')">Calibration</button>
   </div>
-  
+
   <div class="tab-content" id="manual-dashboard" style="display: block; position: relative;">
     <div class="lockout-overlay" id="manual-lockout">
       <div class="lockout-banner">SEQUENCE ACTIVE - MANUAL CONTROLS LOCKED</div>
     </div>
-    
+
     <h2>Manual Dashboard (Drag & Drop Canvas)</h2>
     <p>Drag elements to arrange them. Positions auto-save.</p>
-    
+
     <div style="margin-bottom: 10px;">
       <button class="action-btn" id="btn-snapshot">Save Manual Snapshot</button>
       <button class="action-btn" id="btn-refresh-layout">Refresh Elements</button>
@@ -214,13 +247,13 @@
     </table>
   </div>
 
-    <div class="tab-content" id="signal-mapping">
+  <div class="tab-content" id="signal-mapping">
     <h2>Signal Mapping Dictionary</h2>
     <div style="margin-bottom: 20px; border: 1px solid #ccc; padding: 15px; border-radius: 5px;">
       <h3>Add / Update Signal Mapping</h3>
       <div class="control-group">
         <input type="hidden" id="cal-sig-id" />
-        <input type="text" id="cal-sig-label" placeholder="Label (e.g. AO-05)" style="width: 100px;"/>
+        <input type="text" id="cal-sig-label" placeholder="Label (e.g. AO-05)" style="width: 100px;" />
         <select id="cal-sig-type">
           <option value="analog-out">analog-out</option>
           <option value="analog-in">analog-in</option>
@@ -258,7 +291,14 @@
     <h3>Mapped Signals</h3>
     <table border="1" style="width: 100%; border-collapse: collapse; text-align: left; font-size: 14px;">
       <thead>
-        <tr><th>Label</th><th>Type</th><th>IP:Port</th><th>Enc</th><th>Cal Regs</th><th>Action</th></tr>
+        <tr>
+          <th>Label</th>
+          <th>Type</th>
+          <th>IP:Port</th>
+          <th>Enc</th>
+          <th>Cal Regs</th>
+          <th>Action</th>
+        </tr>
       </thead>
       <tbody id="signal-list">
       </tbody>
@@ -267,14 +307,17 @@
 
   <div class="tab-content" id="calibration-dashboard">
     <h2>Calibration Dashboard</h2>
-    
+
     <div style="display: flex; gap: 20px;">
       <!-- Panel 0: Signal Selection -->
       <div style="flex: 1; border: 1px solid #ccc; padding: 15px; border-radius: 5px; max-width: 300px;">
         <h3>Select Signal</h3>
         <table border="1" style="width: 100%; border-collapse: collapse; text-align: left; font-size: 14px;">
           <thead>
-            <tr><th>Label</th><th>Action</th></tr>
+            <tr>
+              <th>Label</th>
+              <th>Action</th>
+            </tr>
           </thead>
           <tbody id="cal-target-list">
           </tbody>
@@ -283,27 +326,28 @@
 
       <!-- Panel 1: Calibration Process -->
       <div style="flex: 2; display: flex; flex-direction: column; gap: 20px;">
-        
+
         <div style="border: 1px solid #ccc; padding: 15px; border-radius: 5px;">
           <h3>1. Calibration Process</h3>
           <p>Target: <strong id="active-cal-target">None selected. Select a signal from the left.</strong></p>
           <button class="action-btn" id="btn-cal-zero">1. Zero Device (Scale=1, Offset=0, DZ=0)</button>
-          
+
           <div style="margin-top: 15px;">
             <h4>Data Points (Expected vs Actual)</h4>
-            <div id="data-points-container" style="max-height: 70px; overflow-y: auto; border: 1px solid #eee; padding: 5px;">
+            <div id="data-points-container"
+              style="max-height: 70px; overflow-y: auto; border: 1px solid #eee; padding: 5px;">
               <!-- JS injected inputs -->
             </div>
             <button class="action-btn" id="btn-add-point" style="margin-top: 5px;">+ Add Point</button>
           </div>
-          
+
           <div style="margin-top: 15px;">
             <h4>Manual Inputs & Results</h4>
             <label>Deadzone:</label>
             <input type="number" step="0.001" id="cal-input-dz" value="0.0" style="width: 80px;" />
-            
+
             <button class="action-btn" id="btn-cal-calculate" style="margin-left: 10px;">2. Calculate Line</button>
-            <br/><br/>
+            <br /><br />
             <label>Calculated m (Scale):</label>
             <input type="number" step="0.0001" id="cal-calc-m" style="width: 100px;" />
             <label>Calculated c (Offset):</label>
@@ -311,11 +355,13 @@
           </div>
 
           <div style="margin-top: 15px;">
-            <button class="action-btn" id="btn-cal-program" style="background-color: #28a745; color: white;">3. Program & Handshake</button>
+            <button class="action-btn" id="btn-cal-program" style="background-color: #28a745; color: white;">3. Program
+              & Handshake</button>
           </div>
         </div>
 
-        <div style="border: 1px solid #ccc; padding: 15px; border-radius: 5px; flex: 1; max-height: 500px; overflow-y: auto;">
+        <div
+          style="border: 1px solid #ccc; padding: 15px; border-radius: 5px; flex: 1; max-height: 500px; overflow-y: auto;">
           <h3>3. Calibration History</h3>
           <ul id="cal-history-list" style="list-style-type: none; padding-left: 0; font-size: 14px;">
             <!-- JS injected history -->
@@ -326,55 +372,9 @@
     </div>
   </div>
 
-  <div class="tab-content" id="device-registry">
-    <h2>Device Registry</h2>
-    <div style="margin-bottom: 20px; border: 1px solid #ccc; padding: 15px; border-radius: 5px;">
-      <h3>Add / Update Device</h3>
-      <input type="hidden" id="dev-id" />
-      <div class="control-group">
-        <label class="control-label">Display Name:</label>
-        <input type="text" id="dev-name" placeholder="e.g. DAQ-01" />
-      </div>
-      <div class="control-group">
-        <label class="control-label">IP Address:</label>
-        <input type="text" id="dev-ip" placeholder="192.168.1.100" />
-      </div>
-      <div class="control-group">
-        <label class="control-label">Port:</label>
-        <input type="number" id="dev-port" placeholder="502" value="502" />
-      </div>
-      <div class="control-group">
-        <label class="control-label">Key 1 Address:</label>
-        <input type="number" id="dev-key1" placeholder="e.g. 100" />
-      </div>
-      <div class="control-group">
-        <label class="control-label">Key 2 Address:</label>
-        <input type="number" id="dev-key2" placeholder="e.g. 101" />
-      </div>
-      <button class="action-btn" id="btn-save-device">Save Device</button>
-      <button class="action-btn" id="btn-clear-form">Clear Form</button>
-    </div>
-
-    <h3>Registered Devices</h3>
-    <table border="1" style="width: 100%; border-collapse: collapse; text-align: left;">
-      <thead>
-        <tr>
-          <th>ID</th>
-          <th>Name</th>
-          <th>IP</th>
-          <th>Port</th>
-          <th>Actions</th>
-        </tr>
-      </thead>
-      <tbody id="device-list">
-        <!-- Rows injected via JS -->
-      </tbody>
-    </table>
-  </div>
-
   <div class="tab-content" id="raw-registers">
     <h2>Raw Registers Explorer</h2>
-    
+
     <div style="display: flex; gap: 20px;">
       <!-- Left Panel: Device Selection -->
       <div style="flex: 1; border: 1px solid #ccc; padding: 15px; border-radius: 5px; max-width: 300px;">
@@ -390,7 +390,7 @@
           <h3>Manage Registers for: <strong id="raw-active-dev">None selected</strong></h3>
           <input type="hidden" id="raw-dev-id" />
           <input type="hidden" id="raw-reg-id" />
-          
+
           <div class="control-group">
             <select id="raw-reg-type">
               <option value="coil">Coil (0x)</option>
@@ -403,8 +403,9 @@
             <button class="action-btn" id="btn-save-raw-reg">Save Reg</button>
             <button class="action-btn" id="btn-clear-raw-reg">Clear</button>
           </div>
-          
-          <table border="1" style="width: 100%; margin-top: 15px; border-collapse: collapse; text-align: left; font-size: 14px;">
+
+          <table border="1"
+            style="width: 100%; margin-top: 15px; border-collapse: collapse; text-align: left; font-size: 14px;">
             <thead>
               <tr>
                 <th>Type</th>
@@ -426,4 +427,5 @@
 
   <script src="./renderer.js"></script>
 </body>
+
 </html>
