@@ -4,6 +4,7 @@ contextBridge.exposeInMainWorld("api", {
 	// Modbus API
 	readRegisters: (params) => ipcRenderer.invoke("modbus:readRegisters", params),
 	writeRegister: (params) => ipcRenderer.invoke("modbus:writeRegister", params),
+	readRawRegister: (params) => ipcRenderer.invoke("modbus:readRawRegister", params),
 
 	// Database API
 	getMappedSignals: () => ipcRenderer.invoke("db:getMappedSignals"),
@@ -12,12 +13,21 @@ contextBridge.exposeInMainWorld("api", {
 	deleteMappedSignal: (id) => ipcRenderer.invoke("db:deleteMappedSignal", id),
 	saveManualSnapshot: (data) =>
 		ipcRenderer.invoke("db:saveManualSnapshot", data),
+	getLayout: () => ipcRenderer.invoke("db:getLayout"),
+	saveLayoutPosition: (params) => ipcRenderer.invoke("db:saveLayoutPosition", params),
+
+	modbusPreemptWrite: (signal_id, value) => ipcRenderer.invoke("modbus:preemptWrite", { signal_id, value }),
 
 	// Device Registry API
 	getDevices: () => ipcRenderer.invoke("db:getDevices"),
 	addDevice: (device) => ipcRenderer.invoke("db:addDevice", device),
 	updateDevice: (device) => ipcRenderer.invoke("db:updateDevice", device),
 	deleteDevice: (id) => ipcRenderer.invoke("db:deleteDevice", id),
+
+	getDeviceRegisters: (device_id) => ipcRenderer.invoke("db:getDeviceRegisters", device_id),
+	addDeviceRegister: (reg) => ipcRenderer.invoke("db:addDeviceRegister", reg),
+	updateDeviceRegister: (reg) => ipcRenderer.invoke("db:updateDeviceRegister", reg),
+	deleteDeviceRegister: (id) => ipcRenderer.invoke("db:deleteDeviceRegister", id),
 
 	// Sequence Engine API
 	startSequence: (sequenceId) =>

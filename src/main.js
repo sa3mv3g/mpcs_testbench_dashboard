@@ -9,6 +9,54 @@ log.transports.file.level = 'info';
 log.info('Application starting...');
 
 let mainWindow;
+let isSequenceActive = false;
+let isPreempted = false;
+let pollingTimer = null;
+
+// Mock Modbus logic for the continuous loop
+async function startPollingLoop() {
+    if (pollingTimer) return;
+    pollingTimer = setInterval(async () => {
+        if (isPreempted || isSequenceActive) return; // Skip if preempted or locked out
+
+        try {
+            const signals = await db.getMappedSignals();
+            if(signals.length === 0) return;
+
+            // Group by IP/Port
+            const groups = {};
+            signals.forEach(s => {
+                const key = `${s.ip}:${s.port}`;
+                if(!groups[key]) groups[key] = [];
+                groups[key].push(s);
+            });
+
+            const updates = [];
+
+            // Execute block reads per device
+            for (const key of Object.keys(groups)) {
+                const devSignals = groups[key];
+                // In a real app, find min/max register, read them via ModbusRTU,
+                // and slice the buffer. Here we mock it.
+                
+                devSignals.forEach(s => {
+                    let val;
+                    if(s.type.includes('digital')) val = Math.random() > 0.5 ? 1 : 0;
+                    else val = (Math.random() * 100).toFixed(2);
+                    updates.push({ signal_id: s.id, value: val, type: s.type });
+                });
+            }
+
+            if(mainWindow && mainWindow.webContents) {
+                mainWindow.webContents.send("state-update", updates);
+            }
+
+        } catch(e) {
+            log.error("Polling error", e);
+        }
+
+    }, 500);
+}
 
 function createWindow() {
     mainWindow = new BrowserWindow({
@@ -36,6 +84,7 @@ app.whenReady().then(async () => {
     }
 
     createWindow();
+    startPollingLoop();
 
     app.on('activate', function () {
         if (BrowserWindow.getAllWindows().length === 0) createWindow();
@@ -56,10 +105,41 @@ ipcMain.handle('modbus:readRegisters', async (event, { deviceIp, port, startAddr
     return { success: true, data: [0, 0] }; // Mock data
 });
 
-ipcMain.handle('modbus:writeRegister', async (event, { deviceIp, port, address, value }) => {
-    log.info(`Writing register to ${deviceIp}:${port}`);
-    // TODO: Implement actual Modbus TCP write logic
+ipcMain.handle('modbus:writeRegister', async (event, { deviceIp, port, address, value, type }) => {
+    log.info(`Writing to ${deviceIp}:${port} addr ${address} (type: ${type}) val: ${value}`);
+    // TODO: Implement actual Modbus TCP write logic based on type (Holding vs Coil)
     return { success: true };
+});
+
+ipcMain.handle('modbus:readRawRegister', async (event, { deviceIp, port, address, type }) => {
+    log.info(`Reading ${type} from ${deviceIp}:${port} at ${address}`);
+    // TODO: Implement actual Modbus TCP read logic based on type
+    // Mocking returning a random value
+    const val = type.includes('coil') || type.includes('discrete') ? (Math.random() > 0.5 ? 1 : 0) : Math.floor(Math.random() * 65535);
+    return { success: true, value: val };
+});
+
+ipcMain.handle("modbus:preemptWrite", async (event, { signal_id, value }) => {
+    log.info(`Preempting read loop to write value ${value} to signal ${signal_id}`);
+    isPreempted = true; // Lock the polling loop
+    
+    try {
+        // Fetch signal details
+        const signals = await db.getMappedSignals();
+        const sig = signals.find(s => s.id === signal_id);
+        
+        if (sig) {
+            log.info(`Writing ${value} to ${sig.ip}:${sig.port} at register ${sig.read_register}`);
+            // Mock the Modbus write delay
+            await new Promise(resolve => setTimeout(resolve, 50));
+        }
+        return { success: true };
+    } catch(e) {
+        log.error("Write Error:", e);
+        return { success: false, error: e.message };
+    } finally {
+        isPreempted = false; // Release the lock
+    }
 });
 
 // SQLite Database interactions
@@ -85,6 +165,14 @@ ipcMain.handle("db:saveManualSnapshot", async (event, data) => {
 	return { success: true };
 });
 
+ipcMain.handle("db:getLayout", async (event) => {
+	return await db.getLayout();
+});
+
+ipcMain.handle("db:saveLayoutPosition", async (event, { signal_id, pos_x, pos_y }) => {
+	return await db.saveLayoutPosition(signal_id, pos_x, pos_y);
+});
+
 // Device Registry interactions
 ipcMain.handle("db:getDevices", async () => {
 	return await db.getDevices();
@@ -102,16 +190,33 @@ ipcMain.handle("db:deleteDevice", async (event, id) => {
 	return await db.deleteDevice(id);
 });
 
+// Device Registers interactions
+ipcMain.handle("db:getDeviceRegisters", async (event, device_id) => {
+	return await db.getDeviceRegisters(device_id);
+});
+
+ipcMain.handle("db:addDeviceRegister", async (event, reg) => {
+	return await db.addDeviceRegister(reg);
+});
+
+ipcMain.handle("db:updateDeviceRegister", async (event, reg) => {
+	return await db.updateDeviceRegister(reg);
+});
+
+ipcMain.handle("db:deleteDeviceRegister", async (event, id) => {
+	return await db.deleteDeviceRegister(id);
+});
+
 // Test Sequence execution
 ipcMain.handle('sequence:start', async (event, sequenceId) => {
     log.info(`Starting sequence ${sequenceId}`);
-    // TODO: Start sequence engine execution
+    isSequenceActive = true; // Lockout manual dashboard
     return { success: true };
 });
 
 ipcMain.handle('sequence:stop', async (event) => {
     log.info('Stopping sequence');
-    // TODO: Stop sequence engine execution
+    isSequenceActive = false; // Release lockout
     return { success: true };
 });
 

@@ -14,17 +14,22 @@ function initDatabase(dbPath) {
             
             // Create necessary tables if they don't exist
             db.serialize(() => {
+                db.run('DROP TABLE IF EXISTS mapped_signals'); // Force recreate for new schema in dev
                 db.run(`CREATE TABLE IF NOT EXISTS mapped_signals (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     label TEXT,
                     type TEXT,
-                    ip TEXT,
-                    port INTEGER,
-                    read_register INTEGER,
                     encoding TEXT,
-                    cal_scale_reg INTEGER,
-                    cal_offset_reg INTEGER,
-                    cal_deadzone_reg INTEGER
+                    device_id INTEGER,
+                    read_reg_id INTEGER,
+                    cal_scale_reg_id INTEGER,
+                    cal_offset_reg_id INTEGER,
+                    cal_deadzone_reg_id INTEGER,
+                    FOREIGN KEY(device_id) REFERENCES device_registry(id) ON DELETE CASCADE,
+                    FOREIGN KEY(read_reg_id) REFERENCES device_registers(id) ON DELETE SET NULL,
+                    FOREIGN KEY(cal_scale_reg_id) REFERENCES device_registers(id) ON DELETE SET NULL,
+                    FOREIGN KEY(cal_offset_reg_id) REFERENCES device_registers(id) ON DELETE SET NULL,
+                    FOREIGN KEY(cal_deadzone_reg_id) REFERENCES device_registers(id) ON DELETE SET NULL
                 )`);
 
                 db.run(`CREATE TABLE IF NOT EXISTS device_registry (
@@ -46,16 +51,23 @@ function initDatabase(dbPath) {
                     data_points TEXT
                 )`);
 
-                // Insert a mock signal if empty (for demo purposes)
-                db.get("SELECT COUNT(*) as count FROM mapped_signals", (err, row) => {
-                    if (!err && row.count === 0) {
-                        db.run(`INSERT INTO mapped_signals (label, type, ip, port, read_register, encoding, cal_scale_reg, cal_offset_reg, cal_deadzone_reg) 
-                                VALUES ('AO-05', 'analog-out', '192.168.1.100', 502, 100, 'CDAB', 200, 202, 204)`, (err) => {
-                            resolve();
-                        });
-                    } else {
-                        resolve();
-                    }
+                db.run(`CREATE TABLE IF NOT EXISTS manual_dashboard_layout (
+                    signal_id INTEGER PRIMARY KEY,
+                    pos_x INTEGER DEFAULT 0,
+                    pos_y INTEGER DEFAULT 0,
+                    FOREIGN KEY(signal_id) REFERENCES mapped_signals(id) ON DELETE CASCADE
+                )`);
+
+                db.run(`CREATE TABLE IF NOT EXISTS device_registers (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    device_id INTEGER,
+                    type TEXT,
+                    address INTEGER,
+                    description TEXT,
+                    FOREIGN KEY(device_id) REFERENCES device_registry(id) ON DELETE CASCADE
+                )`, (err) => {
+                    if (err) log.error("Error creating device_registers", err);
+                    resolve();
                 });
             });
         });
@@ -72,7 +84,23 @@ function closeDatabase() {
 function getMappedSignals() {
     return new Promise((resolve, reject) => {
         if (!db) return resolve([]);
-        db.all("SELECT * FROM mapped_signals", (err, rows) => {
+        const query = `
+            SELECT 
+                m.*,
+                d.ip,
+                d.port,
+                rr.address as read_register,
+                sr.address as cal_scale_reg,
+                or_reg.address as cal_offset_reg,
+                dr.address as cal_deadzone_reg
+            FROM mapped_signals m
+            JOIN device_registry d ON m.device_id = d.id
+            LEFT JOIN device_registers rr ON m.read_reg_id = rr.id
+            LEFT JOIN device_registers sr ON m.cal_scale_reg_id = sr.id
+            LEFT JOIN device_registers or_reg ON m.cal_offset_reg_id = or_reg.id
+            LEFT JOIN device_registers dr ON m.cal_deadzone_reg_id = dr.id
+        `;
+        db.all(query, (err, rows) => {
             if (err) {
                 log.error("Error fetching signals", err);
                 resolve([]);
@@ -85,11 +113,11 @@ function getMappedSignals() {
 
 function addMappedSignal(signal) {
     return new Promise((resolve, reject) => {
-        const { label, type, ip, port, read_register, encoding, cal_scale_reg, cal_offset_reg, cal_deadzone_reg } = signal;
+        const { label, type, encoding, device_id, read_reg_id, cal_scale_reg_id, cal_offset_reg_id, cal_deadzone_reg_id } = signal;
         db.run(
-            `INSERT INTO mapped_signals (label, type, ip, port, read_register, encoding, cal_scale_reg, cal_offset_reg, cal_deadzone_reg) 
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-            [label, type, ip, port, read_register, encoding, cal_scale_reg, cal_offset_reg, cal_deadzone_reg],
+            `INSERT INTO mapped_signals (label, type, encoding, device_id, read_reg_id, cal_scale_reg_id, cal_offset_reg_id, cal_deadzone_reg_id) 
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+            [label, type, encoding, device_id, read_reg_id || null, cal_scale_reg_id || null, cal_offset_reg_id || null, cal_deadzone_reg_id || null],
             function (err) {
                 if (err) {
                     log.error("Error adding signal", err);
@@ -104,11 +132,11 @@ function addMappedSignal(signal) {
 
 function updateMappedSignal(signal) {
     return new Promise((resolve, reject) => {
-        const { id, label, type, ip, port, read_register, encoding, cal_scale_reg, cal_offset_reg, cal_deadzone_reg } = signal;
+        const { id, label, type, encoding, device_id, read_reg_id, cal_scale_reg_id, cal_offset_reg_id, cal_deadzone_reg_id } = signal;
         db.run(
-            `UPDATE mapped_signals SET label = ?, type = ?, ip = ?, port = ?, read_register = ?, 
-             encoding = ?, cal_scale_reg = ?, cal_offset_reg = ?, cal_deadzone_reg = ? WHERE id = ?`,
-            [label, type, ip, port, read_register, encoding, cal_scale_reg, cal_offset_reg, cal_deadzone_reg, id],
+            `UPDATE mapped_signals SET label = ?, type = ?, encoding = ?, device_id = ?, 
+             read_reg_id = ?, cal_scale_reg_id = ?, cal_offset_reg_id = ?, cal_deadzone_reg_id = ? WHERE id = ?`,
+            [label, type, encoding, device_id, read_reg_id || null, cal_scale_reg_id || null, cal_offset_reg_id || null, cal_deadzone_reg_id || null, id],
             function (err) {
                 if (err) {
                     log.error("Error updating signal", err);
@@ -238,6 +266,88 @@ function getCalibrationHistory(signal_label) {
     });
 }
 
+function getLayout() {
+    return new Promise((resolve, reject) => {
+        if (!db) return resolve([]);
+        db.all("SELECT * FROM manual_dashboard_layout", (err, rows) => {
+            if (err) resolve([]);
+            else resolve(rows);
+        });
+    });
+}
+
+function saveLayoutPosition(signal_id, pos_x, pos_y) {
+    return new Promise((resolve, reject) => {
+        db.run(
+            `INSERT INTO manual_dashboard_layout (signal_id, pos_x, pos_y) 
+             VALUES (?, ?, ?) 
+             ON CONFLICT(signal_id) DO UPDATE SET pos_x=excluded.pos_x, pos_y=excluded.pos_y`,
+            [signal_id, pos_x, pos_y],
+            function (err) {
+                if (err) resolve({ success: false, error: err.message });
+                else resolve({ success: true });
+            }
+        );
+    });
+}
+
+// --- Device Registers Operations ---
+function getDeviceRegisters(device_id) {
+    return new Promise((resolve, reject) => {
+        if (!db) return resolve([]);
+        const query = device_id 
+            ? "SELECT * FROM device_registers WHERE device_id = ? ORDER BY address ASC" 
+            : "SELECT * FROM device_registers ORDER BY address ASC";
+        const params = device_id ? [device_id] : [];
+        
+        db.all(query, params, (err, rows) => {
+            if (err) {
+                log.error("Error fetching device registers", err);
+                resolve([]);
+            } else {
+                resolve(rows);
+            }
+        });
+    });
+}
+
+function addDeviceRegister(reg) {
+    return new Promise((resolve, reject) => {
+        const { device_id, type, address, description } = reg;
+        db.run(
+            "INSERT INTO device_registers (device_id, type, address, description) VALUES (?, ?, ?, ?)",
+            [device_id, type, address, description],
+            function (err) {
+                if (err) resolve({ success: false, error: err.message });
+                else resolve({ success: true, id: this.lastID });
+            }
+        );
+    });
+}
+
+function updateDeviceRegister(reg) {
+    return new Promise((resolve, reject) => {
+        const { id, type, address, description } = reg;
+        db.run(
+            "UPDATE device_registers SET type = ?, address = ?, description = ? WHERE id = ?",
+            [type, address, description, id],
+            function (err) {
+                if (err) resolve({ success: false, error: err.message });
+                else resolve({ success: true, changes: this.changes });
+            }
+        );
+    });
+}
+
+function deleteDeviceRegister(id) {
+    return new Promise((resolve, reject) => {
+        db.run("DELETE FROM device_registers WHERE id = ?", [id], function (err) {
+            if (err) resolve({ success: false, error: err.message });
+            else resolve({ success: true, changes: this.changes });
+        });
+    });
+}
+
 module.exports = {
     initDatabase,
     closeDatabase,
@@ -250,5 +360,11 @@ module.exports = {
     updateDevice,
     deleteDevice,
     saveCalibrationHistory,
-    getCalibrationHistory
+    getCalibrationHistory,
+    getLayout,
+    saveLayoutPosition,
+    getDeviceRegisters,
+    addDeviceRegister,
+    updateDeviceRegister,
+    deleteDeviceRegister
 };

@@ -9,7 +9,9 @@
       margin: 0;
       padding: 20px;
       background-color: #f4f4f9;
+      user-select: none; /* Helps with dragging */
     }
+    /* Existing tabs styles */
     .tabs {
       overflow: hidden;
       border: 1px solid #ccc;
@@ -42,6 +44,11 @@
       border-radius: 0 0 8px 8px;
       margin-bottom: 20px;
     }
+    .action-btn {
+      padding: 8px 16px;
+      margin-right: 10px;
+      cursor: pointer;
+    }
     .control-group {
       margin-bottom: 15px;
     }
@@ -50,10 +57,77 @@
       display: inline-block;
       width: 100px;
     }
-    .action-btn {
-      padding: 8px 16px;
-      margin-right: 10px;
-      cursor: pointer;
+    /* Canvas specific styles */
+    #manual-dashboard {
+      position: relative;
+    }
+    #canvas-container {
+      position: relative;
+      width: 100%;
+      height: 600px;
+      background-color: #e0e0e0;
+      border: 2px dashed #999;
+      overflow: hidden;
+      margin-top: 15px;
+    }
+    .canvas-widget {
+      position: absolute;
+      cursor: grab;
+      border: 1px solid transparent;
+      padding: 5px;
+      background: rgba(255,255,255,0.8);
+      border-radius: 5px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .canvas-widget:active {
+      cursor: grabbing;
+      border: 1px solid #007bff;
+    }
+    .widget-label {
+      font-size: 12px;
+      font-weight: bold;
+      margin-bottom: 5px;
+    }
+    /* Simple SVG styles */
+    .svg-switch {
+      width: 40px; height: 60px;
+    }
+    .svg-led {
+      width: 30px; height: 30px; border-radius: 50%;
+    }
+    .led-off { background: #555; box-shadow: inset 0 3px 5px rgba(0,0,0,0.5); }
+    .led-on { background: #0f0; box-shadow: 0 0 10px #0f0, inset 0 3px 5px rgba(255,255,255,0.5); }
+    
+    .number-display {
+      background: #222;
+      color: #0f0;
+      font-family: monospace;
+      padding: 5px;
+      border-radius: 3px;
+      min-width: 60px;
+      text-align: center;
+    }
+    
+    .lockout-overlay {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(100, 100, 100, 0.7);
+      z-index: 9999;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      display: none;
+    }
+    .lockout-banner {
+      background: red;
+      color: white;
+      padding: 20px 40px;
+      font-size: 24px;
+      font-weight: bold;
+      border-radius: 10px;
     }
   </style>
 </head>
@@ -63,16 +137,28 @@
   <div class="tabs">
     <button class="tablinks active" onclick="openTab(event, 'manual-dashboard')">Manual Dashboard</button>
     <button class="tablinks" onclick="openTab(event, 'sequence-dashboard')">Sequence Execution</button>
-    <button class="tablinks" onclick="openTab(event, 'calibration-dashboard')">Calibration</button>
     <button class="tablinks" onclick="openTab(event, 'device-registry')">Device Registry</button>
+    <button class="tablinks" onclick="openTab(event, 'raw-registers')">Raw Registers Explorer</button>
+    <button class="tablinks" onclick="openTab(event, 'signal-mapping')">Signal Mapping</button>
+    <button class="tablinks" onclick="openTab(event, 'calibration-dashboard')">Calibration</button>
   </div>
   
-  <div class="tab-content" id="manual-dashboard" style="display: block;">
-    <h2>Manual Dashboard</h2>
-    <div id="controls-container">
-      <!-- Controls will be injected here via JS -->
+  <div class="tab-content" id="manual-dashboard" style="display: block; position: relative;">
+    <div class="lockout-overlay" id="manual-lockout">
+      <div class="lockout-banner">SEQUENCE ACTIVE - MANUAL CONTROLS LOCKED</div>
     </div>
-    <button class="action-btn" id="btn-snapshot">Save Manual Snapshot</button>
+    
+    <h2>Manual Dashboard (Drag & Drop Canvas)</h2>
+    <p>Drag elements to arrange them. Positions auto-save.</p>
+    
+    <div style="margin-bottom: 10px;">
+      <button class="action-btn" id="btn-snapshot">Save Manual Snapshot</button>
+      <button class="action-btn" id="btn-refresh-layout">Refresh Elements</button>
+    </div>
+
+    <div id="canvas-container">
+      <!-- Widgets injected via JS -->
+    </div>
   </div>
 
   <div class="tab-content" id="sequence-dashboard">
@@ -82,53 +168,125 @@
     <p>Status: <span id="seq-status">Idle</span></p>
   </div>
 
+  <div class="tab-content" id="device-registry">
+    <h2>Device Registry</h2>
+    <div style="margin-bottom: 20px; border: 1px solid #ccc; padding: 15px; border-radius: 5px;">
+      <h3>Add / Update Device</h3>
+      <input type="hidden" id="dev-id" />
+      <div class="control-group">
+        <label class="control-label">Display Name:</label>
+        <input type="text" id="dev-name" placeholder="e.g. DAQ-01" />
+      </div>
+      <div class="control-group">
+        <label class="control-label">IP Address:</label>
+        <input type="text" id="dev-ip" placeholder="192.168.1.100" />
+      </div>
+      <div class="control-group">
+        <label class="control-label">Port:</label>
+        <input type="number" id="dev-port" placeholder="502" value="502" />
+      </div>
+      <div class="control-group">
+        <label class="control-label">Key 1 Address:</label>
+        <input type="number" id="dev-key1" placeholder="e.g. 100" />
+      </div>
+      <div class="control-group">
+        <label class="control-label">Key 2 Address:</label>
+        <input type="number" id="dev-key2" placeholder="e.g. 101" />
+      </div>
+      <button class="action-btn" id="btn-save-device">Save Device</button>
+      <button class="action-btn" id="btn-clear-form">Clear Form</button>
+    </div>
+
+    <h3>Registered Devices</h3>
+    <table border="1" style="width: 100%; border-collapse: collapse; text-align: left;">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Name</th>
+          <th>IP</th>
+          <th>Port</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="device-list">
+        <!-- Rows injected via JS -->
+      </tbody>
+    </table>
+  </div>
+
+    <div class="tab-content" id="signal-mapping">
+    <h2>Signal Mapping Dictionary</h2>
+    <div style="margin-bottom: 20px; border: 1px solid #ccc; padding: 15px; border-radius: 5px;">
+      <h3>Add / Update Signal Mapping</h3>
+      <div class="control-group">
+        <input type="hidden" id="cal-sig-id" />
+        <input type="text" id="cal-sig-label" placeholder="Label (e.g. AO-05)" style="width: 100px;"/>
+        <select id="cal-sig-type">
+          <option value="analog-out">analog-out</option>
+          <option value="analog-in">analog-in</option>
+          <option value="digital-out">digital-out</option>
+          <option value="digital-in">digital-in</option>
+        </select>
+        <select id="cal-sig-device" style="width: 150px;">
+          <option value="">Select Device...</option>
+        </select>
+      </div>
+      <div class="control-group">
+        <select id="cal-sig-read" title="Read Register">
+          <option value="">Read Reg...</option>
+        </select>
+        <select id="cal-sig-enc" title="f32 Encoding">
+          <option value="ABCD">ABCD (Big-Endian)</option>
+          <option value="DCBA">DCBA (Little-Endian)</option>
+          <option value="BADC">BADC (Big-Endian Byte Swap)</option>
+          <option value="CDAB">CDAB (Little-Endian Word Swap)</option>
+        </select>
+        <select id="cal-sig-scale" title="Scale Register">
+          <option value="">Scale Reg...</option>
+        </select>
+        <select id="cal-sig-offset" title="Offset Register">
+          <option value="">Offset Reg...</option>
+        </select>
+        <select id="cal-sig-deadzone" title="Deadzone Register">
+          <option value="">Deadzone Reg...</option>
+        </select>
+      </div>
+      <button class="action-btn" id="btn-save-signal">Save Signal</button>
+      <button class="action-btn" id="btn-clear-signal">Clear</button>
+    </div>
+
+    <h3>Mapped Signals</h3>
+    <table border="1" style="width: 100%; border-collapse: collapse; text-align: left; font-size: 14px;">
+      <thead>
+        <tr><th>Label</th><th>Type</th><th>IP:Port</th><th>Enc</th><th>Cal Regs</th><th>Action</th></tr>
+      </thead>
+      <tbody id="signal-list">
+      </tbody>
+    </table>
+  </div>
+
   <div class="tab-content" id="calibration-dashboard">
     <h2>Calibration Dashboard</h2>
     
     <div style="display: flex; gap: 20px;">
-      <!-- Panel 1: Signal Mapping Dictionary -->
-      <div style="flex: 1; border: 1px solid #ccc; padding: 15px; border-radius: 5px;">
-        <h3>1. Signal Mapping (Parameters to Calibrate)</h3>
-        <div class="control-group">
-          <input type="hidden" id="cal-sig-id" />
-          <input type="text" id="cal-sig-label" placeholder="Label (e.g. AO-05)" style="width: 100px;"/>
-          <select id="cal-sig-type">
-            <option value="analog-out">analog-out</option>
-            <option value="analog-in">analog-in</option>
-          </select>
-          <input type="text" id="cal-sig-ip" placeholder="IP Address" style="width: 120px;" />
-          <input type="number" id="cal-sig-port" placeholder="Port" value="502" style="width: 60px;" />
-        </div>
-        <div class="control-group">
-          <input type="number" id="cal-sig-read" placeholder="Read Reg" style="width: 80px;" title="Read Register" />
-          <select id="cal-sig-enc" title="f32 Encoding">
-            <option value="ABCD">ABCD (Big-Endian)</option>
-            <option value="DCBA">DCBA (Little-Endian)</option>
-            <option value="BADC">BADC (Big-Endian Byte Swap)</option>
-            <option value="CDAB">CDAB (Little-Endian Byte Swap)</option>
-          </select>
-          <input type="number" id="cal-sig-scale" placeholder="Scale Reg" style="width: 80px;" />
-          <input type="number" id="cal-sig-offset" placeholder="Offset Reg" style="width: 80px;" />
-          <input type="number" id="cal-sig-deadzone" placeholder="Deadzone Reg" style="width: 100px;" />
-        </div>
-        <button class="action-btn" id="btn-save-signal">Save Signal</button>
-        <button class="action-btn" id="btn-clear-signal">Clear</button>
-        
-        <table border="1" style="width: 100%; margin-top: 15px; border-collapse: collapse; text-align: left; font-size: 14px;">
+      <!-- Panel 0: Signal Selection -->
+      <div style="flex: 1; border: 1px solid #ccc; padding: 15px; border-radius: 5px; max-width: 300px;">
+        <h3>Select Signal</h3>
+        <table border="1" style="width: 100%; border-collapse: collapse; text-align: left; font-size: 14px;">
           <thead>
-            <tr><th>Label</th><th>IP:Port</th><th>Enc</th><th>Cal Regs</th><th>Action</th></tr>
+            <tr><th>Label</th><th>Action</th></tr>
           </thead>
-          <tbody id="signal-list">
+          <tbody id="cal-target-list">
           </tbody>
         </table>
       </div>
 
-      <!-- Panel 2 & 3: Calibration Process & History -->
-      <div style="flex: 1; display: flex; flex-direction: column; gap: 20px;">
+      <!-- Panel 1: Calibration Process -->
+      <div style="flex: 2; display: flex; flex-direction: column; gap: 20px;">
         
         <div style="border: 1px solid #ccc; padding: 15px; border-radius: 5px;">
-          <h3>2. Calibration Process</h3>
-          <p>Target: <strong id="active-cal-target">None selected</strong></p>
+          <h3>1. Calibration Process</h3>
+          <p>Target: <strong id="active-cal-target">None selected. Select a signal from the left.</strong></p>
           <button class="action-btn" id="btn-cal-zero">1. Zero Device (Scale=1, Offset=0, DZ=0)</button>
           
           <div style="margin-top: 15px;">
@@ -212,6 +370,58 @@
         <!-- Rows injected via JS -->
       </tbody>
     </table>
+  </div>
+
+  <div class="tab-content" id="raw-registers">
+    <h2>Raw Registers Explorer</h2>
+    
+    <div style="display: flex; gap: 20px;">
+      <!-- Left Panel: Device Selection -->
+      <div style="flex: 1; border: 1px solid #ccc; padding: 15px; border-radius: 5px; max-width: 300px;">
+        <h3>Select Device</h3>
+        <ul id="raw-dev-list" style="list-style-type: none; padding-left: 0; font-size: 14px;">
+          <!-- JS injected -->
+        </ul>
+      </div>
+
+      <!-- Right Panel: Registers -->
+      <div style="flex: 3; display: flex; flex-direction: column; gap: 20px;">
+        <div style="border: 1px solid #ccc; padding: 15px; border-radius: 5px;">
+          <h3>Manage Registers for: <strong id="raw-active-dev">None selected</strong></h3>
+          <input type="hidden" id="raw-dev-id" />
+          <input type="hidden" id="raw-reg-id" />
+          
+          <div class="control-group">
+            <select id="raw-reg-type">
+              <option value="coil">Coil (0x)</option>
+              <option value="discrete">Discrete Input (1x)</option>
+              <option value="input">Input Register (3x)</option>
+              <option value="holding">Holding Register (4x)</option>
+            </select>
+            <input type="number" id="raw-reg-addr" placeholder="Address (0-9998)" style="width: 120px;" />
+            <input type="text" id="raw-reg-desc" placeholder="Description" style="width: 200px;" />
+            <button class="action-btn" id="btn-save-raw-reg">Save Reg</button>
+            <button class="action-btn" id="btn-clear-raw-reg">Clear</button>
+          </div>
+          
+          <table border="1" style="width: 100%; margin-top: 15px; border-collapse: collapse; text-align: left; font-size: 14px;">
+            <thead>
+              <tr>
+                <th>Type</th>
+                <th>Address</th>
+                <th>Description</th>
+                <th>Value</th>
+                <th>Write Val</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="raw-reg-list">
+              <!-- Rows injected via JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
   </div>
 
   <script src="./renderer.js"></script>

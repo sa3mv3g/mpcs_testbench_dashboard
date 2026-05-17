@@ -22,43 +22,120 @@ document.addEventListener("DOMContentLoaded", async () => {
 	const controlsContainer = document.getElementById("controls-container");
 
 	// --- 1. Manual Dashboard Logic ---
-	const renderManualDashboard = async () => {
+	const canvasContainer = document.getElementById("canvas-container");
+
+	let isDragging = false;
+	let currentWidget = null;
+	let offsetX = 0, offsetY = 0;
+
+	// Drag events
+	canvasContainer.addEventListener("mousedown", (e) => {
+		const widget = e.target.closest('.canvas-widget');
+		if (widget && !e.target.closest('button') && !e.target.closest('input')) {
+			isDragging = true;
+			currentWidget = widget;
+			offsetX = e.clientX - widget.offsetLeft;
+			offsetY = e.clientY - widget.offsetTop;
+		}
+	});
+
+	document.addEventListener("mousemove", (e) => {
+		if (isDragging && currentWidget) {
+			let newX = e.clientX - offsetX;
+			let newY = e.clientY - offsetY;
+			
+			// Constrain to canvas
+			newX = Math.max(0, Math.min(newX, canvasContainer.clientWidth - currentWidget.offsetWidth));
+			newY = Math.max(0, Math.min(newY, canvasContainer.clientHeight - currentWidget.offsetHeight));
+
+			currentWidget.style.left = newX + "px";
+			currentWidget.style.top = newY + "px";
+		}
+	});
+
+	document.addEventListener("mouseup", async () => {
+		if (isDragging && currentWidget) {
+			const sigId = currentWidget.dataset.id;
+			const x = parseInt(currentWidget.style.left, 10) || 0;
+			const y = parseInt(currentWidget.style.top, 10) || 0;
+			
+			// Save layout
+			await window.api.saveLayoutPosition({ signal_id: parseInt(sigId, 10), pos_x: x, pos_y: y });
+		}
+		isDragging = false;
+		currentWidget = null;
+	});
+
+	window.renderManualDashboard = async () => {
 		const signals = await window.api.getMappedSignals();
-		controlsContainer.innerHTML = "";
+		const layout = await window.api.getLayout();
+		
+		canvasContainer.innerHTML = "";
 		
 		signals.forEach((signal) => {
+			const pos = layout.find(l => l.signal_id === signal.id) || { pos_x: 10, pos_y: 10 };
+
 			const div = document.createElement("div");
-			div.className = "control-group";
+			div.className = "canvas-widget";
+			div.dataset.id = signal.id;
+			div.style.left = pos.pos_x + "px";
+			div.style.top = pos.pos_y + "px";
 
-			const label = document.createElement("span");
-			label.className = "control-label";
+			const label = document.createElement("div");
+			label.className = "widget-label";
 			label.textContent = signal.label;
-
-			const valueDisplay = document.createElement("span");
-			valueDisplay.id = `val-${signal.label}`;
-			valueDisplay.textContent = "0.00"; 
-
-			const readBtn = document.createElement("button");
-			readBtn.textContent = "Read";
-			readBtn.onclick = async () => {
-				const result = await window.api.readRegisters({
-					deviceIp: signal.ip,
-					port: signal.port,
-					startAddress: signal.read_register,
-					length: 2,
-				});
-				if (result.success) {
-					valueDisplay.textContent = "Updated..."; 
-				}
-			};
-
 			div.appendChild(label);
-			div.appendChild(valueDisplay);
-			div.appendChild(readBtn);
-			controlsContainer.appendChild(div);
+
+			// SVG Sprites / HTML based on type
+			if (signal.type === "analog-in") {
+				// Number Read
+				const display = document.createElement("div");
+				display.className = "number-display";
+				display.id = `ui-val-${signal.id}`;
+				display.textContent = "0.00";
+				div.appendChild(display);
+			} 
+			else if (signal.type === "analog-out") {
+				// Number Write
+				const input = document.createElement("input");
+				input.type = "number";
+				input.className = "number-display";
+				input.style.width = "70px";
+				input.id = `ui-write-${signal.id}`;
+				input.value = "0.00";
+				
+				const btn = document.createElement("button");
+				btn.textContent = "SET";
+				btn.style.marginTop = "5px";
+				btn.onclick = () => window.api.modbusPreemptWrite(signal.id, parseFloat(input.value));
+
+				div.appendChild(input);
+				div.appendChild(btn);
+			}
+			else if (signal.type === "digital-in") {
+				// Digital Read (LED)
+				const led = document.createElement("div");
+				led.className = "svg-led led-off";
+				led.id = `ui-val-${signal.id}`;
+				div.appendChild(led);
+			}
+			else if (signal.type === "digital-out") {
+				// Digital Write (Toggle)
+				const toggle = document.createElement("input");
+				toggle.type = "checkbox";
+				toggle.style.transform = "scale(1.5)";
+				toggle.style.margin = "10px";
+				toggle.id = `ui-write-${signal.id}`;
+				toggle.onchange = (e) => window.api.modbusPreemptWrite(signal.id, e.target.checked ? 1 : 0);
+				div.appendChild(toggle);
+			}
+
+			canvasContainer.appendChild(div);
 		});
 	};
 	renderManualDashboard();
+	
+	document.getElementById("btn-refresh-layout").addEventListener("click", renderManualDashboard);
 
 	document.getElementById("btn-snapshot").addEventListener("click", async () => {
 		const res = await window.api.saveManualSnapshot({});
@@ -76,12 +153,126 @@ document.addEventListener("DOMContentLoaded", async () => {
 		await window.api.stopSequence();
 	});
 
+	// --- Raw Registers Explorer Logic ---
+	let currentRawDevIp = "";
+	let currentRawDevPort = 0;
+
+	window.selectDeviceForRaw = async (id, name, ip, port) => {
+		document.getElementById("raw-dev-id").value = id;
+		document.getElementById("raw-active-dev").textContent = `${name} (${ip}:${port})`;
+		currentRawDevIp = ip;
+		currentRawDevPort = port;
+		await loadRawRegisters(id);
+	};
+
+	const loadRawRegisters = async (deviceId) => {
+		const regs = await window.api.getDeviceRegisters(deviceId);
+		const tbody = document.getElementById("raw-reg-list");
+		tbody.innerHTML = "";
+		
+		regs.forEach(r => {
+			const tr = document.createElement("tr");
+			tr.innerHTML = `
+				<td>${r.type}</td>
+				<td>${r.address}</td>
+				<td>${r.description}</td>
+				<td id="raw-val-${r.id}">--</td>
+				<td>
+					${(r.type === 'coil' || r.type === 'holding') ? `<input type="text" id="raw-input-${r.id}" style="width:50px" placeholder="val"/> <button onclick="writeRawRegister(${r.id}, '${r.type}', ${r.address})">W</button>` : 'ReadOnly'}
+				</td>
+				<td>
+					<button onclick="readRawRegister(${r.id}, '${r.type}', ${r.address})">Read</button>
+					<button onclick="editRawRegister(${r.id}, '${r.type}', ${r.address}, '${r.description}')">Edit</button>
+					<button onclick="deleteRawRegister(${r.id})">Del</button>
+				</td>
+			`;
+			tbody.appendChild(tr);
+		});
+	};
+
+	window.readRawRegister = async (regId, type, address) => {
+		if(!currentRawDevIp) return alert("Select device first");
+		const res = await window.api.readRawRegister({
+			deviceIp: currentRawDevIp, port: currentRawDevPort, address, type
+		});
+		if(res.success) {
+			document.getElementById(`raw-val-${regId}`).textContent = res.value;
+		} else {
+			alert("Read Error: " + res.error);
+		}
+	};
+
+	window.writeRawRegister = async (regId, type, address) => {
+		if(!currentRawDevIp) return alert("Select device first");
+		const valStr = document.getElementById(`raw-input-${regId}`).value;
+		if(!valStr) return alert("Enter value to write");
+		
+		const res = await window.api.writeRegister({
+			deviceIp: currentRawDevIp, port: currentRawDevPort, address, value: parseFloat(valStr), type
+		});
+		if(res.success) alert("Write successful");
+		else alert("Write Error: " + res.error);
+	};
+
+	window.editRawRegister = (id, type, address, desc) => {
+		document.getElementById("raw-reg-id").value = id;
+		document.getElementById("raw-reg-type").value = type;
+		document.getElementById("raw-reg-addr").value = address;
+		document.getElementById("raw-reg-desc").value = desc;
+	};
+
+	window.deleteRawRegister = async (id) => {
+		if(confirm("Delete register?")) {
+			const devId = parseInt(document.getElementById("raw-dev-id").value, 10);
+			await window.api.deleteDeviceRegister(id);
+			if(devId) loadRawRegisters(devId);
+		}
+	};
+
+	document.getElementById("btn-save-raw-reg").addEventListener("click", async () => {
+		const devId = parseInt(document.getElementById("raw-dev-id").value, 10);
+		if(!devId) return alert("Select a device from the left panel first.");
+
+		const id = document.getElementById("raw-reg-id").value;
+		const address = parseInt(document.getElementById("raw-reg-addr").value, 10);
+
+		if (isNaN(address) || address < 0 || address > 9998) return alert("Protocol Address must be between 0 and 9998.");
+
+		const reg = {
+			device_id: devId,
+			type: document.getElementById("raw-reg-type").value,
+			address,
+			description: document.getElementById("raw-reg-desc").value
+		};
+
+		let res = id ? await window.api.updateDeviceRegister({ ...reg, id }) : await window.api.addDeviceRegister(reg);
+		
+		if(res.success) {
+			document.getElementById("btn-clear-raw-reg").click();
+			loadRawRegisters(devId);
+		} else {
+			alert("Error saving: " + res.error);
+		}
+	});
+
+	document.getElementById("btn-clear-raw-reg").addEventListener("click", () => {
+		document.getElementById("raw-reg-id").value = "";
+		document.getElementById("raw-reg-addr").value = "";
+		document.getElementById("raw-reg-desc").value = "";
+	});
+
 	// --- Device Registry Logic ---
 	const loadDevices = async () => {
 		const devices = await window.api.getDevices();
+		
 		const tbody = document.getElementById("device-list");
 		tbody.innerHTML = "";
+		
+		const ulRaw = document.getElementById("raw-dev-list");
+		ulRaw.innerHTML = "";
+
 		devices.forEach((dev) => {
+			// Main device table
 			const tr = document.createElement("tr");
 			tr.innerHTML = `
 				<td>${dev.id}</td>
@@ -94,6 +285,15 @@ document.addEventListener("DOMContentLoaded", async () => {
 				</td>
 			`;
 			tbody.appendChild(tr);
+
+			// Raw Registers Selection List
+			const li = document.createElement("li");
+			li.style.marginBottom = "8px";
+			li.innerHTML = `
+				${dev.display_name} 
+				<button class="action-btn" onclick="selectDeviceForRaw(${dev.id}, '${dev.display_name}', '${dev.ip}', ${dev.port})">Select</button>
+			`;
+			ulRaw.appendChild(li);
 		});
 	};
 
@@ -155,22 +355,37 @@ document.addEventListener("DOMContentLoaded", async () => {
 	
 	const loadMappedSignalsForCal = async () => {
 		const signals = await window.api.getMappedSignals();
-		const tbody = document.getElementById("signal-list");
-		tbody.innerHTML = "";
+		const tbodyMap = document.getElementById("signal-list");
+		const tbodyCal = document.getElementById("cal-target-list");
+		
+		tbodyMap.innerHTML = "";
+		tbodyCal.innerHTML = "";
+
 		signals.forEach((sig) => {
-			const tr = document.createElement("tr");
-			tr.innerHTML = `
+			// Populate Signal Mapping Management Table
+			const trMap = document.createElement("tr");
+			trMap.innerHTML = `
 				<td>${sig.label}</td>
-				<td>${sig.ip}:${sig.port}</td>
+				<td>${sig.type}</td>
+				<td>${sig.ip || 'N/A'}:${sig.port || 'N/A'}</td>
 				<td>${sig.encoding}</td>
-				<td>S:${sig.cal_scale_reg}, O:${sig.cal_offset_reg}, D:${sig.cal_deadzone_reg}</td>
+				<td>R:${sig.read_register}, S:${sig.cal_scale_reg}, O:${sig.cal_offset_reg}, D:${sig.cal_deadzone_reg}</td>
 				<td>
-					<button onclick="editSignal(${sig.id}, '${sig.label}', '${sig.type}', '${sig.ip}', ${sig.port}, ${sig.read_register}, '${sig.encoding}', ${sig.cal_scale_reg}, ${sig.cal_offset_reg}, ${sig.cal_deadzone_reg})">Edit</button>
+					<button onclick="editSignal(${sig.id}, '${sig.label}', '${sig.type}', ${sig.device_id}, ${sig.read_reg_id}, '${sig.encoding}', ${sig.cal_scale_reg_id}, ${sig.cal_offset_reg_id}, ${sig.cal_deadzone_reg_id})">Edit</button>
 					<button onclick="deleteSignal(${sig.id})">Del</button>
+				</td>
+			`;
+			tbodyMap.appendChild(trMap);
+
+			// Populate Calibration Target Selection Table
+			const trCal = document.createElement("tr");
+			trCal.innerHTML = `
+				<td>${sig.label}</td>
+				<td>
 					<button onclick="selectForCal(${sig.id}, '${sig.label}', '${sig.encoding}')" style="background:#007bff;color:white;">Select</button>
 				</td>
 			`;
-			tbody.appendChild(tr);
+			tbodyCal.appendChild(trCal);
 		});
 	};
 
