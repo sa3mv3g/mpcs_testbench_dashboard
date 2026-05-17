@@ -21,7 +21,9 @@ describe('Device Registry DB Operations', () => {
         const newDevice = {
             display_name: 'Test-DAQ-01',
             ip: '192.168.1.50',
-            port: 502
+            port: 502,
+            key1: 100,
+            key2: 101
         };
 
         const result = await db.addDevice(newDevice);
@@ -40,6 +42,8 @@ describe('Device Registry DB Operations', () => {
         expect(found.display_name).toBe('Test-DAQ-01');
         expect(found.ip).toBe('192.168.1.50');
         expect(found.port).toBe(502);
+        expect(found.key1).toBe(100);
+        expect(found.key2).toBe(101);
     });
 
     it('should edit an existing device successfully', async () => {
@@ -50,7 +54,9 @@ describe('Device Registry DB Operations', () => {
             id: createdDeviceId,
             display_name: 'Test-DAQ-01-Updated',
             ip: '10.0.0.100',
-            port: 8502
+            port: 8502,
+            key1: 200,
+            key2: 201
         };
 
         const result = await db.updateDevice(updatedDevice);
@@ -66,6 +72,8 @@ describe('Device Registry DB Operations', () => {
         expect(found.display_name).toBe('Test-DAQ-01-Updated');
         expect(found.ip).toBe('10.0.0.100');
         expect(found.port).toBe(8502);
+        expect(found.key1).toBe(200);
+        expect(found.key2).toBe(201);
     });
 
     it('should remove a device successfully', async () => {

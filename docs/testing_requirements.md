@@ -46,6 +46,11 @@ E2E testing validates the user interface and the Context Bridge (IPC) integratio
 *   **TC-LOG-01 (Manual Snapshot):** Trigger a snapshot; verify all current UI values are accurately recorded as a single row/entry in the SQLite database.
 *   **TC-LOG-02 (Application Crash Recovery):** Simulate an unhandled exception in the renderer; verify `electron-log` writes the stack trace to the daily rotating log file.
 
+### 3.5 Calibration Dashboard & Process
+*   **TC-CAL-UI-01 (Curve Fitting Math Accuracy):** Given a predefined set of X/Y data points, verify the linear regression algorithm accurately calculates `m` (Scale) and `c` (Offset) matching mathematical expectations.
+*   **TC-CAL-UI-02 (Endianness Buffer Encoding):** Given an `f32` value (e.g., 1.5), verify the Javascript float is correctly split into a `[highWord, lowWord]` array according to the 4 strict encodings: `ABCD` (Big-Endian), `DCBA` (Little-Endian), `BADC` (Big-Endian Byte Swap), and `CDAB` (Little-Endian Word Swap).
+*   **TC-CAL-UI-03 (Audit Log Restoration):** After saving a successful calibration, verify clicking the history record repopulates the UI textboxes with the exact previous `m`, `c`, `deadzone`, and X/Y data point values.
+
 ## 4. Automation & CI/CD
 *   **Pre-commit Hook:** Unit tests must pass before code can be committed.
 *   **Build Pipeline:** E2E tests and mock Modbus tests should run autonomously in a headless CI/CD environment prior to packaging via `electron-builder`.

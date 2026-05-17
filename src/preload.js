@@ -7,6 +7,9 @@ contextBridge.exposeInMainWorld("api", {
 
 	// Database API
 	getMappedSignals: () => ipcRenderer.invoke("db:getMappedSignals"),
+	addMappedSignal: (signal) => ipcRenderer.invoke("db:addMappedSignal", signal),
+	updateMappedSignal: (signal) => ipcRenderer.invoke("db:updateMappedSignal", signal),
+	deleteMappedSignal: (id) => ipcRenderer.invoke("db:deleteMappedSignal", id),
 	saveManualSnapshot: (data) =>
 		ipcRenderer.invoke("db:saveManualSnapshot", data),
 
@@ -24,6 +27,10 @@ contextBridge.exposeInMainWorld("api", {
 	// Calibration API
 	performCalibration: (params) =>
 		ipcRenderer.invoke("calibration:perform", params),
+	saveCalibrationHistory: (history) =>
+		ipcRenderer.invoke("db:saveCalibrationHistory", history),
+	getCalibrationHistory: (signal_label) =>
+		ipcRenderer.invoke("db:getCalibrationHistory", signal_label),
 
 	// Receive events from Main Process (e.g. state updates)
 	onStateUpdate: (callback) =>

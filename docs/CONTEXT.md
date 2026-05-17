@@ -17,17 +17,19 @@
   * *Definition*: A dedicated UI view where engineers can visually design, edit, and save Test Sequences. Users can chain together output writes, delays, and tolerance-band assertions, saving the final recipe into SQLite.
 * **Calibration Dashboard**
   * *Definition*: A dedicated UI view for hardware maintenance. Like the Manual Dashboard, it is organized intuitively by Front Panel labels (e.g., `AO-05`). It uses the Signal Mapping Dictionary to route calibration inputs to the correct hardware registers behind the scenes.
+* **Calibration Audit Log**
+  * *Definition*: A historical record maintained in SQLite that tracks every successful hardware calibration. It records the timestamp, the affected signal, the calculated data points, and the final finalized `m`, `c`, and `deadzone` values applied to the EEPROM for QA and maintenance tracking.
 * **Manual Snapshot**
   * *Definition*: A user-triggered action from the Manual Dashboard that captures the exact current state of all mapped signals and saves it to the SQLite database as a discrete "Manual Log Entry", independent of automated sequences.
 * **Signal Mapping Dictionary**
-  * *Definition*: The abstraction layer (stored in SQLite) that translates a physical port label (e.g., `AO-05`) into the underlying DAQ Device IP, its primary Data Register (for reading), AND its dedicated **Calibration Holding Register** block (Scale, Offset, Deadzone).
+  * *Definition*: The abstraction layer (stored in SQLite) that translates a physical port label (e.g., `AO-05`) into the underlying DAQ Device IP, its primary Data Register (for reading), and all required calibration metadata (Scale, Offset, and Deadzone holding register addresses, plus f32 endianness encoding). This single dictionary prevents maintaining a separate "calibration database."
 * **Hardware Calibration Protocol**
   * *Definition*: A strict three-step operation orchestrated by the Main Process: 
     1. **Zeroing**: Reset previous coefficients (Scale = 1.0, Offset = 0.0, Deadzone = 0.0).
     2. **Writing**: Write the new calibrated coefficients to the holding registers.
     3. **Handshake**: Commit the changes to firmware memory by writing a global security key (`0x5555` to `key1` and `0xDDDD` to `key2`).
 * **Device Registry**
-  * *Definition*: The central truth for what hardware exists on the network. Stored in SQLite, it tracks the IP Address, Port, Display Name, and the global security Modbus registers (`key1` and `key2`) for each DAQ device.
+  * *Definition*: The central truth for what hardware exists on the network. Stored in SQLite, it tracks the IP Address, Port, Display Name, and the Modbus holding register **addresses** for the global security keys (`key1` and `key2`) for each DAQ device.
 * **Main Process Orchestrator**
   * *Definition*: The central Node.js process in the Electron app. It is the sole owner of the Modbus TCP/IP polling loop, the SQLite database connection, and the Sequence Engine, pushing state updates to the UI via IPC.
 * **Graceful UI Degradation**

@@ -8,6 +8,7 @@
 		"pack": "electron-builder --dir",
 		"dist": "electron-builder",
 		"test": "jest",
+		"e2e": "playwright test",
 		"format:check": "biome format .",
 		"format:fix": "biome format --write .",
 		"lint": "biome lint .",
@@ -25,8 +26,12 @@
 	},
 	"devDependencies": {
 		"@biomejs/biome": "2.4.15",
+		"@playwright/test": "^1.60.0",
 		"electron": "^42.0.1",
 		"electron-builder": "^26.8.1",
 		"jest": "^30.4.2"
+	},
+	"jest": {
+		"testMatch": ["**/*.test.js"]
 	}
 }
