@@ -265,24 +265,37 @@
         </select>
       </div>
       <div class="control-group">
-        <select id="cal-sig-read" title="Read Register">
-          <option value="">Read Reg...</option>
-        </select>
-        <select id="cal-sig-enc" title="f32 Encoding">
-          <option value="ABCD">ABCD (Big-Endian)</option>
-          <option value="DCBA">DCBA (Little-Endian)</option>
-          <option value="BADC">BADC (Big-Endian Byte Swap)</option>
-          <option value="CDAB">CDAB (Little-Endian Word Swap)</option>
-        </select>
-        <select id="cal-sig-scale" title="Scale Register">
-          <option value="">Scale Reg...</option>
-        </select>
-        <select id="cal-sig-offset" title="Offset Register">
-          <option value="">Offset Reg...</option>
-        </select>
-        <select id="cal-sig-deadzone" title="Deadzone Register">
-          <option value="">Deadzone Reg...</option>
-        </select>
+        <div style="margin-bottom: 10px;">
+          <label for="cal-sig-read" class="control-label" style="width: auto; margin-right: 5px;">Read:</label>
+          <select id="cal-sig-read" title="Read Register">
+            <option value="">Read Reg...</option>
+          </select>
+          
+          <label for="cal-sig-enc" class="control-label" style="width: auto; margin-left: 15px; margin-right: 5px;">Enc:</label>
+          <select id="cal-sig-enc" title="f32 Encoding">
+            <option value="ABCD">ABCD (Big-Endian)</option>
+            <option value="DCBA">DCBA (Little-Endian)</option>
+            <option value="BADC">BADC (Big-Endian Byte Swap)</option>
+            <option value="CDAB">CDAB (Little-Endian Word Swap)</option>
+          </select>
+        </div>
+        
+        <div>
+          <label for="cal-sig-scale" class="control-label" style="width: auto; margin-right: 5px;">Scale:</label>
+          <select id="cal-sig-scale" title="Scale Register">
+            <option value="">Scale Reg...</option>
+          </select>
+          
+          <label for="cal-sig-offset" class="control-label" style="width: auto; margin-left: 15px; margin-right: 5px;">Offset:</label>
+          <select id="cal-sig-offset" title="Offset Register">
+            <option value="">Offset Reg...</option>
+          </select>
+          
+          <label for="cal-sig-deadzone" class="control-label" style="width: auto; margin-left: 15px; margin-right: 5px;">Deadzone:</label>
+          <select id="cal-sig-deadzone" title="Deadzone Register">
+            <option value="">Deadzone Reg...</option>
+          </select>
+        </div>
       </div>
       <button class="action-btn" id="btn-save-signal">Save Signal</button>
       <button class="action-btn" id="btn-clear-signal">Clear</button>

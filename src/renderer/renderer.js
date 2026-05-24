@@ -271,6 +271,9 @@ document.addEventListener("DOMContentLoaded", async () => {
 		const ulRaw = document.getElementById("raw-dev-list");
 		ulRaw.innerHTML = "";
 
+		const sigDeviceSelect = document.getElementById("cal-sig-device");
+		sigDeviceSelect.innerHTML = '<option value="">Select Device...</option>';
+
 		devices.forEach((dev) => {
 			// Main device table
 			const tr = document.createElement("tr");
@@ -294,6 +297,12 @@ document.addEventListener("DOMContentLoaded", async () => {
 				<button class="action-btn" onclick="selectDeviceForRaw(${dev.id}, '${dev.display_name}', '${dev.ip}', ${dev.port})">Select</button>
 			`;
 			ulRaw.appendChild(li);
+
+			// Populate Signal Mapping Device Dropdown
+			const opt = document.createElement("option");
+			opt.value = dev.id;
+			opt.textContent = `${dev.display_name} (${dev.ip})`;
+			document.getElementById("cal-sig-device").appendChild(opt);
 		});
 	};
 
@@ -348,6 +357,35 @@ document.addEventListener("DOMContentLoaded", async () => {
 
 	loadDevices();
 
+	document.getElementById("cal-sig-device").addEventListener("change", async (e) => {
+		const devId = parseInt(e.target.value, 10);
+		const readSelect = document.getElementById("cal-sig-read");
+		const scaleSelect = document.getElementById("cal-sig-scale");
+		const offsetSelect = document.getElementById("cal-sig-offset");
+		const dzSelect = document.getElementById("cal-sig-deadzone");
+		
+		readSelect.innerHTML = '<option value="">Read Reg...</option>';
+		scaleSelect.innerHTML = '<option value="">Scale Reg...</option>';
+		offsetSelect.innerHTML = '<option value="">Offset Reg...</option>';
+		dzSelect.innerHTML = '<option value="">Deadzone Reg...</option>';
+		
+		if (!devId) return;
+
+		const regs = await window.api.getDeviceRegisters(devId);
+		regs.forEach(r => {
+			const optLabel = `${r.description} (${r.type} ${r.address})`;
+			
+			const opt1 = document.createElement("option"); opt1.value = r.address; opt1.textContent = optLabel;
+			const opt2 = document.createElement("option"); opt2.value = r.address; opt2.textContent = optLabel;
+			const opt3 = document.createElement("option"); opt3.value = r.address; opt3.textContent = optLabel;
+			const opt4 = document.createElement("option"); opt4.value = r.address; opt4.textContent = optLabel;
+
+			readSelect.appendChild(opt1);
+			scaleSelect.appendChild(opt2);
+			offsetSelect.appendChild(opt3);
+			dzSelect.appendChild(opt4);
+		});
+	});
 
 	// --- Calibration Logic ---
 
@@ -389,17 +427,25 @@ document.addEventListener("DOMContentLoaded", async () => {
 		});
 	};
 
-	window.editSignal = (id, label, type, ip, port, readReg, enc, scaleReg, offsetReg, dzReg) => {
+	window.editSignal = async (id, label, type, deviceId, readReg, enc, scaleReg, offsetReg, dzReg) => {
 		document.getElementById("cal-sig-id").value = id;
 		document.getElementById("cal-sig-label").value = label;
 		document.getElementById("cal-sig-type").value = type;
-		document.getElementById("cal-sig-ip").value = ip;
-		document.getElementById("cal-sig-port").value = port;
-		document.getElementById("cal-sig-read").value = readReg;
-		document.getElementById("cal-sig-enc").value = enc;
-		document.getElementById("cal-sig-scale").value = scaleReg;
-		document.getElementById("cal-sig-offset").value = offsetReg;
-		document.getElementById("cal-sig-deadzone").value = dzReg;
+		
+		const deviceSelect = document.getElementById("cal-sig-device");
+		deviceSelect.value = deviceId;
+		
+		// Manually trigger the change event to populate the register dropdowns
+		deviceSelect.dispatchEvent(new Event("change"));
+
+		// Wait a tiny bit for the dropdowns to populate from SQLite
+		await new Promise(r => setTimeout(r, 100));
+
+		document.getElementById("cal-sig-read").value = readReg || "";
+		document.getElementById("cal-sig-enc").value = enc || "ABCD";
+		document.getElementById("cal-sig-scale").value = scaleReg || "";
+		document.getElementById("cal-sig-offset").value = offsetReg || "";
+		document.getElementById("cal-sig-deadzone").value = dzReg || "";
 	};
 
 	window.deleteSignal = async (id) => {
@@ -434,14 +480,15 @@ document.addEventListener("DOMContentLoaded", async () => {
 		const signal = {
 			label: document.getElementById("cal-sig-label").value,
 			type: document.getElementById("cal-sig-type").value,
-			ip: document.getElementById("cal-sig-ip").value,
-			port: parseInt(document.getElementById("cal-sig-port").value, 10),
-			read_register,
+			device_id: parseInt(document.getElementById("cal-sig-device").value, 10),
+			read_reg_id: read_register,
 			encoding: document.getElementById("cal-sig-enc").value,
-			cal_scale_reg,
-			cal_offset_reg,
-			cal_deadzone_reg
+			cal_scale_reg_id: cal_scale_reg,
+			cal_offset_reg_id: cal_offset_reg,
+			cal_deadzone_reg_id: cal_deadzone_reg
 		};
+
+		if (isNaN(signal.device_id)) return alert("Please select a valid device.");
 
 		let res = id ? await window.api.updateMappedSignal({...signal, id}) : await window.api.addMappedSignal(signal);
 		if(res.success) {
@@ -456,12 +503,11 @@ document.addEventListener("DOMContentLoaded", async () => {
 	document.getElementById("btn-clear-signal").addEventListener("click", () => {
 		document.getElementById("cal-sig-id").value = "";
 		document.getElementById("cal-sig-label").value = "";
-		document.getElementById("cal-sig-ip").value = "";
-		document.getElementById("cal-sig-port").value = "502";
-		document.getElementById("cal-sig-read").value = "";
-		document.getElementById("cal-sig-scale").value = "";
-		document.getElementById("cal-sig-offset").value = "";
-		document.getElementById("cal-sig-deadzone").value = "";
+		document.getElementById("cal-sig-device").value = "";
+		document.getElementById("cal-sig-read").innerHTML = '<option value="">Read Reg...</option>';
+		document.getElementById("cal-sig-scale").innerHTML = '<option value="">Scale Reg...</option>';
+		document.getElementById("cal-sig-offset").innerHTML = '<option value="">Offset Reg...</option>';
+		document.getElementById("cal-sig-deadzone").innerHTML = '<option value="">Deadzone Reg...</option>';
 	});
 
 	// --- Calibration Process Data Points ---

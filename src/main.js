@@ -3,6 +3,7 @@ const path = require('path');
 const log = require('electron-log');
 const db = require('./db');
 const { floatToRegisters } = require('./utils');
+const ModbusRTU = require('modbus-serial');
 
 // Configure electron-log
 log.transports.file.level = 'info';
@@ -101,22 +102,65 @@ app.on('window-all-closed', function () {
 // Modbus interactions
 ipcMain.handle('modbus:readRegisters', async (event, { deviceIp, port, startAddress, length }) => {
     log.info(`Reading registers from ${deviceIp}:${port}`);
-    // TODO: Implement actual Modbus TCP read logic using modbus-serial
-    return { success: true, data: [0, 0] }; // Mock data
+    const client = new ModbusRTU();
+    try {
+        await client.connectTCP(deviceIp, { port: parseInt(port) });
+        const res = await client.readHoldingRegisters(parseInt(startAddress), parseInt(length));
+        return { success: true, data: res.data };
+    } catch (e) {
+        log.error("Read Error:", e);
+        return { success: false, error: e.message };
+    } finally {
+        client.close();
+    }
 });
 
 ipcMain.handle('modbus:writeRegister', async (event, { deviceIp, port, address, value, type }) => {
     log.info(`Writing to ${deviceIp}:${port} addr ${address} (type: ${type}) val: ${value}`);
-    // TODO: Implement actual Modbus TCP write logic based on type (Holding vs Coil)
-    return { success: true };
+    const client = new ModbusRTU();
+    try {
+        await client.connectTCP(deviceIp, { port: parseInt(port) });
+        if (type.includes('coil')) {
+            await client.writeCoil(parseInt(address), !!value);
+        } else {
+            await client.writeRegister(parseInt(address), parseInt(value));
+        }
+        return { success: true };
+    } catch (e) {
+        log.error("Write Error:", e);
+        return { success: false, error: e.message };
+    } finally {
+        client.close();
+    }
 });
 
 ipcMain.handle('modbus:readRawRegister', async (event, { deviceIp, port, address, type }) => {
     log.info(`Reading ${type} from ${deviceIp}:${port} at ${address}`);
-    // TODO: Implement actual Modbus TCP read logic based on type
-    // Mocking returning a random value
-    const val = type.includes('coil') || type.includes('discrete') ? (Math.random() > 0.5 ? 1 : 0) : Math.floor(Math.random() * 65535);
-    return { success: true, value: val };
+    const client = new ModbusRTU();
+    try {
+        await client.connectTCP(deviceIp, { port: parseInt(port) });
+        let val;
+        if (type.includes('coil')) {
+            const res = await client.readCoils(parseInt(address), 1);
+            val = res.data[0] ? 1 : 0;
+        } else if (type.includes('discrete')) {
+            const res = await client.readDiscreteInputs(parseInt(address), 1);
+            val = res.data[0] ? 1 : 0;
+        } else if (type.includes('input')) {
+            const res = await client.readInputRegisters(parseInt(address), 1);
+            val = res.data[0];
+        } else {
+            // holding register
+            const res = await client.readHoldingRegisters(parseInt(address), 1);
+            val = res.data[0];
+        }
+        return { success: true, value: val };
+    } catch (e) {
+        log.error("Read Error:", e);
+        return { success: false, error: e.message };
+    } finally {
+        client.close();
+    }
 });
 
 ipcMain.handle("modbus:preemptWrite", async (event, { signal_id, value }) => {
