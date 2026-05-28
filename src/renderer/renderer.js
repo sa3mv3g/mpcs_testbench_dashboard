@@ -3,6 +3,8 @@
 // No Node.js APIs are available in this process because
 // `nodeIntegration` is turned off. Use `window.api` instead.
 
+const manual_dashboard_max_elements_horz = 15;
+
 window.openTab = function (evt, tabName) {
 	const tabcontent = document.getElementsByClassName("tab-content");
 	for (let i = 0; i < tabcontent.length; i++) {
@@ -69,11 +71,21 @@ document.addEventListener("DOMContentLoaded", async () => {
 	window.renderManualDashboard = async () => {
 		const signals = await window.api.getMappedSignals();
 		const layout = await window.api.getLayout();
-		
+
 		canvasContainer.innerHTML = "";
 		
-		signals.forEach((signal) => {
-			const pos = layout.find(l => l.signal_id === signal.id) || { pos_x: 10, pos_y: 10 };
+		let manual_dashboard_max_elements_horz = Math.floor(canvasContainer.clientWidth / 90) || 10;
+		if (manual_dashboard_max_elements_horz < 1) manual_dashboard_max_elements_horz = 1;
+
+		for (let i = 0; i < signals.length; i++) {
+			const signal = signals[i];
+			
+			let pos = layout.find(l => l.signal_id === signal.id);
+			if (pos && !(pos.pos_x === 10 && pos.pos_y === 10) && !(pos.pos_x === 0 && pos.pos_y === 0)) {
+				// Use database position
+			} else {
+				pos = { pos_x: 10 + (i % manual_dashboard_max_elements_horz) * 105, pos_y: 10 + parseInt(i / manual_dashboard_max_elements_horz) * 75 };
+			}
 
 			const div = document.createElement("div");
 			div.className = "canvas-widget";
@@ -100,13 +112,15 @@ document.addEventListener("DOMContentLoaded", async () => {
 				const input = document.createElement("input");
 				input.type = "number";
 				input.className = "number-display";
-				input.style.width = "70px";
+				input.style.width = "100%";
 				input.id = `ui-write-${signal.id}`;
 				input.value = "0.00";
 				
 				const btn = document.createElement("button");
 				btn.textContent = "SET";
-				btn.style.marginTop = "5px";
+				btn.style.marginTop = "2px";
+				btn.style.fontSize = "10px";
+				btn.style.padding = "1px 4px";
 				btn.onclick = () => window.api.modbusPreemptWrite(signal.id, parseFloat(input.value));
 
 				div.appendChild(input);
@@ -123,15 +137,15 @@ document.addEventListener("DOMContentLoaded", async () => {
 				// Digital Write (Toggle)
 				const toggle = document.createElement("input");
 				toggle.type = "checkbox";
-				toggle.style.transform = "scale(1.5)";
-				toggle.style.margin = "10px";
+				toggle.style.transform = "scale(1.2)";
+				toggle.style.margin = "5px";
 				toggle.id = `ui-write-${signal.id}`;
 				toggle.onchange = (e) => window.api.modbusPreemptWrite(signal.id, e.target.checked ? 1 : 0);
 				div.appendChild(toggle);
 			}
 
 			canvasContainer.appendChild(div);
-		});
+		}
 	};
 	renderManualDashboard();
 	

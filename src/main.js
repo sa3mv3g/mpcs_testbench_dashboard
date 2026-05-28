@@ -217,6 +217,10 @@ ipcMain.handle("db:saveLayoutPosition", async (event, { signal_id, pos_x, pos_y 
 	return await db.saveLayoutPosition(signal_id, pos_x, pos_y);
 });
 
+ipcMain.handle("db:clearLayout", async (event) => {
+	return await db.clearLayout();
+});
+
 // Device Registry interactions
 ipcMain.handle("db:getDevices", async () => {
 	return await db.getDevices();

@@ -291,6 +291,15 @@ function saveLayoutPosition(signal_id, pos_x, pos_y) {
     });
 }
 
+function clearLayout() {
+    return new Promise((resolve, reject) => {
+        db.run('DELETE FROM manual_dashboard_layout', function (err) {
+            if (err) resolve({ success: false, error: err.message });
+            else resolve({ success: true });
+        });
+    });
+}
+
 // --- Device Registers Operations ---
 function getDeviceRegisters(device_id) {
     return new Promise((resolve, reject) => {
@@ -363,6 +372,7 @@ module.exports = {
     getCalibrationHistory,
     getLayout,
     saveLayoutPosition,
+    clearLayout,
     getDeviceRegisters,
     addDeviceRegister,
     updateDeviceRegister,

@@ -77,7 +77,7 @@ const vector = {
 };
 
 const host = "0.0.0.0";
-const port = 502; // Default Modbus TCP port
+const port = parseInt(process.env.PORT || process.argv[2] || "502", 10);
 
 console.log(`Starting Advanced Modbus TCP Simulator on ${host}:${port}...`);
 console.log(`Fault Injection: ${FAULT_INJECTION ? "ON" : "OFF"}`);

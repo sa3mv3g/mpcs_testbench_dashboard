@@ -14,6 +14,7 @@ contextBridge.exposeInMainWorld("api", {
 	saveManualSnapshot: (data) =>
 		ipcRenderer.invoke("db:saveManualSnapshot", data),
 	getLayout: () => ipcRenderer.invoke("db:getLayout"),
+	clearLayout: () => ipcRenderer.invoke("db:clearLayout"),
 	saveLayoutPosition: (params) => ipcRenderer.invoke("db:saveLayoutPosition", params),
 
 	modbusPreemptWrite: (signal_id, value) => ipcRenderer.invoke("modbus:preemptWrite", { signal_id, value }),

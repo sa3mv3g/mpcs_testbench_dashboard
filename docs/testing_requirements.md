@@ -51,6 +51,10 @@ E2E testing validates the user interface and the Context Bridge (IPC) integratio
 *   **TC-CAL-UI-02 (Endianness Buffer Encoding):** Given an `f32` value (e.g., 1.5), verify the Javascript float is correctly split into a `[highWord, lowWord]` array according to the 4 strict encodings: `ABCD` (Big-Endian), `DCBA` (Little-Endian), `BADC` (Big-Endian Byte Swap), and `CDAB` (Little-Endian Word Swap).
 *   **TC-CAL-UI-03 (Audit Log Restoration):** After saving a successful calibration, verify clicking the history record repopulates the UI textboxes with the exact previous `m`, `c`, `deadzone`, and X/Y data point values.
 
+### 3.6 Scale & Load Testing
+*   **TC-SCALE-01 (High-Density Dashboard & Concurrency):** Spawn 10 separate `modbus-simulator.js` instances on 10 different local ports to simulate 10 distinct IPs. Verify the Main process's TCP connection pooling and concurrent socket management. Populate the SQLite database with these 10 simulated devices (mapped to `jerry_registers.json`, ~800 total registers), and verify that data snapshots are performantly stored using a JSON blob column schema to avoid schema rigidity.
+*   **TC-SCALE-02 (Live Simulator Integration & IPC Batching):** Ensure the manual dashboard successfully renders and manages all 800+ SVG controls/indicators simultaneously on a single view to test DOM rendering limits. Verify that the 500ms block-read polling loop maintains performance without freezing the UI. **Crucially, assert that the Main process aggregates all 10 device payloads into a single bulk IPC message** every 500ms to prevent saturating the Context Bridge. Verify stability even under simulated network faults.
+
 ## 4. Automation & CI/CD
 *   **Pre-commit Hook:** Unit tests must pass before code can be committed.
 *   **Build Pipeline:** E2E tests and mock Modbus tests should run autonomously in a headless CI/CD environment prior to packaging via `electron-builder`.
