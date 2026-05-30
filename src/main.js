@@ -1,5 +1,6 @@
 const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
+const fs = require('fs');
 const log = require('electron-log');
 const db = require('./db');
 const { floatToRegisters } = require('./utils');
@@ -78,6 +79,24 @@ function createWindow() {
 
 app.whenReady().then(async () => {
     const dbPath = path.join(app.getPath('userData'), 'database.sqlite');
+    // Copy seed database on fresh install
+    if (!fs.existsSync(dbPath)) {
+        const seedDbPath = app.isPackaged 
+            ? path.join(process.resourcesPath, 'assets', 'seed.db')
+            : path.join(__dirname, '..', 'assets', 'seed.db');
+            
+        try {
+            if (fs.existsSync(seedDbPath)) {
+                fs.copyFileSync(seedDbPath, dbPath);
+                log.info("Seed database copied successfully to " + dbPath);
+            } else {
+                log.warn("Seed database not found at " + seedDbPath);
+            }
+        } catch (err) {
+            log.error("Failed to copy seed database", err);
+        }
+    }
+
     try {
         await db.initDatabase(dbPath);
     } catch (error) {

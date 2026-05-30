@@ -3,9 +3,28 @@
 	"version": "1.0.0",
 	"description": "",
 	"main": "src/main.js",
+	"build": {
+		"appId": "com.mpcs.testbench.dashboard",
+		"productName": "MPCS Testbench Dashboard",
+		"directories": {
+			"output": "dist"
+		},
+		"extraResources": [
+			"assets/seed.db"
+		],
+		"win": {
+			"target": "nsis"
+		},
+		"nsis": {
+			"oneClick": false,
+			"allowToChangeInstallationDirectory": true
+		}
+	},
 	"scripts": {
+		"prestart": "powershell -Command \"Remove-Item -Path $env:APPDATA\\mpcs_testbench_dashboard\\database.sqlite -ErrorAction SilentlyContinue; exit 0\"",
 		"start": "electron .",
 		"pack": "electron-builder --dir",
+		"predist": "node create-seed.js",
 		"dist": "electron-builder",
 		"test": "jest",
 		"e2e": "playwright test",
@@ -27,11 +46,13 @@
 	"devDependencies": {
 		"@biomejs/biome": "2.4.15",
 		"@playwright/test": "^1.60.0",
-		"electron": "^42.0.1",
+		"electron": "^32.3.0",
 		"electron-builder": "^26.8.1",
 		"jest": "^30.4.2"
 	},
 	"jest": {
-		"testMatch": ["**/*.test.js"]
+		"testMatch": [
+			"**/*.test.js"
+		]
 	}
 }

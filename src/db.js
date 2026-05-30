@@ -14,7 +14,6 @@ function initDatabase(dbPath) {
             
             // Create necessary tables if they don't exist
             db.serialize(() => {
-                db.run('DROP TABLE IF EXISTS mapped_signals'); // Force recreate for new schema in dev
                 db.run(`CREATE TABLE IF NOT EXISTS mapped_signals (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     label TEXT,
