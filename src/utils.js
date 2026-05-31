@@ -27,6 +27,66 @@ function floatToRegisters(value, encoding) {
     }
 }
 
+// Convert two 16-bit Modbus registers to a float32 based on encoding
+function registersToFloat(regs, encoding) {
+    if (!regs || regs.length < 2) return 0.0;
+    const buf = Buffer.alloc(4);
+    
+    // regs[0] is Word 1 (often High Word), regs[1] is Word 2 (often Low Word)
+    const w1 = regs[0];
+    const w2 = regs[1];
+
+    switch (encoding) {
+        case 'ABCD': // Big-Endian
+            buf.writeUInt16BE(w1, 0);
+            buf.writeUInt16BE(w2, 2);
+            break;
+        case 'DCBA': // Little-Endian
+            buf[0] = w2 & 0xFF; // D
+            buf[1] = w2 >> 8;   // C
+            buf[2] = w1 & 0xFF; // B
+            buf[3] = w1 >> 8;   // A
+            break;
+        case 'BADC': // Big-Endian Byte Swap
+            buf[0] = w1 & 0xFF; // B
+            buf[1] = w1 >> 8;   // A
+            buf[2] = w2 & 0xFF; // D
+            buf[3] = w2 >> 8;   // C
+            break;
+        case 'CDAB': // Little-Endian Word Swap
+            buf.writeUInt16BE(w2, 0); // CD
+            buf.writeUInt16BE(w1, 2); // AB
+            break;
+        default: // Default to ABCD
+            buf.writeUInt16BE(w1, 0);
+            buf.writeUInt16BE(w2, 2);
+            break;
+    }
+    
+    return buf.readFloatBE(0);
+}
+
+// Convert 1-based Data Model Address to 0-based Protocol Address
+function toProtocolAddress(address, type) {
+    let num = parseInt(address, 10);
+    if (isNaN(num)) return 0;
+
+    // Holding Registers (4xxxx)
+    if (type.includes('holding') || type === 'analog-out') {
+        if (num >= 40001 && num <= 49999) return num - 40001;
+    }
+    // Input Registers (3xxxx)
+    if (type.includes('input') || type === 'analog-in') {
+        if (num >= 30001 && num <= 39999) return num - 30001;
+    }
+    // Discrete Inputs (1xxxx)
+    if (type.includes('discrete') || type === 'digital-in') {
+        if (num >= 10001 && num <= 19999) return num - 10001;
+    }
+    
+    return num - 1;
+}
+
 // --- Math Helpers ---
 // Linear Regression y = mx + c
 function calculateLinearRegression(xs, ys) {
@@ -53,16 +113,18 @@ function calculateLinearRegression(xs, ys) {
 
 // --- Validation Helpers ---
 // Validate Modbus Protocol Address based on docs/addressing_scheme.md
-// The raw protocol address must be between 0x0000 and 0x270E (0 to 9998)
+// Allow up to 49999 to permit 1-based Data Model addresses
 function validateModbusAddress(address) {
     const num = parseInt(address, 10);
     if (isNaN(num)) return false;
-    if (num < 0 || num > 9998) return false;
+    if (num < 0 || num > 49999) return false;
     return true;
 }
 
 module.exports = {
     floatToRegisters,
+    registersToFloat,
+    toProtocolAddress,
     calculateLinearRegression,
     validateModbusAddress
 };

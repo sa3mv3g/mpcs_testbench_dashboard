@@ -2,6 +2,9 @@ const { contextBridge, ipcRenderer } = require("electron");
 
 contextBridge.exposeInMainWorld("api", {
 	// Modbus API
+	connectAllDevices: () => ipcRenderer.invoke("modbus:connectAll"),
+	disconnectAllDevices: () => ipcRenderer.invoke("modbus:disconnectAll"),
+	refreshConnections: () => ipcRenderer.invoke("modbus:refreshConnections"),
 	readRegisters: (params) => ipcRenderer.invoke("modbus:readRegisters", params),
 	writeRegister: (params) => ipcRenderer.invoke("modbus:writeRegister", params),
 	readRawRegister: (params) => ipcRenderer.invoke("modbus:readRawRegister", params),
@@ -48,4 +51,7 @@ contextBridge.exposeInMainWorld("api", {
 		ipcRenderer.on("state-update", (event, data) => callback(data)),
 	removeStateUpdateListener: () =>
 		ipcRenderer.removeAllListeners("state-update"),
+
+	onNetworkUpdate: (callback) =>
+		ipcRenderer.on("network-update", (event, data) => callback(data)),
 });

@@ -23,6 +23,118 @@ window.openTab = function (evt, tabName) {
 document.addEventListener("DOMContentLoaded", async () => {
 	const controlsContainer = document.getElementById("controls-container");
 
+	// --- Global Network State ---
+	const btnConnect = document.getElementById("btn-network-connect");
+	const btnDisconnect = document.getElementById("btn-network-disconnect");
+	const btnRefresh = document.getElementById("btn-network-refresh");
+	const statusText = document.getElementById("network-status-text");
+
+	btnConnect.addEventListener("click", async () => {
+		btnConnect.disabled = true;
+		statusText.textContent = "Connecting...";
+		statusText.style.color = "#ffc107"; // Yellow/warning color
+		
+		const res = await window.api.connectAllDevices();
+		if (res && res.success) {
+			btnConnect.style.display = "none";
+			btnDisconnect.style.display = "inline-block";
+			btnRefresh.style.display = "inline-block";
+			btnConnect.disabled = false;
+			statusText.textContent = "Connected (Polling)";
+			statusText.style.color = "#28a745"; // Green
+		} else {
+			statusText.textContent = "Error Connecting";
+			statusText.style.color = "#dc3545"; // Red
+			btnConnect.disabled = false;
+		}
+	});
+
+	btnDisconnect.addEventListener("click", async () => {
+		btnDisconnect.disabled = true;
+		const res = await window.api.disconnectAllDevices();
+		if (res && res.success) {
+			btnDisconnect.style.display = "none";
+			btnRefresh.style.display = "none";
+			btnConnect.style.display = "inline-block";
+			btnDisconnect.disabled = false;
+			statusText.textContent = "Disconnected";
+			statusText.style.color = "#dc3545";
+		} else {
+			statusText.textContent = "Error Disconnecting";
+			btnDisconnect.disabled = false;
+		}
+	});
+
+	btnRefresh.addEventListener("click", async () => {
+		btnRefresh.disabled = true;
+		await window.api.refreshConnections();
+		setTimeout(() => {
+			btnRefresh.disabled = false;
+		}, 1000);
+	});
+
+	// --- Live Device Status Monitoring ---
+	const liveDeviceStatusContainer = document.getElementById("live-device-status");
+	if (window.api.onNetworkUpdate) {
+		window.api.onNetworkUpdate((statuses) => {
+			liveDeviceStatusContainer.innerHTML = "";
+			if (!statuses || statuses.length === 0) {
+				liveDeviceStatusContainer.innerHTML = "<span style='color:#666; font-size:12px;'>No devices registered</span>";
+				return;
+			}
+			statuses.forEach(s => {
+				const color = s.isConnected ? "#28a745" : "#dc3545";
+				const div = document.createElement("div");
+				div.style.display = "flex";
+				div.style.alignItems = "center";
+				div.style.fontSize = "12px";
+				div.style.marginRight = "10px";
+				div.innerHTML = `
+					<div style="width:10px; height:10px; border-radius:50%; background-color:${color}; margin-right:5px;"></div>
+					${s.ip}:${s.port}
+				`;
+				liveDeviceStatusContainer.appendChild(div);
+			});
+		});
+	}
+
+	// --- Global State Polling Listener ---
+	if (window.api.onStateUpdate) {
+		window.api.onStateUpdate((updates) => {
+			updates.forEach(update => {
+				const { signal_id, value, type } = update;
+				
+				if (type === "analog-in") {
+					const el = document.getElementById(`ui-val-${signal_id}`);
+					if (el) el.textContent = typeof value === 'number' ? value.toFixed(2) : value;
+				} 
+				else if (type === "analog-out") {
+					const el = document.getElementById(`ui-write-${signal_id}`);
+					// Only update if user is not currently interacting with the input
+					if (el && document.activeElement !== el) {
+						el.value = typeof value === 'number' ? value.toFixed(2) : value;
+					}
+				} 
+				else if (type === "digital-in") {
+					const el = document.getElementById(`ui-val-${signal_id}`);
+					if (el) {
+						if (value === 1 || value === true) {
+							el.className = "svg-led led-on";
+						} else {
+							el.className = "svg-led led-off";
+						}
+					}
+				} 
+				else if (type === "digital-out") {
+					const el = document.getElementById(`ui-write-${signal_id}`);
+					if (el) {
+						el.checked = (value === 1 || value === true);
+					}
+				}
+			});
+		});
+	}
+
 	// --- 1. Manual Dashboard Logic ---
 	const canvasContainer = document.getElementById("canvas-container");
 
@@ -30,7 +142,8 @@ document.addEventListener("DOMContentLoaded", async () => {
 	let currentWidget = null;
 	let offsetX = 0, offsetY = 0;
 
-	// Drag events
+	// Drag events - DISABLED
+	/*
 	canvasContainer.addEventListener("mousedown", (e) => {
 		const widget = e.target.closest('.canvas-widget');
 		if (widget && !e.target.closest('button') && !e.target.closest('input')) {
@@ -67,6 +180,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 		isDragging = false;
 		currentWidget = null;
 	});
+	*/
 
 	window.renderManualDashboard = async () => {
 		const signals = await window.api.getMappedSignals();
@@ -250,7 +364,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 		const id = document.getElementById("raw-reg-id").value;
 		const address = parseInt(document.getElementById("raw-reg-addr").value, 10);
 
-		if (isNaN(address) || address < 0 || address > 9998) return alert("Protocol Address must be between 0 and 9998.");
+		if (isNaN(address) || address < 0 || address > 49999) return alert("Protocol Address must be between 0 and 49999.");
 
 		const reg = {
 			device_id: devId,
@@ -346,8 +460,8 @@ document.addEventListener("DOMContentLoaded", async () => {
 		const key1 = parseInt(document.getElementById("dev-key1").value, 10);
 		const key2 = parseInt(document.getElementById("dev-key2").value, 10);
 
-		if (!isNaN(key1) && (key1 < 0 || key1 > 9998)) return alert("Key 1 Address must be between 0 and 9998.");
-		if (!isNaN(key2) && (key2 < 0 || key2 > 9998)) return alert("Key 2 Address must be between 0 and 9998.");
+		if (!isNaN(key1) && (key1 < 0 || key1 > 49999)) return alert("Key 1 Address must be between 0 and 49999.");
+		if (!isNaN(key2) && (key2 < 0 || key2 > 49999)) return alert("Key 2 Address must be between 0 and 49999.");
 
 		const device = { display_name: name, ip, port, key1: isNaN(key1) ? null : key1, key2: isNaN(key2) ? null : key2 };
 
@@ -460,6 +574,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 		document.getElementById("cal-sig-scale").value = scaleReg || "";
 		document.getElementById("cal-sig-offset").value = offsetReg || "";
 		document.getElementById("cal-sig-deadzone").value = dzReg || "";
+		updateCalSigFormState();
 	};
 
 	window.deleteSignal = async (id) => {
@@ -480,23 +595,34 @@ document.addEventListener("DOMContentLoaded", async () => {
 
 	document.getElementById("btn-save-signal").addEventListener("click", async () => {
 		const id = document.getElementById("cal-sig-id").value;
+		const type = document.getElementById("cal-sig-type").value;
+		const isAnalog = type.startsWith("analog");
 		
 		const read_register = parseInt(document.getElementById("cal-sig-read").value, 10);
-		const cal_scale_reg = parseInt(document.getElementById("cal-sig-scale").value, 10);
-		const cal_offset_reg = parseInt(document.getElementById("cal-sig-offset").value, 10);
-		const cal_deadzone_reg = parseInt(document.getElementById("cal-sig-deadzone").value, 10);
+		if (isNaN(read_register) || read_register < 0 || read_register > 49999) return alert("Read Register must be between 0 and 49999.");
 
-		if (isNaN(read_register) || read_register < 0 || read_register > 9998) return alert("Read Register must be between 0 and 9998.");
-		if (isNaN(cal_scale_reg) || cal_scale_reg < 0 || cal_scale_reg > 9998) return alert("Scale Register must be between 0 and 9998.");
-		if (isNaN(cal_offset_reg) || cal_offset_reg < 0 || cal_offset_reg > 9998) return alert("Offset Register must be between 0 and 9998.");
-		if (isNaN(cal_deadzone_reg) || cal_deadzone_reg < 0 || cal_deadzone_reg > 9998) return alert("Deadzone Register must be between 0 and 9998.");
+		let cal_scale_reg = null;
+		let cal_offset_reg = null;
+		let cal_deadzone_reg = null;
+		let encoding = null;
+
+		if (isAnalog) {
+			cal_scale_reg = parseInt(document.getElementById("cal-sig-scale").value, 10);
+			cal_offset_reg = parseInt(document.getElementById("cal-sig-offset").value, 10);
+			cal_deadzone_reg = parseInt(document.getElementById("cal-sig-deadzone").value, 10);
+			encoding = document.getElementById("cal-sig-enc").value;
+
+			if (isNaN(cal_scale_reg) || cal_scale_reg < 0 || cal_scale_reg > 49999) return alert("Scale Register must be between 0 and 49999.");
+			if (isNaN(cal_offset_reg) || cal_offset_reg < 0 || cal_offset_reg > 49999) return alert("Offset Register must be between 0 and 49999.");
+			if (isNaN(cal_deadzone_reg) || cal_deadzone_reg < 0 || cal_deadzone_reg > 49999) return alert("Deadzone Register must be between 0 and 49999.");
+		}
 
 		const signal = {
 			label: document.getElementById("cal-sig-label").value,
-			type: document.getElementById("cal-sig-type").value,
+			type: type,
 			device_id: parseInt(document.getElementById("cal-sig-device").value, 10),
 			read_reg_id: read_register,
-			encoding: document.getElementById("cal-sig-enc").value,
+			encoding: encoding,
 			cal_scale_reg_id: cal_scale_reg,
 			cal_offset_reg_id: cal_offset_reg,
 			cal_deadzone_reg_id: cal_deadzone_reg
@@ -522,7 +648,32 @@ document.addEventListener("DOMContentLoaded", async () => {
 		document.getElementById("cal-sig-scale").innerHTML = '<option value="">Scale Reg...</option>';
 		document.getElementById("cal-sig-offset").innerHTML = '<option value="">Offset Reg...</option>';
 		document.getElementById("cal-sig-deadzone").innerHTML = '<option value="">Deadzone Reg...</option>';
+		updateCalSigFormState();
 	});
+
+	const updateCalSigFormState = () => {
+		const type = document.getElementById("cal-sig-type").value;
+		const isAnalog = type.startsWith("analog");
+		
+		const controls = [
+			document.getElementById("cal-sig-enc"),
+			document.getElementById("cal-sig-scale"),
+			document.getElementById("cal-sig-offset"),
+			document.getElementById("cal-sig-deadzone")
+		];
+
+		controls.forEach(ctrl => {
+			if (ctrl) {
+				ctrl.disabled = !isAnalog;
+				if (!isAnalog) {
+					ctrl.value = ""; // Clear values if not analog
+				}
+			}
+		});
+	};
+
+	document.getElementById("cal-sig-type").addEventListener("change", updateCalSigFormState);
+	updateCalSigFormState(); // Initialize state
 
 	// --- Calibration Process Data Points ---
 	const ptsContainer = document.getElementById("data-points-container");

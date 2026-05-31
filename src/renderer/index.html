@@ -179,7 +179,20 @@
 </head>
 
 <body>
-  <h1>MPCS Testbench Dashboard</h1>
+  <h4>MPCS Testbench Dashboard</h4>
+  
+  <div style="margin-bottom: 20px; padding: 10px; background-color: #e2e8f0; border-radius: 5px; display: flex; align-items: center; gap: 15px; flex-wrap: wrap;">
+    <button class="action-btn" id="btn-network-connect" style="background-color: #28a745; color: white; border: none; border-radius: 4px;">Connect Devices</button>
+    <button class="action-btn" id="btn-network-disconnect" style="background-color: #dc3545; color: white; border: none; border-radius: 4px; display: none;">Disconnect</button>
+    <button class="action-btn" id="btn-network-refresh" style="background-color: #17a2b8; color: white; border: none; border-radius: 4px; display: none;">Refresh Offline Devices</button>
+    <div style="font-weight: bold;">
+      Network Status: <span id="network-status-text" style="color: #dc3545;">Disconnected</span>
+    </div>
+    
+    <div style="border-left: 1px solid #ccc; padding-left: 15px; display: flex; gap: 10px;" id="live-device-status">
+      <!-- Injected device statuses -->
+    </div>
+  </div>
 
   <div class="tabs">
     <button id="tab-manual" class="tablinks active" onclick="openTab(event, 'manual-dashboard')">Manual Dashboard</button>
@@ -425,7 +438,7 @@
               <option value="input">Input Register (3x)</option>
               <option value="holding">Holding Register (4x)</option>
             </select>
-            <input type="number" id="raw-reg-addr" placeholder="Address (0-9998)" style="width: 120px;" />
+            <input type="number" id="raw-reg-addr" placeholder="Address (0-49999)" style="width: 120px;" />
             <input type="text" id="raw-reg-desc" placeholder="Description" style="width: 200px;" />
             <button class="action-btn" id="btn-save-raw-reg">Save Reg</button>
             <button class="action-btn" id="btn-clear-raw-reg">Clear</button>
