@@ -39,7 +39,8 @@ class ModbusManager {
             client,
             queue: Promise.resolve(), // Mutex queue
             isConnected: false,
-            reconnectTimer: null
+            reconnectTimer: null,
+            retryCount: 0  // Tracks how many consecutive reconnect attempts have been made
         };
 
         this.connections.set(key, connectionObj);
@@ -71,6 +72,7 @@ class ModbusManager {
             log.info(`Connecting to Modbus device at ${ip}:${port}...`);
             await client.connectTCP(ip, { port: parseInt(port) });
             connectionObj.isConnected = true;
+            connectionObj.retryCount = 0;
             log.info(`Connected to ${ip}:${port}`);
         } catch (err) {
             log.error(`Failed to connect to ${ip}:${port}:`, err.message || err);
@@ -94,11 +96,15 @@ class ModbusManager {
             // Clean up the old client just in case
             try { connectionObj.client.close(); } catch(e) {}
 
-            // Simple reconnect logic (retry every 5 seconds)
+            // First retry is fast (1s) to quickly recover from transient failures.
+            // Subsequent retries back off to 5s to avoid hammering unreachable devices.
+            const retryDelay = connectionObj.retryCount === 0 ? 1000 : 5000;
+            connectionObj.retryCount++;
+
             connectionObj.reconnectTimer = setTimeout(async () => {
                 connectionObj.reconnectTimer = null;
                 if (this.connections.has(key) && !this.connections.get(key).isConnected) {
-                    log.info(`Attempting to reconnect to ${ip}:${port}...`);
+                    log.info(`Attempting to reconnect to ${ip}:${port}... (attempt ${connectionObj.retryCount})`);
                     try {
                         // Create a brand new client instance to ensure clean socket state
                         const newClient = new ModbusRTU();
@@ -119,14 +125,15 @@ class ModbusManager {
                         // Replace the old client
                         connectionObj.client = newClient;
                         connectionObj.isConnected = true;
+                        connectionObj.retryCount = 0;
 
                         log.info(`Reconnected to ${ip}:${port}`);
                     } catch (e) {
                         log.error(`Reconnect failed for ${ip}:${port}:`, e.message || e);
-                        this._handleDisconnect(ip, port); // Trigger another retry in 5s
+                        this._handleDisconnect(ip, port); // Trigger another retry
                     }
                 }
-            }, 5000);
+            }, retryDelay);
         }
     }
 
