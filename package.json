@@ -18,11 +18,17 @@
 		"nsis": {
 			"oneClick": false,
 			"allowToChangeInstallationDirectory": true
+		},
+		"linux": {
+			"target": "AppImage",
+			"category": "Utility"
 		}
 	},
 	"scripts": {
-		"prestart": "powershell -Command \"Remove-Item -Path $env:APPDATA\\mpcs_testbench_dashboard\\database.sqlite -ErrorAction SilentlyContinue; exit 0\"",
+		"prestart": "rm -f \"$HOME/.config/mpcs_testbench_dashboard/database.sqlite\"",
 		"start": "electron .",
+		"postinstall": "electron-rebuild -f -w sqlite3",
+		"rebuild": "electron-rebuild -f -w sqlite3",
 		"pack": "electron-builder --dir",
 		"predist": "node create-seed.js",
 		"dist": "electron-builder",
@@ -45,6 +51,7 @@
 	},
 	"devDependencies": {
 		"@biomejs/biome": "2.4.15",
+		"@electron/rebuild": "^4.0.4",
 		"@playwright/test": "^1.60.0",
 		"electron": "^32.3.0",
 		"electron-builder": "^26.8.1",
