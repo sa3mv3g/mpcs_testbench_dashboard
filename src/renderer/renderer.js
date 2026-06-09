@@ -105,9 +105,10 @@ document.addEventListener("DOMContentLoaded", async () => {
 				const { signal_id, value, type } = update;
 				
 				if (type === "analog-in") {
+					console.log(`[DEBUG-a4f2] analog-in signal_id=${signal_id} raw_value=${value} typeof=${typeof value}`);
 					const el = document.getElementById(`ui-val-${signal_id}`);
 					if (el) el.textContent = typeof value === 'number' ? value.toFixed(2) : value;
-				} 
+				}
 				else if (type === "analog-out") {
 					const el = document.getElementById(`ui-write-${signal_id}`);
 					// Only update if user is not currently interacting with the input
@@ -254,7 +255,15 @@ document.addEventListener("DOMContentLoaded", async () => {
 				toggle.style.transform = "scale(1.2)";
 				toggle.style.margin = "5px";
 				toggle.id = `ui-write-${signal.id}`;
-				toggle.onchange = (e) => window.api.modbusPreemptWrite(signal.id, e.target.checked ? 1 : 0);
+				toggle.onchange = async (e) => {
+					const newVal = e.target.checked ? 1 : 0;
+					const prevVal = newVal === 1 ? 0 : 1;
+					const res = await window.api.modbusPreemptWrite(signal.id, newVal);
+					if (res && !res.success) {
+						// Revert checkbox to previous state on failure
+						e.target.checked = prevVal === 1;
+					}
+				};
 				div.appendChild(toggle);
 			}
 
@@ -314,6 +323,10 @@ document.addEventListener("DOMContentLoaded", async () => {
 					<button onclick="deleteRawRegister(${r.id})">Del</button>
 				</td>
 			`;
+			tr.addEventListener("click", () => {
+				document.querySelectorAll("#raw-reg-list tr.selected").forEach(el => el.classList.remove("selected"));
+				tr.classList.add("selected");
+			});
 			tbody.appendChild(tr);
 		});
 	};
@@ -415,6 +428,10 @@ document.addEventListener("DOMContentLoaded", async () => {
 					<button class="action-btn" onclick="deleteDevice(${dev.id})">Delete</button>
 				</td>
 			`;
+			tr.addEventListener("click", () => {
+				document.querySelectorAll("#device-list tr.selected").forEach(el => el.classList.remove("selected"));
+				tr.classList.add("selected");
+			});
 			tbody.appendChild(tr);
 
 			// Raw Registers Selection List
@@ -541,6 +558,10 @@ document.addEventListener("DOMContentLoaded", async () => {
 					<button onclick="deleteSignal(${sig.id})">Del</button>
 				</td>
 			`;
+			trMap.addEventListener("click", () => {
+				document.querySelectorAll("#signal-list tr.selected").forEach(el => el.classList.remove("selected"));
+				trMap.classList.add("selected");
+			});
 			tbodyMap.appendChild(trMap);
 
 			// Populate Calibration Target Selection Table
@@ -551,6 +572,10 @@ document.addEventListener("DOMContentLoaded", async () => {
 					<button onclick="selectForCal(${sig.id}, '${sig.label}', '${sig.encoding}')" style="background:#007bff;color:white;">Select</button>
 				</td>
 			`;
+			trCal.addEventListener("click", () => {
+				document.querySelectorAll("#cal-target-list tr.selected").forEach(el => el.classList.remove("selected"));
+				trCal.classList.add("selected");
+			});
 			tbodyCal.appendChild(trCal);
 		});
 	};

@@ -175,6 +175,42 @@
       font-weight: bold;
       border-radius: 10px;
     }
+
+    #raw-reg-list tr:nth-child(odd),
+    #device-list tr:nth-child(odd),
+    #signal-list tr:nth-child(odd),
+    #cal-target-list tr:nth-child(odd) {
+      background-color: #f9f9f9;
+    }
+
+    #raw-reg-list tr:nth-child(even),
+    #device-list tr:nth-child(even),
+    #signal-list tr:nth-child(even),
+    #cal-target-list tr:nth-child(even) {
+      background-color: #e8f0fe;
+    }
+
+    #raw-reg-list tr,
+    #device-list tr,
+    #signal-list tr,
+    #cal-target-list tr {
+      cursor: pointer;
+    }
+
+    #raw-reg-list tr:hover,
+    #device-list tr:hover,
+    #signal-list tr:hover,
+    #cal-target-list tr:hover {
+      background-color: #ffd966 !important;
+    }
+
+    #raw-reg-list tr.selected,
+    #device-list tr.selected,
+    #signal-list tr.selected,
+    #cal-target-list tr.selected {
+      background-color: #ffc107 !important;
+      font-weight: bold;
+    }
   </style>
 </head>
 
@@ -208,8 +244,7 @@
       <div class="lockout-banner">SEQUENCE ACTIVE - MANUAL CONTROLS LOCKED</div>
     </div>
 
-    <h2>Manual Dashboard (Drag & Drop Canvas)</h2>
-    <p>Drag elements to arrange them. Positions auto-save.</p>
+    <h2>Manual Dashboard</h2>
 
     <div style="margin-bottom: 10px;">
       <button class="action-btn" id="btn-snapshot">Save Manual Snapshot</button>
