@@ -564,10 +564,12 @@ document.addEventListener("DOMContentLoaded", async () => {
 			});
 			tbodyMap.appendChild(trMap);
 
-			// Populate Calibration Target Selection Table
+			// Populate Calibration Target Selection Table (analog-in only)
+			if (sig.type !== 'analog-in') return;
 			const trCal = document.createElement("tr");
 			trCal.innerHTML = `
 				<td>${sig.label}</td>
+				<td>${sig.ip || 'N/A'}</td>
 				<td>
 					<button onclick="selectForCal(${sig.id}, '${sig.label}', '${sig.encoding}')" style="background:#007bff;color:white;">Select</button>
 				</td>
