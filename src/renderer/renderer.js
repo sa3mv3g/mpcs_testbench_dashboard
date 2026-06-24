@@ -98,45 +98,97 @@ document.addEventListener("DOMContentLoaded", async () => {
 		});
 	}
 
-	// --- Global State Polling Listener ---
+	// --- Global State Polling Listener (Manual Dashboard v2) ---
 	if (window.api.onStateUpdate) {
 		window.api.onStateUpdate((updates) => {
-			updates.forEach(update => {
-				const { signal_id, value, type } = update;
-				
-				if (type === "analog-in") {
-					console.log(`[DEBUG-a4f2] analog-in signal_id=${signal_id} raw_value=${value} typeof=${typeof value}`);
-					const el = document.getElementById(`ui-val-${signal_id}`);
-					if (el) el.textContent = typeof value === 'number' ? value.toFixed(2) : value;
-				}
-				else if (type === "analog-out") {
-					const el = document.getElementById(`ui-write-${signal_id}`);
-					// Only update if user is not currently interacting with the input
-					if (el && document.activeElement !== el) {
-						el.value = typeof value === 'number' ? value.toFixed(2) : value;
+			updates.forEach(({ guiId, value }) => {
+				const el = document.getElementById(guiId);
+				if (!el) return;
+
+				if (guiId.startsWith('do-')) {
+					/*
+					 * Digital output — checkbox reflects confirmed hardware state.
+					 * Skip update if the user is actively interacting with this checkbox
+					 * to avoid fighting the user's intent mid-click.
+					 */
+					if (document.activeElement !== el) {
+						el.checked = !!value;
 					}
-				} 
-				else if (type === "digital-in") {
-					const el = document.getElementById(`ui-val-${signal_id}`);
-					if (el) {
-						if (value === 1 || value === true) {
-							el.className = "svg-led led-on";
-						} else {
-							el.className = "svg-led led-off";
-						}
+				} else if (guiId.startsWith('di-')) {
+					/* Digital input LED */
+					el.className = value ? 'v2-led led-on' : 'v2-led led-off';
+				} else if (guiId.startsWith('ao-')) {
+					/*
+					 * Analog output — update slider position and readout display.
+					 * The raw register value is 0–10000 (= 0.00–100.00%).
+					 * Skip slider update if user is dragging it.
+					 */
+					if (document.activeElement !== el) {
+						el.value = value;
 					}
-				} 
-				else if (type === "digital-out") {
-					const el = document.getElementById(`ui-write-${signal_id}`);
-					if (el) {
-						el.checked = (value === 1 || value === true);
-					}
+					const roId = guiId.replace('ao-', 'ao-ro-');
+					const ro = document.getElementById(roId);
+					if (ro) ro.textContent = (value / 100).toFixed(2) + '%';
+				} else if (guiId.startsWith('ai-')) {
+					/* Analog input display */
+					el.textContent = typeof value === 'number' ? value.toFixed(3) : value;
 				}
 			});
 		});
 	}
 
-	// --- 1. Manual Dashboard Logic ---
+	// --- Manual Dashboard v2 — directWrite event handlers ---
+	/*
+	 * Device IP lookup table — mirrors JERRY_DEVICES in src/main.js.
+	 * Used by the renderer to resolve device_id → IP for directWrite calls.
+	 */
+	const JERRY_IPS = {
+		1: '169.254.4.100', 2: '169.254.4.101', 3: '169.254.4.102',
+		4: '169.254.4.103', 5: '169.254.4.104', 6: '169.254.4.105',
+		7: '169.254.4.106', 8: '169.254.4.107'
+	};
+
+	/* Digital output checkboxes — writeCoil on change */
+	document.querySelectorAll('.v2-do-cb').forEach(cb => {
+		cb.addEventListener('change', async (e) => {
+			const dev  = parseInt(e.target.dataset.dev,  10);
+			const addr = parseInt(e.target.dataset.addr, 10);
+			const val  = e.target.checked;
+			const prevVal = !val;
+			const res = await window.api.directWrite({
+				ip: JERRY_IPS[dev], port: 502,
+				fc: 'writeCoil', address: addr, value: val
+			});
+			if (res && !res.success) {
+				/* Revert checkbox on failure */
+				e.target.checked = prevVal;
+			}
+		});
+	});
+
+	/* Analog output sliders — writeRegister on input (live) */
+	document.querySelectorAll('.v2-ao-slider').forEach(slider => {
+		slider.addEventListener('input', (e) => {
+			/* Update readout immediately for responsive feel */
+			const rawVal = parseInt(e.target.value, 10);
+			const roId = e.target.id.replace('ao-', 'ao-ro-');
+			const ro = document.getElementById(roId);
+			if (ro) ro.textContent = (rawVal / 100).toFixed(2) + '%';
+		});
+
+		slider.addEventListener('change', async (e) => {
+			/* Send write only when user releases the slider */
+			const dev  = parseInt(e.target.dataset.dev,  10);
+			const addr = parseInt(e.target.dataset.addr, 10);
+			const rawVal = parseInt(e.target.value, 10);
+			await window.api.directWrite({
+				ip: JERRY_IPS[dev], port: 502,
+				fc: 'writeRegister', address: addr, value: rawVal
+			});
+		});
+	});
+
+	// --- 1. Manual Dashboard Logic (v1 — hidden) ---
 	const canvasContainer = document.getElementById("canvas-container");
 
 	let isDragging = false;

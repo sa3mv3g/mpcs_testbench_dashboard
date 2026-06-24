@@ -21,6 +21,7 @@ contextBridge.exposeInMainWorld("api", {
 	saveLayoutPosition: (params) => ipcRenderer.invoke("db:saveLayoutPosition", params),
 
 	modbusPreemptWrite: (signal_id, value) => ipcRenderer.invoke("modbus:preemptWrite", { signal_id, value }),
+	directWrite: (params) => ipcRenderer.invoke("modbus:directWrite", params),
 
 	// Device Registry API
 	getDevices: () => ipcRenderer.invoke("db:getDevices"),

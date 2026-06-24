@@ -61,30 +61,21 @@ async function getCachedSignals() {
     return _signalCache;
 }
 
-/**
- * Safely decode a register-type bucket from a block-read result.
- * Separates analog signals (which need 2 consecutive registers) from digital
- * signals (which need exactly 1 register) so they never share an offset calculation.
+/*
+ * Static device table for the Manual Dashboard v2 polling loop.
+ * Each entry maps a device_id (1-based, matching create-seed.js) to its
+ * network address. All 8 controllers share the same jerry register map.
  */
-function decodeBlockResults(bucket, blockData, minAddr, updates, key) {
-    for (const b of bucket) {
-        const offset = b.rawAddr - minAddr;
-        let val;
-        if (b.isAnalog) {
-            // Analog: 2-register IEEE 754 float. Verify both registers are within the block.
-            if (offset + 1 >= blockData.length) {
-                log.error(`[Polling Block] ${key} | Signal: "${b.s.label}" (id=${b.s.id}) | SKIPPED — analog offset ${offset} overruns block length ${blockData.length}`);
-                continue;
-            }
-            val = registersToFloat([blockData[offset], blockData[offset + 1]], b.s.encoding);
-        } else {
-            // Digital: single register / bit.
-            val = blockData[offset];
-        }
-        updates.push({ signal_id: b.s.id, value: val, type: b.s.type });
-        log.info(`[Polling Block] ${key} | Signal: "${b.s.label}" (id=${b.s.id}) | OrigAddr: ${b.origAddr} -> RawAddr: ${b.rawAddr} | offset=${offset} | encoding=${b.s.encoding || 'n/a'} | Value: ${val}`);
-    }
-}
+const JERRY_DEVICES = [
+    { id: 1, ip: '169.254.4.100', port: 502 },
+    { id: 2, ip: '169.254.4.101', port: 502 },
+    { id: 3, ip: '169.254.4.102', port: 502 },
+    { id: 4, ip: '169.254.4.103', port: 502 },
+    { id: 5, ip: '169.254.4.104', port: 502 },
+    { id: 6, ip: '169.254.4.105', port: 502 },
+    { id: 7, ip: '169.254.4.106', port: 502 },
+    { id: 8, ip: '169.254.4.107', port: 502 },
+];
 
 async function startPollingLoop() {
     if (pollingTimer) {
@@ -92,272 +83,118 @@ async function startPollingLoop() {
         return;
     }
     log.info('[Polling] startPollingLoop: starting 500 ms interval');
+
     pollingTimer = setInterval(async () => {
-        // --- Guard checks ---
         if (isSequenceActive) {
-            log.info('[Polling] tick skipped — isSequenceActive=true (test sequence has exclusive Modbus access)');
+            log.info('[Polling] tick skipped — isSequenceActive=true');
             return;
         }
         if (!isNetworkEnabled) {
-            log.info('[Polling] tick skipped — isNetworkEnabled=false (user has not connected yet)');
+            log.info('[Polling] tick skipped — isNetworkEnabled=false');
             return;
         }
-
         /* Skip this tick if the previous one is still running. */
         if (isTickRunning) {
-            log.warn('[Polling] tick skipped — previous tick still running (slow device or large signal set)');
+            log.warn('[Polling] tick skipped — previous tick still running');
             return;
         }
 
         isTickRunning = true;
         const tickStart = Date.now();
+        const updates = [];
+
         try {
-            /* Use cached signals instead of hitting DB every tick. */
-            const signals = await getCachedSignals();
-            if (signals.length === 0) {
-                log.info('[Polling] tick skipped — no mapped signals in database');
-                isTickRunning = false;
-                return;
-            }
-            log.info(`[Polling] tick start — ${signals.length} mapped signal(s) (from cache)`);
-
-            // Group by IP/Port
-            const groups = {};
-            let unmappedCount = 0;
-            signals.forEach(s => {
-                if (!s.ip || !s.port) { unmappedCount++; return; }
-                const key = `${s.ip}:${s.port}`;
-                if (!groups[key]) groups[key] = { ip: s.ip, port: s.port, signals: [] };
-                groups[key].signals.push(s);
-            });
-            const deviceKeys = Object.keys(groups);
-            log.info(`[Polling] grouped into ${deviceKeys.length} device(s): [${deviceKeys.join(', ')}]${unmappedCount ? ` | ${unmappedCount} signal(s) skipped (no ip/port)` : ''}`);
-
             /*
-             * updates[] is local to this tick invocation.
-             * Each tick creates its own array so overlapping ticks (now prevented by
-             * isTickRunning) cannot share or corrupt each other's results.
+             * Static polling plan — Manual Dashboard v2.
+             *
+             * Per device (all 8):
+             *   readCoils(0, 24)
+             *     offsets  0–15 → digital outputs  do-{d}-0  .. do-{d}-15
+             *     offsets 16–23 → digital inputs   di-{d}-16 .. di-{d}-23
+             *
+             * Device 1 only:
+             *   readHoldingRegisters(0, 10)
+             *     offset 0 → ao-1-0  (PWM0 duty, uint16)
+             *     offset 3 → ao-1-3  (PWM1 duty, uint16)
+             *     offset 6 → ao-1-6  (PWM2 duty, uint16)
+             *     offset 9 → ao-1-9  (PWM3 duty, uint16)
+             *
+             * Devices 1 and 3:
+             *   readInputRegisters(4, 8)
+             *     offsets 0+1 → ai-{d}-4   (ADC0 calibrated, float32 CDAB)
+             *     offsets 2+3 → ai-{d}-6   (ADC1 calibrated, float32 CDAB)
+             *     offsets 4+5 → ai-{d}-8   (ADC2 calibrated, float32 CDAB)
+             *     offsets 6+7 → ai-{d}-10  (ADC3 calibrated, float32 CDAB)
              */
-            const updates = [];
-            const promises = [];
-
-            // Execute queued reads per device in parallel
-            for (const key of deviceKeys) {
-                const group = groups[key];
-
-                // Silently skip disconnected devices to prevent log spam
-                const connectionObj = modbusManager.connections.get(key);
-                if (!connectionObj || !connectionObj.isConnected || !connectionObj.client || !connectionObj.client.isOpen) {
-                    log.warn(`[Polling] ${key}: skipping — device not connected (connectionObj=${!!connectionObj}, isConnected=${connectionObj && connectionObj.isConnected}, isOpen=${connectionObj && connectionObj.client && connectionObj.client.isOpen})`);
-                    continue;
+            const promises = JERRY_DEVICES.map(dev => (async () => {
+                const key = `${dev.ip}:${dev.port}`;
+                const conn = modbusManager.connections.get(key);
+                if (!conn || !conn.isConnected || !conn.client || !conn.client.isOpen) {
+                    log.warn(`[Polling] ${key}: skipping — not connected`);
+                    return;
                 }
-                log.info(`[Polling] ${key}: scheduling read for ${group.signals.length} signal(s)`);
 
-                promises.push((async () => {
-                    /*
-                     * Each device closure captures its own local array and merges into
-                     * the tick-level updates[] only after all reads succeed.
-                     */
-                    const deviceUpdates = [];
+                /* ── Coils (0–23): digital outputs + digital input mirrors ── */
+                try {
+                    await modbusManager.enqueue(dev.ip, dev.port, async (client) => {
+                        const t0 = Date.now();
+                        const res = await client.readCoils(0, 24);
+                        log.info(`[Polling] ${key}: readCoils(0,24) OK in ${Date.now() - t0} ms`);
+                        for (let i = 0; i < 16; i++) {
+                            updates.push({ guiId: `do-${dev.id}-${i}`, value: res.data[i] ? 1 : 0 });
+                        }
+                        for (let i = 16; i < 24; i++) {
+                            updates.push({ guiId: `di-${dev.id}-${i}`, value: res.data[i] ? 1 : 0 });
+                        }
+                    });
+                } catch (e) {
+                    log.error(`[Polling] ${key}: readCoils FAILED — ${e.message}`);
+                }
+
+                /* ── Holding registers (0–9): PWM duty cycles — device 1 only ── */
+                if (dev.id === 1) {
                     try {
-                        await modbusManager.enqueue(group.ip, group.port, async (client) => {
-                            const buckets = {
-                                holding: [],
-                                input: [],
-                                discrete: [],
-                                coil: []
-                            };
-
-                            for (const s of group.signals) {
-                                if (s.read_register == null) {
-                                    log.warn(`[Polling] ${key}: signal "${s.label}" (id=${s.id}) has no read_register — skipping`);
-                                    continue;
-                                }
-                                const rawAddr = toProtocolAddress(s.read_register, s.type);
-                                const origAddr = parseInt(s.read_register);
-                                const isAnalog = s.type.startsWith('analog');
-                                const len = isAnalog ? 2 : 1;
-
-                                /*
-                                 * Bucket assignment must respect signal.type FIRST.
-                                 * Relying solely on origAddr numerical thresholds misroutes signals
-                                 * configured with raw protocol addresses (0–9999) into the coil
-                                 * bucket even when they are analog/holding/input/discrete signals.
-                                 */
-                                if (s.type === 'analog-out' || s.type.includes('holding')) {
-                                    buckets.holding.push({ s, rawAddr, origAddr, isAnalog, len });
-                                } else if (s.type === 'analog-in' || s.type.includes('input')) {
-                                    buckets.input.push({ s, rawAddr, origAddr, isAnalog, len });
-                                } else if (s.type === 'digital-in' || s.type.includes('discrete')) {
-                                    buckets.discrete.push({ s, rawAddr, origAddr, isAnalog, len });
-                                } else if (s.type === 'digital-out' || s.type.includes('coil')) {
-                                    buckets.coil.push({ s, rawAddr, origAddr, isAnalog, len });
-                                } else {
-                                    // Fallback: use address range for unknown types
-                                    if (origAddr >= 40000 && origAddr < 50000) {
-                                        buckets.holding.push({ s, rawAddr, origAddr, isAnalog, len });
-                                    } else if (origAddr >= 30000 && origAddr < 40000) {
-                                        buckets.input.push({ s, rawAddr, origAddr, isAnalog, len });
-                                    } else if (origAddr >= 10000 && origAddr < 20000) {
-                                        buckets.discrete.push({ s, rawAddr, origAddr, isAnalog, len });
-                                    } else {
-                                        buckets.coil.push({ s, rawAddr, origAddr, isAnalog, len });
-                                    }
-                                }
-                            }
-                            log.info(`[Polling] ${key}: buckets — holding=${buckets.holding.length}, input=${buckets.input.length}, discrete=${buckets.discrete.length}, coil=${buckets.coil.length}`);
-
-                            // Process Holding Registers
-                            if (buckets.holding.length > 0) {
-                                try {
-                                    const minAddr = Math.min(...buckets.holding.map(b => b.rawAddr));
-                                    const maxAddr = Math.max(...buckets.holding.map(b => b.rawAddr + b.len - 1));
-                                    const length = maxAddr - minAddr + 1;
-                                    log.info(`[Polling] ${key}: holding block — rawAddr range [${minAddr}..${maxAddr}], span=${length} register(s)`);
-
-                                    if (length <= 120) { // Modbus limit is 125 registers
-                                        const t0 = Date.now();
-                                        const res = await client.readHoldingRegisters(minAddr, length);
-                                        log.info(`[Polling] ${key}: readHoldingRegisters(${minAddr}, ${length}) OK in ${Date.now() - t0} ms — raw data: [${res.data.join(',')}]`);
-                                        /* Use decodeBlockResults to safely handle mixed analog/digital signals */
-                                        decodeBlockResults(buckets.holding, res.data, minAddr, deviceUpdates, key);
-                                    } else {
-                                        log.warn(`[Polling] ${key}: holding span ${length} > 120 — falling back to individual reads`);
-                                        // Fallback to individual reads if block is too large
-                                        for (const b of buckets.holding) {
-                                            const t0 = Date.now();
-                                            const res = await client.readHoldingRegisters(b.rawAddr, b.len);
-                                            const val = b.isAnalog ? registersToFloat(res.data, b.s.encoding) : res.data[0];
-                                            deviceUpdates.push({ signal_id: b.s.id, value: val, type: b.s.type });
-                                            log.info(`[Polling Indiv] ${key} | Signal: "${b.s.label}" (id=${b.s.id}) | OrigAddr: ${b.origAddr} -> RawAddr: ${b.rawAddr} | encoding=${b.s.encoding} | Value: ${val} | ${Date.now() - t0} ms`);
-                                            await new Promise(r => setTimeout(r, 50)); // Pace individual reads
-                                        }
-                                    }
-                                } catch (e) {
-                                    log.error(`[Polling] ${key}: holding bucket FAILED — ${e.message}`);
-                                }
-                            }
-
-                            // Process Input Registers
-                            if (buckets.input.length > 0) {
-                                try {
-                                    const minAddr = Math.min(...buckets.input.map(b => b.rawAddr));
-                                    const maxAddr = Math.max(...buckets.input.map(b => b.rawAddr + b.len - 1));
-                                    const length = maxAddr - minAddr + 1;
-                                    log.info(`[Polling] ${key}: input block — rawAddr range [${minAddr}..${maxAddr}], span=${length} register(s)`);
-
-                                    if (length <= 120) {
-                                        const t0 = Date.now();
-                                        const res = await client.readInputRegisters(minAddr, length);
-                                        log.info(`[Polling] ${key}: readInputRegisters(${minAddr}, ${length}) OK in ${Date.now() - t0} ms — raw data: [${res.data.join(',')}]`);
-                                        /* Use decodeBlockResults to safely handle mixed analog/digital signals */
-                                        decodeBlockResults(buckets.input, res.data, minAddr, deviceUpdates, key);
-                                    } else {
-                                        log.warn(`[Polling] ${key}: input span ${length} > 120 — falling back to individual reads`);
-                                        for (const b of buckets.input) {
-                                            const t0 = Date.now();
-                                            const res = await client.readInputRegisters(b.rawAddr, b.len);
-                                            const val = b.isAnalog ? registersToFloat(res.data, b.s.encoding) : res.data[0];
-                                            deviceUpdates.push({ signal_id: b.s.id, value: val, type: b.s.type });
-                                            log.info(`[Polling Indiv] ${key} | Signal: "${b.s.label}" (id=${b.s.id}) | OrigAddr: ${b.origAddr} -> RawAddr: ${b.rawAddr} | encoding=${b.s.encoding} | Value: ${val} | ${Date.now() - t0} ms`);
-                                            await new Promise(r => setTimeout(r, 50)); // Pace individual reads
-                                        }
-                                    }
-                                } catch (e) {
-                                    log.error(`[Polling] ${key}: input bucket FAILED — ${e.message}`);
-                                }
-                            }
-
-                            // Process Discrete Inputs
-                            if (buckets.discrete.length > 0) {
-                                try {
-                                    const minAddr = Math.min(...buckets.discrete.map(b => b.rawAddr));
-                                    const maxAddr = Math.max(...buckets.discrete.map(b => b.rawAddr));
-                                    const length = maxAddr - minAddr + 1;
-                                    log.info(`[Polling] ${key}: discrete block — rawAddr range [${minAddr}..${maxAddr}], span=${length} bit(s)`);
-
-                                    if (length <= 2000) {
-                                        const t0 = Date.now();
-                                        const res = await client.readDiscreteInputs(minAddr, length);
-                                        log.info(`[Polling] ${key}: readDiscreteInputs(${minAddr}, ${length}) OK in ${Date.now() - t0} ms`);
-                                        for (const b of buckets.discrete) {
-                                            const offset = b.rawAddr - minAddr;
-                                            const val = res.data[offset] ? 1 : 0;
-                                            deviceUpdates.push({ signal_id: b.s.id, value: val, type: b.s.type });
-                                            log.info(`[Polling Block] ${key} | Signal: "${b.s.label}" (id=${b.s.id}) | OrigAddr: ${b.origAddr} -> RawAddr: ${b.rawAddr} | offset=${offset} | Value: ${val}`);
-                                        }
-                                    } else {
-                                        log.warn(`[Polling] ${key}: discrete span ${length} > 2000 — falling back to individual reads`);
-                                        for (const b of buckets.discrete) {
-                                            const t0 = Date.now();
-                                            const res = await client.readDiscreteInputs(b.rawAddr, 1);
-                                            const val = res.data[0] ? 1 : 0;
-                                            deviceUpdates.push({ signal_id: b.s.id, value: val, type: b.s.type });
-                                            log.info(`[Polling Indiv] ${key} | Signal: "${b.s.label}" (id=${b.s.id}) | OrigAddr: ${b.origAddr} -> RawAddr: ${b.rawAddr} | Value: ${val} | ${Date.now() - t0} ms`);
-                                            await new Promise(r => setTimeout(r, 50)); // Pace individual reads
-                                        }
-                                    }
-                                } catch (e) {
-                                    log.error(`[Polling] ${key}: discrete bucket FAILED — ${e.message}`);
-                                }
-                            }
-
-                            // Process Coils
-                            if (buckets.coil.length > 0) {
-                                try {
-                                    const minAddr = Math.min(...buckets.coil.map(b => b.rawAddr));
-                                    const maxAddr = Math.max(...buckets.coil.map(b => b.rawAddr));
-                                    const length = maxAddr - minAddr + 1;
-                                    log.info(`[Polling] ${key}: coil block — rawAddr range [${minAddr}..${maxAddr}], span=${length} bit(s)`);
-
-                                    if (length <= 2000) {
-                                        const t0 = Date.now();
-                                        const res = await client.readCoils(minAddr, length);
-                                        log.info(`[Polling] ${key}: readCoils(${minAddr}, ${length}) OK in ${Date.now() - t0} ms`);
-                                        for (const b of buckets.coil) {
-                                            const offset = b.rawAddr - minAddr;
-                                            const val = res.data[offset] ? 1 : 0;
-                                            deviceUpdates.push({ signal_id: b.s.id, value: val, type: b.s.type });
-                                            log.info(`[Polling Block] ${key} | Signal: "${b.s.label}" (id=${b.s.id}) | OrigAddr: ${b.origAddr} -> RawAddr: ${b.rawAddr} | offset=${offset} | Value: ${val}`);
-                                        }
-                                    } else {
-                                        log.warn(`[Polling] ${key}: coil span ${length} > 2000 — falling back to individual reads`);
-                                        for (const b of buckets.coil) {
-                                            const t0 = Date.now();
-                                            const res = await client.readCoils(b.rawAddr, 1);
-                                            const val = res.data[0] ? 1 : 0;
-                                            deviceUpdates.push({ signal_id: b.s.id, value: val, type: b.s.type });
-                                            log.info(`[Polling Indiv] ${key} | Signal: "${b.s.label}" (id=${b.s.id}) | OrigAddr: ${b.origAddr} -> RawAddr: ${b.rawAddr} | Value: ${val} | ${Date.now() - t0} ms`);
-                                            await new Promise(r => setTimeout(r, 50)); // Pace individual reads
-                                        }
-                                    }
-                                } catch (e) {
-                                    log.error(`[Polling] ${key}: coil bucket FAILED — ${e.message}`);
-                                }
-                            }
-                            // Merge device results inside enqueue so partial results are always kept
-                            updates.push(...deviceUpdates);
+                        await modbusManager.enqueue(dev.ip, dev.port, async (client) => {
+                            const t0 = Date.now();
+                            const res = await client.readHoldingRegisters(0, 10);
+                            log.info(`[Polling] ${key}: readHoldingRegisters(0,10) OK in ${Date.now() - t0} ms`);
+                            updates.push({ guiId: 'ao-1-0', value: res.data[0] });
+                            updates.push({ guiId: 'ao-1-3', value: res.data[3] });
+                            updates.push({ guiId: 'ao-1-6', value: res.data[6] });
+                            updates.push({ guiId: 'ao-1-9', value: res.data[9] });
                         });
                     } catch (e) {
-                        // Log but continue polling other devices
-                        log.error(`[Polling] ${key}: enqueue FAILED — ${e.message}`);
+                        log.error(`[Polling] ${key}: readHoldingRegisters FAILED — ${e.message}`);
                     }
-                })());
-            }
+                }
 
-            // Wait for all devices to finish their polling queues
+                /* ── Input registers (4–11): ADC calibrated floats — devices 1 and 3 ── */
+                if (dev.id === 1 || dev.id === 3) {
+                    try {
+                        await modbusManager.enqueue(dev.ip, dev.port, async (client) => {
+                            const t0 = Date.now();
+                            const res = await client.readInputRegisters(4, 8);
+                            log.info(`[Polling] ${key}: readInputRegisters(4,8) OK in ${Date.now() - t0} ms`);
+                            updates.push({ guiId: `ai-${dev.id}-4`,  value: registersToFloat([res.data[0], res.data[1]], 'CDAB') });
+                            updates.push({ guiId: `ai-${dev.id}-6`,  value: registersToFloat([res.data[2], res.data[3]], 'CDAB') });
+                            updates.push({ guiId: `ai-${dev.id}-8`,  value: registersToFloat([res.data[4], res.data[5]], 'CDAB') });
+                            updates.push({ guiId: `ai-${dev.id}-10`, value: registersToFloat([res.data[6], res.data[7]], 'CDAB') });
+                        });
+                    } catch (e) {
+                        log.error(`[Polling] ${key}: readInputRegisters FAILED — ${e.message}`);
+                    }
+                }
+            })());
+
             await Promise.all(promises);
-            log.info(`[Polling] tick complete — ${updates.length} update(s) collected in ${Date.now() - tickStart} ms`);
+            log.info(`[Polling] tick complete — ${updates.length} update(s) in ${Date.now() - tickStart} ms`);
 
             if (mainWindow && !mainWindow.isDestroyed() && mainWindow.webContents && updates.length > 0) {
-                log.info(`[Polling] broadcasting state-update IPC with ${updates.length} signal value(s)`);
-                mainWindow.webContents.send("state-update", updates);
-            } else if (updates.length === 0) {
-                log.info('[Polling] no updates to broadcast this tick');
+                mainWindow.webContents.send('state-update', updates);
             }
 
         } catch (e) {
-            log.error(`[Polling] unhandled error in polling tick after ${Date.now() - tickStart} ms:`, e);
+            log.error(`[Polling] unhandled error in tick after ${Date.now() - tickStart} ms:`, e);
         } finally {
             /* Always release the guard so the next tick can run. */
             isTickRunning = false;
@@ -623,6 +460,43 @@ ipcMain.handle("modbus:preemptWrite", async (event, { signal_id, value }) => {
         return { success: true };
     } catch (e) {
         log.error(`[IPC] modbus:preemptWrite — FAILED: ${e.message}`);
+        return { success: false, error: e.message };
+    }
+});
+
+/*
+ * Direct Modbus write for Manual Dashboard v2.
+ * Accepts an explicit { ip, port, fc, address, value, encoding? } payload so
+ * the renderer does not need to look up signal metadata from the DB.
+ *
+ * Supported fc values:
+ *   'writeCoil'      → client.writeCoil(address, !!value)
+ *   'writeRegister'  → client.writeRegister(address, parseInt(value))
+ *   'writeRegisters' → client.writeRegisters(address, floatToRegisters(value, encoding))
+ */
+ipcMain.handle('modbus:directWrite', async (event, { ip, port, fc, address, value, encoding }) => {
+    log.info(`[IPC] modbus:directWrite — ${ip}:${port} fc=${fc} addr=${address} value=${value} encoding=${encoding || 'n/a'}`);
+    try {
+        const t0 = Date.now();
+        await modbusManager.enqueueHighPriority(ip, port, async (client) => {
+            if (fc === 'writeCoil') {
+                await client.writeCoil(address, !!value);
+                log.info(`[IPC] modbus:directWrite — writeCoil(${address}, ${!!value}) sent`);
+            } else if (fc === 'writeRegister') {
+                await client.writeRegister(address, parseInt(value));
+                log.info(`[IPC] modbus:directWrite — writeRegister(${address}, ${parseInt(value)}) sent`);
+            } else if (fc === 'writeRegisters') {
+                const regs = floatToRegisters(parseFloat(value), encoding || 'CDAB');
+                await client.writeRegisters(address, regs);
+                log.info(`[IPC] modbus:directWrite — writeRegisters(${address}, [${regs.join(',')}]) sent`);
+            } else {
+                throw new Error(`Unknown fc: "${fc}"`);
+            }
+        });
+        log.info(`[IPC] modbus:directWrite — success in ${Date.now() - t0} ms`);
+        return { success: true };
+    } catch (e) {
+        log.error(`[IPC] modbus:directWrite — FAILED: ${e.message}`);
         return { success: false, error: e.message };
     }
 });
