@@ -33,11 +33,13 @@ let isSequenceActive = false;
 let isNetworkEnabled = false;
 let pollingTimer = null;
 
-// Issue 3 fix: guard flag to prevent overlapping polling ticks.
+/* Guard flag to prevent overlapping polling ticks. */
 let isTickRunning = false;
 
-// Issue 1 fix: in-memory cache for mapped signals.
-// Invalidated whenever a signal mapping mutation IPC is handled.
+/*
+ * In-memory cache for mapped signals.
+ * Invalidated whenever a signal mapping mutation IPC is handled.
+ */
 let _signalCache = null;
 let _signalCacheTime = 0;
 const SIGNAL_CACHE_TTL_MS = 2000; // re-fetch from DB at most every 2 s
@@ -59,9 +61,11 @@ async function getCachedSignals() {
     return _signalCache;
 }
 
-// Issue 7 fix: helper to safely decode a register-type bucket from a block-read result.
-// Separates analog signals (which need 2 consecutive registers) from digital signals
-// (which need exactly 1 register) so they never share an offset calculation.
+/**
+ * Safely decode a register-type bucket from a block-read result.
+ * Separates analog signals (which need 2 consecutive registers) from digital
+ * signals (which need exactly 1 register) so they never share an offset calculation.
+ */
 function decodeBlockResults(bucket, blockData, minAddr, updates, key) {
     for (const b of bucket) {
         const offset = b.rawAddr - minAddr;
@@ -99,7 +103,7 @@ async function startPollingLoop() {
             return;
         }
 
-        // Issue 3 fix: skip this tick if the previous one is still running.
+        /* Skip this tick if the previous one is still running. */
         if (isTickRunning) {
             log.warn('[Polling] tick skipped — previous tick still running (slow device or large signal set)');
             return;
@@ -108,7 +112,7 @@ async function startPollingLoop() {
         isTickRunning = true;
         const tickStart = Date.now();
         try {
-            // Issue 1 fix: use cached signals instead of hitting DB every tick.
+            /* Use cached signals instead of hitting DB every tick. */
             const signals = await getCachedSignals();
             if (signals.length === 0) {
                 log.info('[Polling] tick skipped — no mapped signals in database');
@@ -129,9 +133,11 @@ async function startPollingLoop() {
             const deviceKeys = Object.keys(groups);
             log.info(`[Polling] grouped into ${deviceKeys.length} device(s): [${deviceKeys.join(', ')}]${unmappedCount ? ` | ${unmappedCount} signal(s) skipped (no ip/port)` : ''}`);
 
-            // Issue 4 fix: updates[] is local to this tick invocation.
-            // Each tick creates its own array so overlapping ticks (now prevented by
-            // isTickRunning) cannot share or corrupt each other's results.
+            /*
+             * updates[] is local to this tick invocation.
+             * Each tick creates its own array so overlapping ticks (now prevented by
+             * isTickRunning) cannot share or corrupt each other's results.
+             */
             const updates = [];
             const promises = [];
 
@@ -148,8 +154,10 @@ async function startPollingLoop() {
                 log.info(`[Polling] ${key}: scheduling read for ${group.signals.length} signal(s)`);
 
                 promises.push((async () => {
-                    // Issue 4 fix: each device closure captures its own local array
-                    // and merges into the tick-level updates[] only after all reads succeed.
+                    /*
+                     * Each device closure captures its own local array and merges into
+                     * the tick-level updates[] only after all reads succeed.
+                     */
                     const deviceUpdates = [];
                     try {
                         await modbusManager.enqueue(group.ip, group.port, async (client) => {
@@ -170,14 +178,31 @@ async function startPollingLoop() {
                                 const isAnalog = s.type.startsWith('analog');
                                 const len = isAnalog ? 2 : 1;
 
-                                if (origAddr >= 40000 && origAddr < 50000) {
+                                /*
+                                 * Bucket assignment must respect signal.type FIRST.
+                                 * Relying solely on origAddr numerical thresholds misroutes signals
+                                 * configured with raw protocol addresses (0–9999) into the coil
+                                 * bucket even when they are analog/holding/input/discrete signals.
+                                 */
+                                if (s.type === 'analog-out' || s.type.includes('holding')) {
                                     buckets.holding.push({ s, rawAddr, origAddr, isAnalog, len });
-                                } else if (origAddr >= 30000 && origAddr < 40000) {
+                                } else if (s.type === 'analog-in' || s.type.includes('input')) {
                                     buckets.input.push({ s, rawAddr, origAddr, isAnalog, len });
-                                } else if (origAddr >= 10000 && origAddr < 20000) {
+                                } else if (s.type === 'digital-in' || s.type.includes('discrete')) {
                                     buckets.discrete.push({ s, rawAddr, origAddr, isAnalog, len });
-                                } else {
+                                } else if (s.type === 'digital-out' || s.type.includes('coil')) {
                                     buckets.coil.push({ s, rawAddr, origAddr, isAnalog, len });
+                                } else {
+                                    // Fallback: use address range for unknown types
+                                    if (origAddr >= 40000 && origAddr < 50000) {
+                                        buckets.holding.push({ s, rawAddr, origAddr, isAnalog, len });
+                                    } else if (origAddr >= 30000 && origAddr < 40000) {
+                                        buckets.input.push({ s, rawAddr, origAddr, isAnalog, len });
+                                    } else if (origAddr >= 10000 && origAddr < 20000) {
+                                        buckets.discrete.push({ s, rawAddr, origAddr, isAnalog, len });
+                                    } else {
+                                        buckets.coil.push({ s, rawAddr, origAddr, isAnalog, len });
+                                    }
                                 }
                             }
                             log.info(`[Polling] ${key}: buckets — holding=${buckets.holding.length}, input=${buckets.input.length}, discrete=${buckets.discrete.length}, coil=${buckets.coil.length}`);
@@ -194,7 +219,7 @@ async function startPollingLoop() {
                                         const t0 = Date.now();
                                         const res = await client.readHoldingRegisters(minAddr, length);
                                         log.info(`[Polling] ${key}: readHoldingRegisters(${minAddr}, ${length}) OK in ${Date.now() - t0} ms — raw data: [${res.data.join(',')}]`);
-                                        // Issue 7 fix: use decodeBlockResults to safely handle mixed analog/digital
+                                        /* Use decodeBlockResults to safely handle mixed analog/digital signals */
                                         decodeBlockResults(buckets.holding, res.data, minAddr, deviceUpdates, key);
                                     } else {
                                         log.warn(`[Polling] ${key}: holding span ${length} > 120 — falling back to individual reads`);
@@ -225,7 +250,7 @@ async function startPollingLoop() {
                                         const t0 = Date.now();
                                         const res = await client.readInputRegisters(minAddr, length);
                                         log.info(`[Polling] ${key}: readInputRegisters(${minAddr}, ${length}) OK in ${Date.now() - t0} ms — raw data: [${res.data.join(',')}]`);
-                                        // Issue 7 fix: use decodeBlockResults
+                                        /* Use decodeBlockResults to safely handle mixed analog/digital signals */
                                         decodeBlockResults(buckets.input, res.data, minAddr, deviceUpdates, key);
                                     } else {
                                         log.warn(`[Polling] ${key}: input span ${length} > 120 — falling back to individual reads`);
@@ -334,7 +359,7 @@ async function startPollingLoop() {
         } catch (e) {
             log.error(`[Polling] unhandled error in polling tick after ${Date.now() - tickStart} ms:`, e);
         } finally {
-            // Issue 3 fix: always release the guard so the next tick can run.
+            /* Always release the guard so the next tick can run. */
             isTickRunning = false;
         }
 
@@ -485,7 +510,7 @@ ipcMain.handle('modbus:writeRegister', async (event, { deviceIp, port, address, 
     log.info(`[IPC] modbus:writeRegister — ${deviceIp}:${port} address=${address} type=${type} value=${value}`);
     try {
         const t0 = Date.now();
-        // Issue 8 fix: use enqueueHighPriority so this write skips the 50 ms pace delay.
+        /* Use enqueueHighPriority so this write skips the 50 ms pace delay. */
         await modbusManager.enqueueHighPriority(deviceIp, port, async (client) => {
             const rawAddr = toProtocolAddress(address, type);
             log.info(`[IPC] modbus:writeRegister — rawAddr=${rawAddr} type=${type}`);
@@ -544,7 +569,7 @@ ipcMain.handle("modbus:preemptWrite", async (event, { signal_id, value }) => {
     log.info(`[IPC] modbus:preemptWrite — signal_id=${signal_id} value=${value}`);
 
     try {
-        // Issue 1 fix: use cached signals
+        /* Use cached signals instead of hitting DB on every write. */
         const signals = await getCachedSignals();
         const sig = signals.find(s => s.id === signal_id);
 
@@ -555,7 +580,7 @@ ipcMain.handle("modbus:preemptWrite", async (event, { signal_id, value }) => {
         } else {
             log.info(`[IPC] modbus:preemptWrite — writing ${value} to signal "${sig.label}" at ${sig.ip}:${sig.port} register=${sig.read_register} type=${sig.type} encoding=${sig.encoding}`);
             const t0 = Date.now();
-            // Issue 8 fix: use enqueueHighPriority so this write skips the 50 ms pace delay.
+            /* Use enqueueHighPriority so this write skips the 50 ms pace delay. */
             await modbusManager.enqueueHighPriority(sig.ip, sig.port, async (client) => {
                 const rawAddr = toProtocolAddress(sig.read_register, sig.type);
                 const origAddr = parseInt(sig.read_register);
@@ -563,23 +588,33 @@ ipcMain.handle("modbus:preemptWrite", async (event, { signal_id, value }) => {
                 log.info(`[IPC] modbus:preemptWrite — rawAddr=${rawAddr} origAddr=${origAddr} isAnalog=${isAnalog}`);
 
                 if (isAnalog) {
-                    const regs = floatToRegisters(parseFloat(value), sig.encoding);
-                    log.info(`[IPC] modbus:preemptWrite — floatToRegisters(${value}, ${sig.encoding}) => [${regs.join(',')}]`);
-                    if (origAddr >= 40000 && origAddr < 50000) {
+                    /*
+                     * Analog writes always target holding registers regardless of whether
+                     * the address is a 5-digit data-model address or a raw protocol address.
+                     * Use sig.type to decide, not origAddr numerical thresholds.
+                     */
+                    if (sig.type === 'analog-out' || sig.type.includes('holding')) {
+                        const regs = floatToRegisters(parseFloat(value), sig.encoding);
+                        log.info(`[IPC] modbus:preemptWrite — floatToRegisters(${value}, ${sig.encoding}) => [${regs.join(',')}]`);
                         await client.writeRegisters(rawAddr, regs);
                         log.info(`[IPC] modbus:preemptWrite — writeRegisters(${rawAddr}, [${regs.join(',')}]) sent`);
                     } else {
-                        throw new Error("Cannot write analog value to non-holding register");
+                        throw new Error(`Cannot write analog value to non-holding register type "${sig.type}"`);
                     }
                 } else {
-                    if (origAddr >= 40000 && origAddr < 50000) {
-                        await client.writeRegister(rawAddr, parseInt(value));
-                        log.info(`[IPC] modbus:preemptWrite — writeRegister(${rawAddr}, ${parseInt(value)}) sent`);
-                    } else if (origAddr < 10000) {
+                    /*
+                     * Use sig.type to select writeCoil vs writeRegister.
+                     * The old origAddr < 10000 check incorrectly triggered writeCoil for
+                     * holding registers configured with raw protocol addresses (e.g. 15).
+                     */
+                    if (sig.type === 'digital-out' || sig.type.includes('coil')) {
                         await client.writeCoil(rawAddr, !!value);
                         log.info(`[IPC] modbus:preemptWrite — writeCoil(${rawAddr}, ${!!value}) sent`);
+                    } else if (sig.type.includes('holding') || sig.type === 'analog-out') {
+                        await client.writeRegister(rawAddr, parseInt(value));
+                        log.info(`[IPC] modbus:preemptWrite — writeRegister(${rawAddr}, ${parseInt(value)}) sent`);
                     } else {
-                        throw new Error("Cannot write to read-only address space");
+                        throw new Error(`Cannot write to read-only signal type "${sig.type}"`);
                     }
                 }
             });
@@ -598,19 +633,19 @@ ipcMain.handle('db:getMappedSignals', async (event) => {
 });
 
 ipcMain.handle("db:addMappedSignal", async (event, signal) => {
-    // Issue 1 fix: invalidate cache on any mutation
+    /* Invalidate signal cache on any mutation */
     invalidateSignalCache();
     return await db.addMappedSignal(signal);
 });
 
 ipcMain.handle("db:updateMappedSignal", async (event, signal) => {
-    // Issue 1 fix: invalidate cache on any mutation
+    /* Invalidate signal cache on any mutation */
     invalidateSignalCache();
     return await db.updateMappedSignal(signal);
 });
 
 ipcMain.handle("db:deleteMappedSignal", async (event, id) => {
-    // Issue 1 fix: invalidate cache on any mutation
+    /* Invalidate signal cache on any mutation */
     invalidateSignalCache();
     return await db.deleteMappedSignal(id);
 });
@@ -731,7 +766,7 @@ ipcMain.handle('calibration:perform', async (event, { label, scale, offset, dead
     log.info(`[IPC] calibration:perform — label="${label}" scale=${scale} offset=${offset} deadzone=${deadzone}`);
 
     try {
-        // Issue 1 fix: use cached signals
+        /* Use cached signals instead of hitting DB on every calibration request. */
         const signals = await getCachedSignals();
         const sig = signals.find(s => s.label === label);
         if (!sig) {
@@ -755,7 +790,7 @@ ipcMain.handle('calibration:perform', async (event, { label, scale, offset, dead
         log.info(`[IPC] calibration:perform — encoded regs: scale=[${scaleRegs.join(',')}] offset=[${offsetRegs.join(',')}] deadzone=[${deadzoneRegs.join(',')}]`);
 
         const t0 = Date.now();
-        // Issue 8 fix: calibration writes are user-initiated — use high priority.
+        /* Calibration writes are user-initiated — use high priority to skip the pace delay. */
         await modbusManager.enqueueHighPriority(sig.ip, sig.port, async (client) => {
             const rawScale = toProtocolAddress(sig.cal_scale_reg, 'holding');
             log.info(`[IPC] calibration:perform — writeRegisters scale: reg=${sig.cal_scale_reg} rawAddr=${rawScale} regs=[${scaleRegs.join(',')}]`);
