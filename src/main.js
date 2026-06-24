@@ -423,13 +423,24 @@ ipcMain.handle('modbus:disconnectAll', async () => {
     isNetworkEnabled = false;
     log.info('[IPC] modbus:disconnectAll — isNetworkEnabled set to false, polling ticks will be skipped');
     const devices = await db.getDevices();
-    for (const dev of devices) {
-        if (dev.ip && dev.port) {
-            log.info(`[IPC] modbus:disconnectAll — disconnecting ${dev.ip}:${dev.port}`);
-            // Issue 9 fix: disconnect() now awaits queue drain before closing socket.
-            await modbusManager.disconnect(dev.ip, dev.port);
-        }
-    }
+
+    /*
+     * Disconnect all devices in parallel so a single slow or unresponsive device
+     * does not block the teardown of all others.  Each disconnect is wrapped in
+     * its own catch so one failure cannot prevent the remaining devices from
+     * being disconnected.
+     */
+    await Promise.all(
+        devices
+            .filter(dev => dev.ip && dev.port)
+            .map(dev => {
+                log.info(`[IPC] modbus:disconnectAll — disconnecting ${dev.ip}:${dev.port}`);
+                return modbusManager.disconnect(dev.ip, dev.port).catch(e =>
+                    log.error(`[IPC] modbus:disconnectAll — error disconnecting ${dev.ip}:${dev.port}: ${e.message}`)
+                );
+            })
+    );
+
     log.info('[IPC] modbus:disconnectAll — done');
     return { success: true };
 });
@@ -635,11 +646,30 @@ ipcMain.handle("db:addDevice", async (event, device) => {
 });
 
 ipcMain.handle("db:updateDevice", async (event, device) => {
-    // If IP/Port changed, we might need to disconnect the old one.
-    // For simplicity, just reconnect the new one.
+    /*
+     * Fetch the old device record BEFORE updating so we can disconnect the old
+     * IP/Port if it changed, preventing a connection and socket leak.
+     */
+    const oldDevices = await db.getDevices();
+    const oldDev = oldDevices.find(d => d.id === device.id);
+
     const res = await db.updateDevice(device);
-    if (res.success && device.ip && device.port) {
-        modbusManager.connect(device.ip, device.port).catch(e => log.error("Auto-connect failed", e));
+    if (res.success) {
+        // Disconnect the old IP/Port if it differs from the new one
+        if (oldDev && oldDev.ip && oldDev.port) {
+            const oldKey = `${oldDev.ip}:${oldDev.port}`;
+            const newKey = `${device.ip}:${device.port}`;
+            if (oldKey !== newKey) {
+                log.info(`[IPC] db:updateDevice — IP/Port changed from ${oldKey} to ${newKey}, disconnecting old connection`);
+                await modbusManager.disconnect(oldDev.ip, oldDev.port).catch(e =>
+                    log.error(`[IPC] db:updateDevice — failed to disconnect old ${oldKey}: ${e.message}`)
+                );
+            }
+        }
+        // Connect to the new IP/Port
+        if (device.ip && device.port) {
+            modbusManager.connect(device.ip, device.port).catch(e => log.error("Auto-connect failed", e));
+        }
     }
     return res;
 });
@@ -650,8 +680,18 @@ ipcMain.handle("db:deleteDevice", async (event, id) => {
     const dev = devices.find(d => d.id === id);
 
     const res = await db.deleteDevice(id);
+    /*
+     * Await the disconnect so the socket is fully closed and the queue is drained
+     * before returning success to the UI.  Errors are caught and logged so they
+     * don't crash the IPC handler or block the DB deletion response.
+     */
     if (res.success && dev && dev.ip && dev.port) {
-        modbusManager.disconnect(dev.ip, dev.port);
+        try {
+            await modbusManager.disconnect(dev.ip, dev.port);
+            log.info(`[IPC] db:deleteDevice — socket for ${dev.ip}:${dev.port} closed cleanly`);
+        } catch (e) {
+            log.error(`[IPC] db:deleteDevice — error disconnecting ${dev.ip}:${dev.port}: ${e.message}`);
+        }
     }
     return res;
 });
