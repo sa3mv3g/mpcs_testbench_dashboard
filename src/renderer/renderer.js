@@ -195,10 +195,13 @@ document.addEventListener("DOMContentLoaded", async () => {
 		for (let i = 0; i < signals.length; i++) {
 			const signal = signals[i];
 			
+			/*
+			 * The old condition rejected (0,0) as "uninitialized" because it was falsy.
+			 * A saved position is valid as long as the database row exists (pos != null).
+			 * Only fall back to the auto-grid when no DB row is present.
+			 */
 			let pos = layout.find(l => l.signal_id === signal.id);
-			if (pos && !(pos.pos_x === 10 && pos.pos_y === 10) && !(pos.pos_x === 0 && pos.pos_y === 0)) {
-				// Use database position
-			} else {
+			if (!pos) {
 				pos = { pos_x: 10 + (i % manual_dashboard_max_elements_horz) * 105, pos_y: 10 + parseInt(i / manual_dashboard_max_elements_horz) * 75 };
 			}
 
@@ -721,14 +724,57 @@ document.addEventListener("DOMContentLoaded", async () => {
 	document.getElementById("btn-add-point").addEventListener("click", () => addPointRow());
 	addPointRow(); addPointRow(); // Init 2 points
 
-	document.getElementById("btn-cal-calculate").addEventListener("click", () => {
-		const xs = Array.from(document.getElementsByClassName("pt-x")).map(i => parseFloat(i.value));
-		const ys = Array.from(document.getElementsByClassName("pt-y")).map(i => parseFloat(i.value));
-		
-		if(xs.length < 2 || xs.some(isNaN) || ys.some(isNaN)) {
-			alert("Need at least 2 valid data points.");
-			return;
+	/**
+	 * Shared helper that validates all visible calibration point inputs and
+	 * highlights invalid ones with a red outline.
+	 * Returns { xs, ys } on success, or null when validation fails so callers
+	 * can bail out early.
+	 */
+	const validateCalibrationPoints = () => {
+		const xInputs = Array.from(document.getElementsByClassName("pt-x"));
+		const yInputs = Array.from(document.getElementsByClassName("pt-y"));
+
+		let hasError = false;
+
+		// Reset previous error styling
+		[...xInputs, ...yInputs].forEach(el => {
+			el.style.outline = "";
+			el.style.borderColor = "";
+		});
+
+		const xs = xInputs.map((el, idx) => {
+			const v = parseFloat(el.value);
+			if (el.value.trim() === "" || isNaN(v)) {
+				el.style.outline = "2px solid #dc3545";
+				el.style.borderColor = "#dc3545";
+				hasError = true;
+			}
+			return v;
+		});
+
+		const ys = yInputs.map((el, idx) => {
+			const v = parseFloat(el.value);
+			if (el.value.trim() === "" || isNaN(v)) {
+				el.style.outline = "2px solid #dc3545";
+				el.style.borderColor = "#dc3545";
+				hasError = true;
+			}
+			return v;
+		});
+
+		if (hasError || xs.length < 2) {
+			alert("Please fill in at least 2 valid numeric data points (highlighted in red).");
+			return null;
 		}
+
+		return { xs, ys };
+	};
+
+	document.getElementById("btn-cal-calculate").addEventListener("click", () => {
+		/* Use shared validator so invalid inputs are highlighted before calculating. */
+		const points = validateCalibrationPoints();
+		if (!points) return;
+		const { xs, ys } = points;
 
 		// Linear Regression y = mx + c
 		let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
@@ -763,8 +809,14 @@ document.addEventListener("DOMContentLoaded", async () => {
 
 		if(isNaN(m) || isNaN(c) || isNaN(dz)) return alert("Invalid m, c, or deadzone values.");
 
-		const xs = Array.from(document.getElementsByClassName("pt-x")).map(i => parseFloat(i.value));
-		const ys = Array.from(document.getElementsByClassName("pt-y")).map(i => parseFloat(i.value));
+		/*
+		 * Validate data points before sending to main process.
+		 * Without this check, empty inputs produce NaN arrays that get written
+		 * as corrupted coefficients to the hardware EEPROM.
+		 */
+		const points = validateCalibrationPoints();
+		if (!points) return;
+		const { xs, ys } = points;
 		const dataPoints = xs.map((x, i) => ({ expected: x, actual: ys[i] }));
 
 		// 1. Program
