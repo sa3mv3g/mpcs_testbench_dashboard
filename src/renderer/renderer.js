@@ -130,8 +130,8 @@ document.addEventListener("DOMContentLoaded", async () => {
 					const ro = document.getElementById(roId);
 					if (ro) ro.textContent = (value / 100).toFixed(2) + '%';
 				} else if (guiId.startsWith('ai-')) {
-					/* Analog input display */
-					el.textContent = typeof value === 'number' ? value.toFixed(3) : value;
+					/* Analog input display — 6.2f format to prevent overflow */
+					el.textContent = typeof value === 'number' ? value.toFixed(2) : value;
 				}
 			});
 		});
@@ -157,7 +157,8 @@ document.addEventListener("DOMContentLoaded", async () => {
 			const prevVal = !val;
 			const res = await window.api.directWrite({
 				ip: JERRY_IPS[dev], port: 502,
-				fc: 'writeCoil', address: addr, value: val
+				fc: 'writeCoil', address: addr, value: val,
+				unitId: dev
 			});
 			if (res && !res.success) {
 				/* Revert checkbox on failure */
@@ -183,7 +184,8 @@ document.addEventListener("DOMContentLoaded", async () => {
 			const rawVal = parseInt(e.target.value, 10);
 			await window.api.directWrite({
 				ip: JERRY_IPS[dev], port: 502,
-				fc: 'writeRegister', address: addr, value: rawVal
+				fc: 'writeRegister', address: addr, value: rawVal,
+				unitId: dev
 			});
 		});
 	});

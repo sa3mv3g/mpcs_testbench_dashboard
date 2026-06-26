@@ -67,14 +67,14 @@ async function getCachedSignals() {
  * network address. All 8 controllers share the same jerry register map.
  */
 const JERRY_DEVICES = [
-    { id: 1, ip: '169.254.4.100', port: 502 },
-    { id: 2, ip: '169.254.4.101', port: 502 },
-    { id: 3, ip: '169.254.4.102', port: 502 },
-    { id: 4, ip: '169.254.4.103', port: 502 },
-    { id: 5, ip: '169.254.4.104', port: 502 },
-    { id: 6, ip: '169.254.4.105', port: 502 },
-    { id: 7, ip: '169.254.4.106', port: 502 },
-    { id: 8, ip: '169.254.4.107', port: 502 },
+    { id: 1, ip: '169.254.4.100', port: 502, unitId: 1 },
+    { id: 2, ip: '169.254.4.101', port: 502, unitId: 2 },
+    { id: 3, ip: '169.254.4.102', port: 502, unitId: 3 },
+    { id: 4, ip: '169.254.4.103', port: 502, unitId: 4 },
+    { id: 5, ip: '169.254.4.104', port: 502, unitId: 5 },
+    { id: 6, ip: '169.254.4.105', port: 502, unitId: 6 },
+    { id: 7, ip: '169.254.4.106', port: 502, unitId: 7 },
+    { id: 8, ip: '169.254.4.107', port: 502, unitId: 8 },
 ];
 
 async function startPollingLoop() {
@@ -137,6 +137,7 @@ async function startPollingLoop() {
                 /* ── Coils (0–23): digital outputs + digital input mirrors ── */
                 try {
                     await modbusManager.enqueue(dev.ip, dev.port, async (client) => {
+                        client.setID(dev.unitId);
                         const t0 = Date.now();
                         const res = await client.readCoils(0, 24);
                         log.info(`[Polling] ${key}: readCoils(0,24) OK in ${Date.now() - t0} ms`);
@@ -155,6 +156,7 @@ async function startPollingLoop() {
                 if (dev.id === 1) {
                     try {
                         await modbusManager.enqueue(dev.ip, dev.port, async (client) => {
+                            client.setID(dev.unitId);
                             const t0 = Date.now();
                             const res = await client.readHoldingRegisters(0, 10);
                             log.info(`[Polling] ${key}: readHoldingRegisters(0,10) OK in ${Date.now() - t0} ms`);
@@ -172,6 +174,7 @@ async function startPollingLoop() {
                 if (dev.id === 1 || dev.id === 3) {
                     try {
                         await modbusManager.enqueue(dev.ip, dev.port, async (client) => {
+                            client.setID(dev.unitId);
                             const t0 = Date.now();
                             const res = await client.readInputRegisters(4, 8);
                             log.info(`[Polling] ${key}: readInputRegisters(4,8) OK in ${Date.now() - t0} ms`);
@@ -474,11 +477,12 @@ ipcMain.handle("modbus:preemptWrite", async (event, { signal_id, value }) => {
  *   'writeRegister'  → client.writeRegister(address, parseInt(value))
  *   'writeRegisters' → client.writeRegisters(address, floatToRegisters(value, encoding))
  */
-ipcMain.handle('modbus:directWrite', async (event, { ip, port, fc, address, value, encoding }) => {
-    log.info(`[IPC] modbus:directWrite — ${ip}:${port} fc=${fc} addr=${address} value=${value} encoding=${encoding || 'n/a'}`);
+ipcMain.handle('modbus:directWrite', async (event, { ip, port, fc, address, value, encoding, unitId }) => {
+    log.info(`[IPC] modbus:directWrite — ${ip}:${port} fc=${fc} addr=${address} value=${value} encoding=${encoding || 'n/a'} unitId=${unitId || 1}`);
     try {
         const t0 = Date.now();
         await modbusManager.enqueueHighPriority(ip, port, async (client) => {
+            if (unitId) client.setID(unitId);
             if (fc === 'writeCoil') {
                 await client.writeCoil(address, !!value);
                 log.info(`[IPC] modbus:directWrite — writeCoil(${address}, ${!!value}) sent`);
