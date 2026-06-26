@@ -55,4 +55,7 @@ contextBridge.exposeInMainWorld("api", {
 
 	onNetworkUpdate: (callback) =>
 		ipcRenderer.on("network-update", (event, data) => callback(data)),
+
+	// Send events to Main Process (e.g. active dashboard changes)
+	setActiveDashboard: (tabName) => ipcRenderer.send("app:setActiveDashboard", tabName),
 });

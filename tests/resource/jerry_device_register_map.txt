@@ -1,0 +1,134 @@
+================================================================================
+MODBUS REGISTER MAP - JERRY_DEVICE
+================================================================================
+
+Slave ID:    1
+Version:     1.0.0
+
+--------------------------------------------------------------------------------
+
+COILS (FC 01 Read / FC 05 Write Single / FC 15 Write Multiple)
+--------------------------------------------------------------------------------
+Address    Name                           Access       Description
+--------------------------------------------------------------------------------
+0          digital_output_0               read_write   Digital output 0 control
+1          digital_output_1               read_write   Digital output 1 control
+2          digital_output_2               read_write   Digital output 2 control
+3          digital_output_3               read_write   Digital output 3 control
+4          digital_output_4               read_write   Digital output 4 control
+5          digital_output_5               read_write   Digital output 5 control
+6          digital_output_6               read_write   Digital output 6 control
+7          digital_output_7               read_write   Digital output 7 control
+8          digital_output_8               read_write   Digital output 8 control
+9          digital_output_9               read_write   Digital output 9 control
+10         digital_output_10              read_write   Digital output 10 control
+11         digital_output_11              read_write   Digital output 11 control
+12         digital_output_12              read_write   Digital output 12 control
+13         digital_output_13              read_write   Digital output 13 control
+14         digital_output_14              read_write   Digital output 14 control
+15         digital_output_15              read_write   Digital output 15 control
+16         digital_input_0                read_only    Digital input 0 status (mirror of discrete input)
+17         digital_input_1                read_only    Digital input 1 status (mirror of discrete input)
+18         digital_input_2                read_only    Digital input 2 status (mirror of discrete input)
+19         digital_input_3                read_only    Digital input 3 status (mirror of discrete input)
+20         digital_input_4                read_only    Digital input 4 status (mirror of discrete input)
+21         digital_input_5                read_only    Digital input 5 status (mirror of discrete input)
+22         digital_input_6                read_only    Digital input 6 status (mirror of discrete input)
+23         digital_input_7                read_only    Digital input 7 status (mirror of discrete input)
+24         pwm_0_enable                   read_write   PWM channel 0 enable
+25         pwm_1_enable                   read_write   PWM channel 1 enable
+26         pwm_2_enable                   read_write   PWM channel 2 enable
+27         pwm_3_enable                   read_write   PWM channel 3 enable
+30         rtc_commit                     read_write   Write 1 to commit the cached RTC holding registers to the hardware RTC
+
+DISCRETE INPUTS (FC 02 Read Only)
+--------------------------------------------------------------------------------
+Address    Name                           Group           Description
+--------------------------------------------------------------------------------
+0          digital_input_0                digital_inputs  Digital input 0 status
+1          digital_input_1                digital_inputs  Digital input 1 status
+2          digital_input_2                digital_inputs  Digital input 2 status
+3          digital_input_3                digital_inputs  Digital input 3 status
+4          digital_input_4                digital_inputs  Digital input 4 status
+5          digital_input_5                digital_inputs  Digital input 5 status
+6          digital_input_6                digital_inputs  Digital input 6 status
+7          digital_input_7                digital_inputs  Digital input 7 status
+
+HOLDING REGISTERS (FC 03 Read / FC 06 Write Single / FC 16 Write Multiple)
+--------------------------------------------------------------------------------
+Address    Name                      Type       Size   Access       Description
+--------------------------------------------------------------------------------
+0          pwm_0_duty_cycle          uint16     1      read_write   PWM channel 0 duty cycle (0-10000 = 0.00-100.00%) [Range: 0-10000] [%]
+1          pwm_0_frequency           uint32     2      read_write   PWM channel 0 frequency in Hz [Range: 1-100000] [Hz]
+3          pwm_1_duty_cycle          uint16     1      read_write   PWM channel 1 duty cycle (0-10000 = 0.00-100.00%) [Range: 0-10000] [%]
+4          pwm_1_frequency           uint32     2      read_write   PWM channel 1 frequency in Hz [Range: 1-100000] [Hz]
+6          pwm_2_duty_cycle          uint16     1      read_write   PWM channel 2 duty cycle (0-10000 = 0.00-100.00%) [Range: 0-10000] [%]
+7          pwm_2_frequency           uint32     2      read_write   PWM channel 2 frequency in Hz [Range: 1-100000] [Hz]
+9          pwm_3_duty_cycle          uint16     1      read_write   PWM channel 3 duty cycle (0-10000 = 0.00-100.00%) [Range: 0-10000] [%]
+10         pwm_3_frequency           uint32     2      read_write   PWM channel 3 frequency in Hz [Range: 1-100000] [Hz]
+100        adc_0_value               uint16     1      read_only    ADC channel 0 raw value (mirror of input register)
+101        adc_1_value               uint16     1      read_only    ADC channel 1 raw value (mirror of input register)
+102        adc_2_value               uint16     1      read_only    ADC channel 2 raw value (mirror of input register)
+103        adc_3_value               uint16     1      read_only    ADC channel 3 raw value (mirror of input register)
+104        adc_0_scale_factor        float32    2      read_write   ADC channel 0 scale factor
+106        adc_0_offset_term         float32    2      read_write   ADC channel 0 offset term
+108        adc_0_dead_zone           float32    2      read_write   ADC channel 0 dead zone
+110        adc_1_scale_factor        float32    2      read_write   ADC channel 1 scale factor
+112        adc_1_offset_term         float32    2      read_write   ADC channel 1 offset term
+114        adc_1_dead_zone           float32    2      read_write   ADC channel 1 dead zone
+116        adc_2_scale_factor        float32    2      read_write   ADC channel 2 scale factor
+118        adc_2_offset_term         float32    2      read_write   ADC channel 2 offset term
+120        adc_2_dead_zone           float32    2      read_write   ADC channel 2 dead zone
+122        adc_3_scale_factor        float32    2      read_write   ADC channel 3 scale factor
+124        adc_3_offset_term         float32    2      read_write   ADC channel 3 offset term
+126        adc_3_dead_zone           float32    2      read_write   ADC channel 3 dead zone
+128        key1                      uint16     1      read_write   key1
+129        key2                      uint16     1      read_write   key2
+200        system_tick_low           uint16     1      read_only    System tick counter low word
+201        system_tick_high          uint16     1      read_only    System tick counter high word
+210        rtc_year                  uint16     1      read_write   RTC year (2000-2099) [Range: 2000-2099]
+211        rtc_month                 uint16     1      read_write   RTC month (1-12) [Range: 1-12]
+212        rtc_day                   uint16     1      read_write   RTC day of month (1-31) [Range: 1-31]
+213        rtc_hour                  uint16     1      read_write   RTC hour (0-23) [Range: 0-23]
+214        rtc_minute                uint16     1      read_write   RTC minute (0-59) [Range: 0-59]
+215        rtc_second                uint16     1      read_write   RTC second (0-59) [Range: 0-59]
+300        app_version_major         uint16     1      read_only    Application version major (mirror of input register)
+301        app_version_minor         uint16     1      read_only    Application version minor (mirror of input register)
+302        app_version_patch         uint16     1      read_only    Application version patch (mirror of input register)
+303        app_build_number          uint32     2      read_only    Application build number (mirror of input register)
+
+INPUT REGISTERS (FC 04 Read Only)
+--------------------------------------------------------------------------------
+Address    Name                      Type       Size   Description
+--------------------------------------------------------------------------------
+0          adc_0_value               uint16     1      ADC channel 0 raw value (12-bit, 0-4095)
+1          adc_1_value               uint16     1      ADC channel 1 raw value (12-bit, 0-4095)
+2          adc_2_value               uint16     1      ADC channel 2 raw value (12-bit, 0-4095)
+3          adc_3_value               uint16     1      ADC channel 3 raw value (12-bit, 0-4095)
+4          adc_0_calibrated_value    float32    2      ADC channel 0 calibrated value
+6          adc_1_calibrated_value    float32    2      ADC channel 1 calibrated value
+8          adc_2_calibrated_value    float32    2      ADC channel 2 calibrated value
+10         adc_3_calibrated_value    float32    2      ADC channel 3 calibrated value
+100        app_version_major         uint16     1      Application version major number
+101        app_version_minor         uint16     1      Application version minor number
+102        app_version_patch         uint16     1      Application version patch number
+103        app_build_number          uint32     2      Application build number
+
+REGISTER GROUPS
+--------------------------------------------------------------------------------
+  digital_outputs      - 16 digital output pins controlled via Modbus
+  digital_inputs       - 8 digital input pins read via Modbus
+  pwm_control          - 4 PWM output channels with duty cycle and frequency control
+  adc_values           - 4 ADC input channels (12-bit resolution)
+  system_info          - System information including tick counter
+  date_time            - Real-time clock date and time registers
+  version_info         - Application version information
+
+STATISTICS
+--------------------------------------------------------------------------------
+  Total Coils:             29
+  Total Discrete Inputs:   8
+  Total Holding Registers: 38
+  Total Input Registers:   12
+
+================================================================================

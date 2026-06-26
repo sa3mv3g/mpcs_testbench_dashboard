@@ -9,7 +9,7 @@ const modbusManager = require('./modbus-manager');
 // Configure electron-log
 log.transports.file.level = 'info';
 log.transports.file.maxSize = 100 * 1024 * 1024; // 100MB
-log.transports.console.level = false; // Disable console printing
+log.transports.console.level = 'debug'; // Disable console printing
 
 log.info('Application starting...');
 
@@ -32,6 +32,12 @@ let mainWindow;
 let isSequenceActive = false;
 let isNetworkEnabled = false;
 let pollingTimer = null;
+let activeDashboard = '';
+
+ipcMain.on('app:setActiveDashboard', (event, tabName) => {
+    log.info(`[IPC Main] Active dashboard set to: ${tabName}`);
+    activeDashboard = tabName;
+});
 
 /* Guard flag to prevent overlapping polling ticks. */
 let isTickRunning = false;
@@ -91,6 +97,10 @@ async function startPollingLoop() {
         }
         if (!isNetworkEnabled) {
             log.info('[Polling] tick skipped — isNetworkEnabled=false');
+            return;
+        }
+        if (activeDashboard !== 'manual-dashboard-v2') {
+            log.info(`[Polling] tick skipped — manual dashboard (v2) not active (current: ${activeDashboard})`);
             return;
         }
         /* Skip this tick if the previous one is still running. */
@@ -654,6 +664,13 @@ ipcMain.handle('calibration:perform', async (event, { label, scale, offset, dead
         log.info(`[IPC] calibration:perform — found signal id=${sig.id} at ${sig.ip}:${sig.port} type=${sig.type} encoding=${sig.encoding}`);
         log.info(`[IPC] calibration:perform — cal registers: scale=${sig.cal_scale_reg} offset=${sig.cal_offset_reg} deadzone=${sig.cal_deadzone_reg}`);
 
+        log.info(`[IPC] calibration:perform — cal registers BEFORE db join fetch: scale=${sig.cal_scale_reg} offset=${sig.cal_offset_reg} deadzone=${sig.cal_deadzone_reg}`);
+        log.info(`[IPC] calibration:perform — sig object: ${JSON.stringify(sig)}`);
+        if (sig.cal_scale_reg == null || sig.cal_offset_reg == null || sig.cal_deadzone_reg == null) {
+            log.error(`[IPC] calibration:perform — missing calibration registers for signal ${label}`);
+            throw new Error(`Signal mapping for "${label}" is missing calibration registers (scale, offset, or deadzone).`);
+        }
+
         const devices = await db.getDevices();
         const dev = devices.find(d => d.ip === sig.ip && d.port === sig.port);
         if (!dev) {
@@ -671,24 +688,29 @@ ipcMain.handle('calibration:perform', async (event, { label, scale, offset, dead
         /* Calibration writes are user-initiated — use high priority to skip the pace delay. */
         await modbusManager.enqueueHighPriority(sig.ip, sig.port, async (client) => {
             const rawScale = toProtocolAddress(sig.cal_scale_reg, 'holding');
-            log.info(`[IPC] calibration:perform — writeRegisters scale: reg=${sig.cal_scale_reg} rawAddr=${rawScale} regs=[${scaleRegs.join(',')}]`);
+            log.debug(`[IPC] calibration:perform — writeRegisters scale: reg=${sig.cal_scale_reg} rawAddr=${rawScale} regs=[${scaleRegs.join(',')}]`);
+            log.debug(`[DEBUG] Writing scale. Raw address: ${rawScale}, Values: [${scaleRegs.join(', ')}]`);
             await client.writeRegisters(rawScale, scaleRegs);
 
             const rawOffset = toProtocolAddress(sig.cal_offset_reg, 'holding');
-            log.info(`[IPC] calibration:perform — writeRegisters offset: reg=${sig.cal_offset_reg} rawAddr=${rawOffset} regs=[${offsetRegs.join(',')}]`);
+            log.debug(`[IPC] calibration:perform — writeRegisters offset: reg=${sig.cal_offset_reg} rawAddr=${rawOffset} regs=[${offsetRegs.join(',')}]`);
+            log.debug(`[DEBUG] Writing offset. Raw address: ${rawOffset}, Values: [${offsetRegs.join(', ')}]`);
             await client.writeRegisters(rawOffset, offsetRegs);
 
             const rawDz = toProtocolAddress(sig.cal_deadzone_reg, 'holding');
-            log.info(`[IPC] calibration:perform — writeRegisters deadzone: reg=${sig.cal_deadzone_reg} rawAddr=${rawDz} regs=[${deadzoneRegs.join(',')}]`);
+            log.debug(`[IPC] calibration:perform — writeRegisters deadzone: reg=${sig.cal_deadzone_reg} rawAddr=${rawDz} regs=[${deadzoneRegs.join(',')}]`);
+            log.debug(`[DEBUG] Writing deadzone. Raw address: ${rawDz}, Values: [${deadzoneRegs.join(', ')}]`);
             await client.writeRegisters(rawDz, deadzoneRegs);
 
             // Handshake
             if (dev.key1 !== null && dev.key2 !== null) {
                 const rawKey1 = toProtocolAddress(dev.key1, 'holding');
                 const rawKey2 = toProtocolAddress(dev.key2, 'holding');
-                log.info(`[IPC] calibration:perform — handshake: writing 0x5555 to key1 reg=${dev.key1} rawAddr=${rawKey1}`);
+                log.debug(`[IPC] calibration:perform — handshake: writing 0x5555 to key1 reg=${dev.key1} rawAddr=${rawKey1}`);
+                log.debug(`[DEBUG] Writing handshake key1. Raw address: ${rawKey1}, Value: 0x5555`);
                 await client.writeRegister(rawKey1, 0x5555);
-                log.info(`[IPC] calibration:perform — handshake: writing 0xDDDD to key2 reg=${dev.key2} rawAddr=${rawKey2}`);
+                log.debug(`[IPC] calibration:perform — handshake: writing 0xDDDD to key2 reg=${dev.key2} rawAddr=${rawKey2}`);
+                log.debug(`[DEBUG] Writing handshake key2. Raw address: ${rawKey2}, Value: 0xDDDD`);
                 await client.writeRegister(rawKey2, 0xDDDD);
                 log.info(`[IPC] calibration:perform — handshake complete`);
             } else {

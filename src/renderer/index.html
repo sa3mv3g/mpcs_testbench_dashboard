@@ -5,13 +5,20 @@
   <meta charset="UTF-8">
   <title>MPCS Testbench Dashboard</title>
   <style>
+    /* Global explicit re-enable for ALL inputs so nothing stays locked */
+    input, textarea, select {
+      user-select: auto !important;
+      pointer-events: auto !important;
+      -webkit-user-select: auto !important;
+    }
+
     body {
       font-family: Arial, sans-serif;
       margin: 0;
       padding: 20px;
       background-color: #f4f4f9;
-      user-select: none;
-      /* Helps with dragging */
+      /* Helps with dragging but breaks inputs if globally applied */
+      /* user-select: none; */
     }
 
     /* ── Manual Dashboard v2 ─────────────────────────────────────────── */
@@ -212,6 +219,7 @@
     }
 
     .canvas-widget {
+      user-select: none;
       position: absolute;
       cursor: grab;
       border: 1px solid transparent;

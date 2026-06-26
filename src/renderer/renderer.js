@@ -6,6 +6,8 @@
 const manual_dashboard_max_elements_horz = 15;
 
 window.openTab = function (evt, tabName) {
+	console.log(`[Renderer] Switching to tab: ${tabName}`);
+	window.api.setActiveDashboard(tabName);
 	const tabcontent = document.getElementsByClassName("tab-content");
 	for (let i = 0; i < tabcontent.length; i++) {
 		tabcontent[i].style.display = "none";

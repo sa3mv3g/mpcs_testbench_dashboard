@@ -87,6 +87,7 @@ function registersToFloat(regs, encoding) {
  * passing 0 returned -1, crashing the Modbus read.
  */
 function toProtocolAddress(address, type) {
+    if (address === null || address === undefined) return 0;
     let num = parseInt(address, 10);
     if (isNaN(num)) return 0;
 
