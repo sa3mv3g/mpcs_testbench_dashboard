@@ -7,10 +7,12 @@ class ModbusManager {
         this.connections = new Map();
         // Per-device queue depth counter for observability
         this._queueDepth = new Map();
-        // Issue 6 fix: cache last-broadcast status to suppress unchanged log spam
+        /* Cache last-broadcast status to suppress unchanged log spam */
         this._lastStatusJson = '';
-        // Issue 8 fix: priority queue support — each device has a separate high-priority slot
-        // (implemented via a flag; the next enqueue call checks it and runs immediately)
+        /*
+         * Priority queue support — each device has a separate high-priority slot
+         * implemented via a flag; the next enqueue call checks it and runs immediately.
+         */
     }
 
     _getKey(ip, port) {
@@ -19,15 +21,17 @@ class ModbusManager {
 
     /**
      * Initializes connections for a list of devices in parallel.
-     * Issue 5 fix: stagger connect attempts with jitter to avoid thundering-herd.
-     * Issue 10 fix: reset retryCount when explicitly re-initialising a device.
+     * Connect attempts are staggered with per-device jitter to avoid thundering-herd.
+     * retryCount is reset when explicitly re-initialising a device.
      */
     async initDevices(devices) {
         const valid = devices.filter(d => d.ip && d.port);
         log.info(`[ModbusManager] initDevices: initialising ${valid.length} device(s): ${valid.map(d => `${d.ip}:${d.port}`).join(', ')}`);
 
-        // Issue 10 fix: if a device is already tracked (e.g. reconnect after failure),
-        // reset its retryCount so the fast 1 s retry path is available again.
+        /*
+         * If a device is already tracked (e.g. reconnect after failure), reset its
+         * retryCount so the fast 1 s retry path is available again.
+         */
         for (const device of valid) {
             const key = this._getKey(device.ip, device.port);
             const existing = this.connections.get(key);
@@ -37,8 +41,10 @@ class ModbusManager {
             }
         }
 
-        // Issue 5 fix: stagger parallel connect attempts by 50–200 ms jitter per device
-        // to avoid all TCP SYNs hitting the network simultaneously.
+        /*
+         * Stagger parallel connect attempts by 50–200 ms jitter per device
+         * to avoid all TCP SYNs hitting the network simultaneously.
+         */
         await Promise.allSettled(valid.map((device, idx) => {
             const jitter = idx * 50 + Math.floor(Math.random() * 50);
             return new Promise(resolve => setTimeout(resolve, jitter))
@@ -68,8 +74,10 @@ class ModbusManager {
             isConnected: false,
             reconnectTimer: null,
             retryCount: 0,  // Tracks how many consecutive reconnect attempts have been made
-            // Issue 8 fix: flag set by enqueueHighPriority to skip the 50 ms pace delay
-            // for the next operation so writes are not delayed behind polls.
+            /*
+             * Flag set by enqueueHighPriority to skip the 50 ms pace delay for the
+             * next operation so user-initiated writes are not delayed behind polls.
+             */
             _skipNextPaceDelay: false,
         };
 
@@ -117,7 +125,7 @@ class ModbusManager {
 
     /**
      * Handles disconnection and attempts to reconnect.
-     * Issue 5 fix: add per-device jitter to reconnect delay to avoid thundering herd.
+     * Per-device jitter is added to the reconnect delay to avoid thundering herd.
      */
     _handleDisconnect(ip, port) {
         const key = this._getKey(ip, port);
@@ -136,8 +144,10 @@ class ModbusManager {
                 log.warn(`[ModbusManager] _handleDisconnect(${key}): error closing old socket — ${e.message}`);
             }
 
-            // Issue 5 fix: add random jitter (0–500 ms) to stagger reconnect attempts
-            // across multiple offline devices so they don't all fire simultaneously.
+            /*
+             * Add random jitter (0–500 ms) to stagger reconnect attempts across
+             * multiple offline devices so they don't all fire simultaneously.
+             */
             const baseDelay = connectionObj.retryCount === 0 ? 1000 : 5000;
             const jitter = Math.floor(Math.random() * 500);
             const retryDelay = baseDelay + jitter;
@@ -165,6 +175,28 @@ class ModbusManager {
 
                         const t0 = Date.now();
                         await newClient.connectTCP(ip, { port: parseInt(port) });
+
+                        /*
+                         * After connectTCP resolves, check whether disconnect() was called
+                         * while we were awaiting the TCP handshake.  If the device has been
+                         * removed from the map (or isConnected was cleared), the new socket
+                         * is now orphaned — close it immediately so no descriptor leaks.
+                         */
+                        if (!this.connections.has(key) || !this.connections.get(key).isConnected === false) {
+                            /* If the key is gone OR the stored obj is a different connectionObj, close the socket. */
+                            const current = this.connections.get(key);
+                            if (!current || current !== connectionObj) {
+                                log.warn(`[ModbusManager] reconnect(${key}): device was removed during connectTCP — closing orphaned socket`);
+                                try { newClient.close(); } catch (_) {}
+                                return;
+                            }
+                        }
+                        /* Guard against isConnected being cleared by disconnect() */
+                        if (!connectionObj.isConnected && !this.connections.has(key)) {
+                            log.warn(`[ModbusManager] reconnect(${key}): disconnect() called during connectTCP — closing orphaned socket`);
+                            try { newClient.close(); } catch (_) {}
+                            return;
+                        }
                         
                         // Replace the old client
                         connectionObj.client = newClient;
@@ -186,29 +218,33 @@ class ModbusManager {
     }
 
     /**
-     * Disconnects a specific device.
-     * Issue 9 fix: mark as disconnecting so in-flight enqueue operations abort cleanly.
+     * Disconnects a specific device and marks it as disconnecting so in-flight
+     * enqueue operations abort cleanly.
      */
     async disconnect(ip, port) {
         const key = this._getKey(ip, port);
         const connectionObj = this.connections.get(key);
         if (connectionObj) {
             log.info(`[ModbusManager] disconnect(${key}): removing from map and closing socket`);
-            // Issue 9 fix: set isConnected=false BEFORE removing from map so that any
-            // in-flight enqueue() that already captured connectionObj by reference will
-            // see the disconnected state and abort rather than use a closed socket.
+            /*
+             * Set isConnected=false BEFORE removing from map so that any in-flight
+             * enqueue() that already captured connectionObj by reference will see the
+             * disconnected state and abort rather than use a closed socket.
+             */
             connectionObj.isConnected = false;
             this.connections.delete(key); // Remove so auto-reconnect stops
             this._queueDepth.delete(key);
-            // Cancel any pending reconnect timer so it doesn't fire after disconnect
-            // and corrupt the next connect() call for the same device.
+            /* Cancel any pending reconnect timer so it doesn't fire after disconnect
+             * and corrupt the next connect() call for the same device. */
             if (connectionObj.reconnectTimer) {
                 log.info(`[ModbusManager] disconnect(${key}): cancelling pending reconnect timer`);
                 clearTimeout(connectionObj.reconnectTimer);
                 connectionObj.reconnectTimer = null;
             }
-            // Issue 9 fix: wait for the current queue to drain before closing the socket
-            // so in-flight operations complete cleanly rather than hitting a closed port.
+            /*
+             * Wait for the current queue to drain before closing the socket so
+             * in-flight operations complete cleanly rather than hitting a closed port.
+             */
             try {
                 await connectionObj.queue;
             } catch (_) {
@@ -227,7 +263,7 @@ class ModbusManager {
 
     /**
      * Returns an array of current connection statuses.
-     * Issue 6 fix: only log when the status has actually changed.
+     * Only logs when the status has actually changed to suppress spam.
      */
     getConnectionStatuses() {
         const statuses = [];
@@ -242,7 +278,7 @@ class ModbusManager {
                 queueDepth: this._queueDepth.get(key) || 0
             });
         }
-        // Issue 6 fix: suppress log if nothing changed since last call
+        /* Suppress log if nothing changed since last call */
         const json = JSON.stringify(statuses);
         if (json !== this._lastStatusJson) {
             log.info(`[ModbusManager] getConnectionStatuses CHANGED: ${json}`);
@@ -252,7 +288,7 @@ class ModbusManager {
     }
 
     /**
-     * Issue 8 fix: high-priority enqueue for user-initiated writes.
+     * High-priority enqueue for user-initiated writes.
      * Sets a flag that causes the NEXT operation in the queue to skip the 50 ms
      * inter-operation pace delay, so the write executes as soon as the current
      * poll completes without the extra 50 ms dead time.
@@ -269,10 +305,10 @@ class ModbusManager {
 
     /**
      * Executes a Modbus operation sequentially using a promise queue (Mutex).
-     * Issue 2 fix: the 50 ms pace delay is skipped when _skipNextPaceDelay is set
-     *              (used by enqueueHighPriority for user-initiated writes).
-     * @param {string} ip 
-     * @param {number} port 
+     * The 50 ms pace delay is skipped when _skipNextPaceDelay is set
+     * (used by enqueueHighPriority for user-initiated writes).
+     * @param {string} ip
+     * @param {number} port
      * @param {function} operation - Async function taking the 'client' as an argument.
      */
     async enqueue(ip, port, operation) {
@@ -306,7 +342,7 @@ class ModbusManager {
 
         return new Promise((resolve, reject) => {
             connectionObj.queue = connectionObj.queue.then(async () => {
-                // Issue 9 fix: abort if the device was disconnected while we were waiting
+                /* Abort if the device was disconnected while we were waiting in the queue */
                 if (!connectionObj.isConnected) {
                     log.warn(`[ModbusManager] enqueue(${key}): device disconnected while queued — aborting operation`);
                     this._queueDepth.set(key, Math.max(0, (this._queueDepth.get(key) || 1) - 1));
@@ -327,10 +363,12 @@ class ModbusManager {
                     const elapsed = Date.now() - t0;
                     log.info(`[ModbusManager] enqueue(${key}): operation completed in ${elapsed} ms`);
 
-                    // Issue 2 fix: only apply the 50 ms inter-operation pace delay when
-                    // there are more operations waiting in the queue AND the high-priority
-                    // flag has not been set. This eliminates dead time for the last op in
-                    // a batch and for user-initiated writes.
+                    /*
+                     * Only apply the 50 ms inter-operation pace delay when there are more
+                     * operations waiting in the queue AND the high-priority flag has not
+                     * been set.  This eliminates dead time for the last op in a batch and
+                     * for user-initiated writes.
+                     */
                     const remainingDepth = (this._queueDepth.get(key) || 1) - 1;
                     const skipDelay = connectionObj._skipNextPaceDelay;
                     connectionObj._skipNextPaceDelay = false; // consume the flag

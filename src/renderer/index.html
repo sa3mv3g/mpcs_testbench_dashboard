@@ -5,13 +5,147 @@
   <meta charset="UTF-8">
   <title>MPCS Testbench Dashboard</title>
   <style>
+    /* Global explicit re-enable for ALL inputs so nothing stays locked */
+    input, textarea, select {
+      user-select: auto !important;
+      pointer-events: auto !important;
+      -webkit-user-select: auto !important;
+    }
+
     body {
       font-family: Arial, sans-serif;
       margin: 0;
       padding: 20px;
       background-color: #f4f4f9;
-      user-select: none;
-      /* Helps with dragging */
+      /* Helps with dragging but breaks inputs if globally applied */
+      /* user-select: none; */
+    }
+
+    /* ── Manual Dashboard v2 ─────────────────────────────────────────── */
+    #manual-dashboard-v2 {
+      overflow-x: auto;
+    }
+
+    .v2-device-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 6px;
+      margin-bottom: 10px;
+      padding: 8px;
+      background: #fff;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+    }
+
+    .v2-device-label {
+      font-weight: bold;
+      font-size: 11px;
+      min-width: 70px;
+      padding-top: 4px;
+      color: #333;
+    }
+
+    .v2-signal-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+    }
+
+    .v2-widget {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 52px;
+      padding: 3px 2px;
+      background: #f8f8f8;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 9px;
+      text-align: center;
+    }
+
+    .v2-widget-label {
+      font-size: 8px;
+      color: #555;
+      margin-bottom: 2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      width: 100%;
+      text-align: center;
+    }
+
+    /* Digital output checkbox */
+    .v2-do-cb {
+      transform: scale(1.1);
+      cursor: pointer;
+      margin: 2px 0;
+    }
+
+    /* Digital input LED */
+    .v2-led {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      margin: 2px auto;
+    }
+
+    .v2-led.led-off {
+      background: #555;
+      box-shadow: inset 0 2px 3px rgba(0,0,0,0.5);
+    }
+
+    .v2-led.led-on {
+      background: #0f0;
+      box-shadow: 0 0 6px #0f0, inset 0 2px 3px rgba(255,255,255,0.4);
+    }
+
+    /* Analog input display */
+    .v2-ai-display {
+      background: #222;
+      color: #0f0;
+      font-family: monospace;
+      font-size: 9px;
+      padding: 1px 2px;
+      border-radius: 2px;
+      min-width: 56px;
+      max-width: 56px;
+      text-align: center;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    /* Analog output slider widget */
+    .v2-ao-widget {
+      width: 80px;
+    }
+
+    .v2-ao-slider {
+      width: 100%;
+      margin: 2px 0;
+      cursor: pointer;
+    }
+
+    .v2-ao-readout {
+      background: #222;
+      color: #0f0;
+      font-family: monospace;
+      font-size: 9px;
+      padding: 1px 2px;
+      border-radius: 2px;
+      width: 100%;
+      text-align: center;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .v2-section-divider {
+      width: 1px;
+      background: #ccc;
+      align-self: stretch;
+      margin: 0 4px;
     }
 
     /* Existing tabs styles */
@@ -85,6 +219,7 @@
     }
 
     .canvas-widget {
+      user-select: none;
       position: absolute;
       cursor: grab;
       border: 1px solid transparent;
@@ -231,7 +366,7 @@
   </div>
 
   <div class="tabs">
-    <button id="tab-manual" class="tablinks active" onclick="openTab(event, 'manual-dashboard')">Manual Dashboard</button>
+    <button id="tab-manual-v2" class="tablinks active" onclick="openTab(event, 'manual-dashboard-v2')">Manual Dashboard</button>
     <button id="tab-sequence" class="tablinks" onclick="openTab(event, 'sequence-dashboard')">Sequence Execution</button>
     <button id="tab-device-registry" class="tablinks" onclick="openTab(event, 'device-registry')">Device Registry</button>
     <button id="tab-raw-registers" class="tablinks" onclick="openTab(event, 'raw-registers')">Raw Registers Explorer</button>
@@ -239,8 +374,316 @@
     <button id="tab-calibration" class="tablinks" onclick="openTab(event, 'calibration-dashboard')">Calibration</button>
   </div>
 
-  <div class="tab-content" id="manual-dashboard" style="display: block; position: relative;">
+  <!-- Manual Dashboard v2 — static hardcoded layout matching the jerry testbench panel -->
+  <div class="tab-content" id="manual-dashboard-v2" style="display: block; position: relative;">
     <div class="lockout-overlay" id="manual-lockout">
+      <div class="lockout-banner">SEQUENCE ACTIVE - MANUAL CONTROLS LOCKED</div>
+    </div>
+    <h2>Manual Dashboard</h2>
+    <div style="margin-bottom:10px;">
+      <button class="action-btn" id="btn-snapshot">Save Manual Snapshot</button>
+    </div>
+    <div id="manual-dashboard-v2-content">
+
+      <!-- Device 1 — 169.254.4.100 -->
+      <div class="v2-device-row">
+        <div class="v2-device-label">Controller 1</div>
+        <div class="v2-signal-group">
+          <div class="v2-widget"><span class="v2-widget-label">1.2 A</span><input type="checkbox" id="do-1-0"  class="v2-do-cb" data-dev="1" data-addr="0"></div>
+          <div class="v2-widget"><span class="v2-widget-label">1.2 B</span><input type="checkbox" id="do-1-1"  class="v2-do-cb" data-dev="1" data-addr="1"></div>
+          <div class="v2-widget"><span class="v2-widget-label">1.2 C</span><input type="checkbox" id="do-1-2"  class="v2-do-cb" data-dev="1" data-addr="2"></div>
+          <div class="v2-widget"><span class="v2-widget-label">1.2 D</span><input type="checkbox" id="do-1-3"  class="v2-do-cb" data-dev="1" data-addr="3"></div>
+          <div class="v2-widget"><span class="v2-widget-label">1.2 E</span><input type="checkbox" id="do-1-4"  class="v2-do-cb" data-dev="1" data-addr="4"></div>
+          <div class="v2-widget"><span class="v2-widget-label">1.2 F</span><input type="checkbox" id="do-1-5"  class="v2-do-cb" data-dev="1" data-addr="5"></div>
+          <div class="v2-widget"><span class="v2-widget-label">1.2 G</span><input type="checkbox" id="do-1-6"  class="v2-do-cb" data-dev="1" data-addr="6"></div>
+          <div class="v2-widget"><span class="v2-widget-label">1.2 H</span><input type="checkbox" id="do-1-7"  class="v2-do-cb" data-dev="1" data-addr="7"></div>
+          <div class="v2-widget"><span class="v2-widget-label">1.3 A</span><input type="checkbox" id="do-1-8"  class="v2-do-cb" data-dev="1" data-addr="8"></div>
+          <div class="v2-widget"><span class="v2-widget-label">1.3 B</span><input type="checkbox" id="do-1-9"  class="v2-do-cb" data-dev="1" data-addr="9"></div>
+          <div class="v2-widget"><span class="v2-widget-label">1.3 C</span><input type="checkbox" id="do-1-10" class="v2-do-cb" data-dev="1" data-addr="10"></div>
+          <div class="v2-widget"><span class="v2-widget-label">1.3 D</span><input type="checkbox" id="do-1-11" class="v2-do-cb" data-dev="1" data-addr="11"></div>
+          <div class="v2-widget"><span class="v2-widget-label">1.3 E</span><input type="checkbox" id="do-1-12" class="v2-do-cb" data-dev="1" data-addr="12"></div>
+          <div class="v2-widget"><span class="v2-widget-label">1.3 F</span><input type="checkbox" id="do-1-13" class="v2-do-cb" data-dev="1" data-addr="13"></div>
+          <div class="v2-widget"><span class="v2-widget-label">1.3 G</span><input type="checkbox" id="do-1-14" class="v2-do-cb" data-dev="1" data-addr="14"></div>
+          <div class="v2-widget"><span class="v2-widget-label">1.3 H</span><input type="checkbox" id="do-1-15" class="v2-do-cb" data-dev="1" data-addr="15"></div>
+        </div>
+        <div class="v2-section-divider"></div>
+        <div class="v2-signal-group">
+          <div class="v2-widget"><span class="v2-widget-label">1.1 D0</span><div id="di-1-16" class="v2-led led-off"></div></div>
+          <div class="v2-widget"><span class="v2-widget-label">1.1 D1</span><div id="di-1-17" class="v2-led led-off"></div></div>
+          <div class="v2-widget"><span class="v2-widget-label">1.1 D2</span><div id="di-1-18" class="v2-led led-off"></div></div>
+          <div class="v2-widget"><span class="v2-widget-label">1.1 D3</span><div id="di-1-19" class="v2-led led-off"></div></div>
+          <div class="v2-widget"><span class="v2-widget-label">1.1 D4</span><div id="di-1-20" class="v2-led led-off"></div></div>
+          <div class="v2-widget"><span class="v2-widget-label">1.1 D5</span><div id="di-1-21" class="v2-led led-off"></div></div>
+          <div class="v2-widget"><span class="v2-widget-label">1.1 D6</span><div id="di-1-22" class="v2-led led-off"></div></div>
+          <div class="v2-widget"><span class="v2-widget-label">1.1 D7</span><div id="di-1-23" class="v2-led led-off"></div></div>
+        </div>
+        <div class="v2-section-divider"></div>
+        <div class="v2-signal-group">
+          <div class="v2-widget v2-ao-widget"><span class="v2-widget-label">110VAC</span><input type="range" id="ao-1-0" class="v2-ao-slider" min="0" max="10000" step="1" value="0" data-dev="1" data-addr="0"><span id="ao-ro-1-0" class="v2-ao-readout">0.00%</span></div>
+          <div class="v2-widget v2-ao-widget"><span class="v2-widget-label">5A AC</span><input type="range" id="ao-1-3" class="v2-ao-slider" min="0" max="10000" step="1" value="0" data-dev="1" data-addr="3"><span id="ao-ro-1-3" class="v2-ao-readout">0.00%</span></div>
+          <div class="v2-widget v2-ao-widget"><span class="v2-widget-label">4-20mA</span><input type="range" id="ao-1-6" class="v2-ao-slider" min="0" max="10000" step="1" value="0" data-dev="1" data-addr="6"><span id="ao-ro-1-6" class="v2-ao-readout">0.00%</span></div>
+          <div class="v2-widget v2-ao-widget"><span class="v2-widget-label">0-10V</span><input type="range" id="ao-1-9" class="v2-ao-slider" min="0" max="10000" step="1" value="0" data-dev="1" data-addr="9"><span id="ao-ro-1-9" class="v2-ao-readout">0.00%</span></div>
+        </div>
+        <div class="v2-section-divider"></div>
+        <div class="v2-signal-group">
+          <div class="v2-widget"><span class="v2-widget-label">110VAC↑</span><span id="ai-1-4"  class="v2-ai-display">---</span></div>
+          <div class="v2-widget"><span class="v2-widget-label">110VAC↑</span><span id="ai-1-6"  class="v2-ai-display">---</span></div>
+          <div class="v2-widget"><span class="v2-widget-label">5A AC↑</span> <span id="ai-1-8"  class="v2-ai-display">---</span></div>
+          <div class="v2-widget"><span class="v2-widget-label">5A AC↑</span> <span id="ai-1-10" class="v2-ai-display">---</span></div>
+        </div>
+      </div>
+
+      <!-- Device 2 — 169.254.4.101 -->
+      <div class="v2-device-row">
+        <div class="v2-device-label">Controller 2</div>
+        <div class="v2-signal-group">
+          <div class="v2-widget"><span class="v2-widget-label">2.2 A</span><input type="checkbox" id="do-2-0"  class="v2-do-cb" data-dev="2" data-addr="0"></div>
+          <div class="v2-widget"><span class="v2-widget-label">2.2 B</span><input type="checkbox" id="do-2-1"  class="v2-do-cb" data-dev="2" data-addr="1"></div>
+          <div class="v2-widget"><span class="v2-widget-label">2.2 C</span><input type="checkbox" id="do-2-2"  class="v2-do-cb" data-dev="2" data-addr="2"></div>
+          <div class="v2-widget"><span class="v2-widget-label">2.2 D</span><input type="checkbox" id="do-2-3"  class="v2-do-cb" data-dev="2" data-addr="3"></div>
+          <div class="v2-widget"><span class="v2-widget-label">2.2 E</span><input type="checkbox" id="do-2-4"  class="v2-do-cb" data-dev="2" data-addr="4"></div>
+          <div class="v2-widget"><span class="v2-widget-label">2.2 F</span><input type="checkbox" id="do-2-5"  class="v2-do-cb" data-dev="2" data-addr="5"></div>
+          <div class="v2-widget"><span class="v2-widget-label">2.2 G</span><input type="checkbox" id="do-2-6"  class="v2-do-cb" data-dev="2" data-addr="6"></div>
+          <div class="v2-widget"><span class="v2-widget-label">2.2 H</span><input type="checkbox" id="do-2-7"  class="v2-do-cb" data-dev="2" data-addr="7"></div>
+          <div class="v2-widget"><span class="v2-widget-label">2.3 A</span><input type="checkbox" id="do-2-8"  class="v2-do-cb" data-dev="2" data-addr="8"></div>
+          <div class="v2-widget"><span class="v2-widget-label">2.3 B</span><input type="checkbox" id="do-2-9"  class="v2-do-cb" data-dev="2" data-addr="9"></div>
+          <div class="v2-widget"><span class="v2-widget-label">2.3 C</span><input type="checkbox" id="do-2-10" class="v2-do-cb" data-dev="2" data-addr="10"></div>
+          <div class="v2-widget"><span class="v2-widget-label">2.3 D</span><input type="checkbox" id="do-2-11" class="v2-do-cb" data-dev="2" data-addr="11"></div>
+          <div class="v2-widget"><span class="v2-widget-label">2.3 E</span><input type="checkbox" id="do-2-12" class="v2-do-cb" data-dev="2" data-addr="12"></div>
+          <div class="v2-widget"><span class="v2-widget-label">2.3 F</span><input type="checkbox" id="do-2-13" class="v2-do-cb" data-dev="2" data-addr="13"></div>
+          <div class="v2-widget"><span class="v2-widget-label">2.3 G</span><input type="checkbox" id="do-2-14" class="v2-do-cb" data-dev="2" data-addr="14"></div>
+          <div class="v2-widget"><span class="v2-widget-label">2.3 H</span><input type="checkbox" id="do-2-15" class="v2-do-cb" data-dev="2" data-addr="15"></div>
+        </div>
+        <div class="v2-section-divider"></div>
+        <div class="v2-signal-group">
+          <div class="v2-widget"><span class="v2-widget-label">2.1 D0</span><div id="di-2-16" class="v2-led led-off"></div></div>
+          <div class="v2-widget"><span class="v2-widget-label">2.1 D1</span><div id="di-2-17" class="v2-led led-off"></div></div>
+          <div class="v2-widget"><span class="v2-widget-label">2.1 D2</span><div id="di-2-18" class="v2-led led-off"></div></div>
+          <div class="v2-widget"><span class="v2-widget-label">2.1 D3</span><div id="di-2-19" class="v2-led led-off"></div></div>
+          <div class="v2-widget"><span class="v2-widget-label">2.1 D4</span><div id="di-2-20" class="v2-led led-off"></div></div>
+          <div class="v2-widget"><span class="v2-widget-label">2.1 D5</span><div id="di-2-21" class="v2-led led-off"></div></div>
+          <div class="v2-widget"><span class="v2-widget-label">2.1 D6</span><div id="di-2-22" class="v2-led led-off"></div></div>
+          <div class="v2-widget"><span class="v2-widget-label">2.1 D7</span><div id="di-2-23" class="v2-led led-off"></div></div>
+        </div>
+      </div>
+
+      <!-- Device 3 — 169.254.4.102 -->
+      <div class="v2-device-row">
+        <div class="v2-device-label">Controller 3</div>
+        <div class="v2-signal-group">
+          <div class="v2-widget"><span class="v2-widget-label">3.2 A</span><input type="checkbox" id="do-3-0"  class="v2-do-cb" data-dev="3" data-addr="0"></div>
+          <div class="v2-widget"><span class="v2-widget-label">3.2 B</span><input type="checkbox" id="do-3-1"  class="v2-do-cb" data-dev="3" data-addr="1"></div>
+          <div class="v2-widget"><span class="v2-widget-label">3.2 C</span><input type="checkbox" id="do-3-2"  class="v2-do-cb" data-dev="3" data-addr="2"></div>
+          <div class="v2-widget"><span class="v2-widget-label">3.2 D</span><input type="checkbox" id="do-3-3"  class="v2-do-cb" data-dev="3" data-addr="3"></div>
+          <div class="v2-widget"><span class="v2-widget-label">3.2 E</span><input type="checkbox" id="do-3-4"  class="v2-do-cb" data-dev="3" data-addr="4"></div>
+          <div class="v2-widget"><span class="v2-widget-label">3.2 F</span><input type="checkbox" id="do-3-5"  class="v2-do-cb" data-dev="3" data-addr="5"></div>
+          <div class="v2-widget"><span class="v2-widget-label">3.2 G</span><input type="checkbox" id="do-3-6"  class="v2-do-cb" data-dev="3" data-addr="6"></div>
+          <div class="v2-widget"><span class="v2-widget-label">3.2 H</span><input type="checkbox" id="do-3-7"  class="v2-do-cb" data-dev="3" data-addr="7"></div>
+          <div class="v2-widget"><span class="v2-widget-label">3.3 A</span><input type="checkbox" id="do-3-8"  class="v2-do-cb" data-dev="3" data-addr="8"></div>
+          <div class="v2-widget"><span class="v2-widget-label">3.3 B</span><input type="checkbox" id="do-3-9"  class="v2-do-cb" data-dev="3" data-addr="9"></div>
+          <div class="v2-widget"><span class="v2-widget-label">3.3 C</span><input type="checkbox" id="do-3-10" class="v2-do-cb" data-dev="3" data-addr="10"></div>
+          <div class="v2-widget"><span class="v2-widget-label">3.3 D</span><input type="checkbox" id="do-3-11" class="v2-do-cb" data-dev="3" data-addr="11"></div>
+          <div class="v2-widget"><span class="v2-widget-label">3.3 E</span><input type="checkbox" id="do-3-12" class="v2-do-cb" data-dev="3" data-addr="12"></div>
+          <div class="v2-widget"><span class="v2-widget-label">3.3 F</span><input type="checkbox" id="do-3-13" class="v2-do-cb" data-dev="3" data-addr="13"></div>
+          <div class="v2-widget"><span class="v2-widget-label">3.3 G</span><input type="checkbox" id="do-3-14" class="v2-do-cb" data-dev="3" data-addr="14"></div>
+          <div class="v2-widget"><span class="v2-widget-label">3.3 H</span><input type="checkbox" id="do-3-15" class="v2-do-cb" data-dev="3" data-addr="15"></div>
+        </div>
+        <div class="v2-section-divider"></div>
+        <div class="v2-signal-group">
+          <div class="v2-widget"><span class="v2-widget-label">3.1 D0</span><div id="di-3-16" class="v2-led led-off"></div></div>
+          <div class="v2-widget"><span class="v2-widget-label">3.1 D1</span><div id="di-3-17" class="v2-led led-off"></div></div>
+          <div class="v2-widget"><span class="v2-widget-label">3.1 D2</span><div id="di-3-18" class="v2-led led-off"></div></div>
+          <div class="v2-widget"><span class="v2-widget-label">3.1 D3</span><div id="di-3-19" class="v2-led led-off"></div></div>
+          <div class="v2-widget"><span class="v2-widget-label">3.1 D4</span><div id="di-3-20" class="v2-led led-off"></div></div>
+          <div class="v2-widget"><span class="v2-widget-label">3.1 D5</span><div id="di-3-21" class="v2-led led-off"></div></div>
+          <div class="v2-widget"><span class="v2-widget-label">3.1 D6</span><div id="di-3-22" class="v2-led led-off"></div></div>
+          <div class="v2-widget"><span class="v2-widget-label">3.1 D7</span><div id="di-3-23" class="v2-led led-off"></div></div>
+        </div>
+        <div class="v2-section-divider"></div>
+        <div class="v2-signal-group">
+          <div class="v2-widget"><span class="v2-widget-label">0-10V↑</span>  <span id="ai-3-4"  class="v2-ai-display">---</span></div>
+          <div class="v2-widget"><span class="v2-widget-label">0-10V↑</span>  <span id="ai-3-6"  class="v2-ai-display">---</span></div>
+          <div class="v2-widget"><span class="v2-widget-label">4-20mA↑</span> <span id="ai-3-8"  class="v2-ai-display">---</span></div>
+          <div class="v2-widget"><span class="v2-widget-label">4-20mA↑</span> <span id="ai-3-10" class="v2-ai-display">---</span></div>
+        </div>
+      </div>
+
+      <!-- Device 4 — 169.254.4.103 -->
+      <div class="v2-device-row">
+        <div class="v2-device-label">Controller 4</div>
+        <div class="v2-signal-group">
+          <div class="v2-widget"><span class="v2-widget-label">4.2 A</span><input type="checkbox" id="do-4-0"  class="v2-do-cb" data-dev="4" data-addr="0"></div>
+          <div class="v2-widget"><span class="v2-widget-label">4.2 B</span><input type="checkbox" id="do-4-1"  class="v2-do-cb" data-dev="4" data-addr="1"></div>
+          <div class="v2-widget"><span class="v2-widget-label">4.2 C</span><input type="checkbox" id="do-4-2"  class="v2-do-cb" data-dev="4" data-addr="2"></div>
+          <div class="v2-widget"><span class="v2-widget-label">4.2 D</span><input type="checkbox" id="do-4-3"  class="v2-do-cb" data-dev="4" data-addr="3"></div>
+          <div class="v2-widget"><span class="v2-widget-label">4.2 E</span><input type="checkbox" id="do-4-4"  class="v2-do-cb" data-dev="4" data-addr="4"></div>
+          <div class="v2-widget"><span class="v2-widget-label">4.2 F</span><input type="checkbox" id="do-4-5"  class="v2-do-cb" data-dev="4" data-addr="5"></div>
+          <div class="v2-widget"><span class="v2-widget-label">4.2 G</span><input type="checkbox" id="do-4-6"  class="v2-do-cb" data-dev="4" data-addr="6"></div>
+          <div class="v2-widget"><span class="v2-widget-label">4.2 H</span><input type="checkbox" id="do-4-7"  class="v2-do-cb" data-dev="4" data-addr="7"></div>
+          <div class="v2-widget"><span class="v2-widget-label">4.3 A</span><input type="checkbox" id="do-4-8"  class="v2-do-cb" data-dev="4" data-addr="8"></div>
+          <div class="v2-widget"><span class="v2-widget-label">4.3 B</span><input type="checkbox" id="do-4-9"  class="v2-do-cb" data-dev="4" data-addr="9"></div>
+          <div class="v2-widget"><span class="v2-widget-label">4.3 C</span><input type="checkbox" id="do-4-10" class="v2-do-cb" data-dev="4" data-addr="10"></div>
+          <div class="v2-widget"><span class="v2-widget-label">4.3 D</span><input type="checkbox" id="do-4-11" class="v2-do-cb" data-dev="4" data-addr="11"></div>
+          <div class="v2-widget"><span class="v2-widget-label">4.3 E</span><input type="checkbox" id="do-4-12" class="v2-do-cb" data-dev="4" data-addr="12"></div>
+          <div class="v2-widget"><span class="v2-widget-label">4.3 F</span><input type="checkbox" id="do-4-13" class="v2-do-cb" data-dev="4" data-addr="13"></div>
+          <div class="v2-widget"><span class="v2-widget-label">4.3 G</span><input type="checkbox" id="do-4-14" class="v2-do-cb" data-dev="4" data-addr="14"></div>
+          <div class="v2-widget"><span class="v2-widget-label">4.3 H</span><input type="checkbox" id="do-4-15" class="v2-do-cb" data-dev="4" data-addr="15"></div>
+        </div>
+        <div class="v2-section-divider"></div>
+        <div class="v2-signal-group">
+          <div class="v2-widget"><span class="v2-widget-label">4.1 D0</span><div id="di-4-16" class="v2-led led-off"></div></div>
+          <div class="v2-widget"><span class="v2-widget-label">4.1 D1</span><div id="di-4-17" class="v2-led led-off"></div></div>
+          <div class="v2-widget"><span class="v2-widget-label">4.1 D2</span><div id="di-4-18" class="v2-led led-off"></div></div>
+          <div class="v2-widget"><span class="v2-widget-label">4.1 D3</span><div id="di-4-19" class="v2-led led-off"></div></div>
+          <div class="v2-widget"><span class="v2-widget-label">4.1 D4</span><div id="di-4-20" class="v2-led led-off"></div></div>
+          <div class="v2-widget"><span class="v2-widget-label">4.1 D5</span><div id="di-4-21" class="v2-led led-off"></div></div>
+          <div class="v2-widget"><span class="v2-widget-label">4.1 D6</span><div id="di-4-22" class="v2-led led-off"></div></div>
+          <div class="v2-widget"><span class="v2-widget-label">4.1 D7</span><div id="di-4-23" class="v2-led led-off"></div></div>
+        </div>
+      </div>
+
+      <!-- Device 5 — 169.254.4.104 -->
+      <div class="v2-device-row">
+        <div class="v2-device-label">Controller 5</div>
+        <div class="v2-signal-group">
+          <div class="v2-widget"><span class="v2-widget-label">5.2 A</span><input type="checkbox" id="do-5-0"  class="v2-do-cb" data-dev="5" data-addr="0"></div>
+          <div class="v2-widget"><span class="v2-widget-label">5.2 B</span><input type="checkbox" id="do-5-1"  class="v2-do-cb" data-dev="5" data-addr="1"></div>
+          <div class="v2-widget"><span class="v2-widget-label">5.2 C</span><input type="checkbox" id="do-5-2"  class="v2-do-cb" data-dev="5" data-addr="2"></div>
+          <div class="v2-widget"><span class="v2-widget-label">5.2 D</span><input type="checkbox" id="do-5-3"  class="v2-do-cb" data-dev="5" data-addr="3"></div>
+          <div class="v2-widget"><span class="v2-widget-label">5.2 E</span><input type="checkbox" id="do-5-4"  class="v2-do-cb" data-dev="5" data-addr="4"></div>
+          <div class="v2-widget"><span class="v2-widget-label">5.2 F</span><input type="checkbox" id="do-5-5"  class="v2-do-cb" data-dev="5" data-addr="5"></div>
+          <div class="v2-widget"><span class="v2-widget-label">5.2 G</span><input type="checkbox" id="do-5-6"  class="v2-do-cb" data-dev="5" data-addr="6"></div>
+          <div class="v2-widget"><span class="v2-widget-label">5.2 H</span><input type="checkbox" id="do-5-7"  class="v2-do-cb" data-dev="5" data-addr="7"></div>
+          <div class="v2-widget"><span class="v2-widget-label">5.3 A</span><input type="checkbox" id="do-5-8"  class="v2-do-cb" data-dev="5" data-addr="8"></div>
+          <div class="v2-widget"><span class="v2-widget-label">5.3 B</span><input type="checkbox" id="do-5-9"  class="v2-do-cb" data-dev="5" data-addr="9"></div>
+          <div class="v2-widget"><span class="v2-widget-label">5.3 C</span><input type="checkbox" id="do-5-10" class="v2-do-cb" data-dev="5" data-addr="10"></div>
+          <div class="v2-widget"><span class="v2-widget-label">5.3 D</span><input type="checkbox" id="do-5-11" class="v2-do-cb" data-dev="5" data-addr="11"></div>
+          <div class="v2-widget"><span class="v2-widget-label">5.3 E</span><input type="checkbox" id="do-5-12" class="v2-do-cb" data-dev="5" data-addr="12"></div>
+          <div class="v2-widget"><span class="v2-widget-label">5.3 F</span><input type="checkbox" id="do-5-13" class="v2-do-cb" data-dev="5" data-addr="13"></div>
+          <div class="v2-widget"><span class="v2-widget-label">5.3 G</span><input type="checkbox" id="do-5-14" class="v2-do-cb" data-dev="5" data-addr="14"></div>
+          <div class="v2-widget"><span class="v2-widget-label">5.3 H</span><input type="checkbox" id="do-5-15" class="v2-do-cb" data-dev="5" data-addr="15"></div>
+        </div>
+        <div class="v2-section-divider"></div>
+        <div class="v2-signal-group">
+          <div class="v2-widget"><span class="v2-widget-label">5.1 D0</span><div id="di-5-16" class="v2-led led-off"></div></div>
+          <div class="v2-widget"><span class="v2-widget-label">5.1 D1</span><div id="di-5-17" class="v2-led led-off"></div></div>
+          <div class="v2-widget"><span class="v2-widget-label">5.1 D2</span><div id="di-5-18" class="v2-led led-off"></div></div>
+          <div class="v2-widget"><span class="v2-widget-label">5.1 D3</span><div id="di-5-19" class="v2-led led-off"></div></div>
+          <div class="v2-widget"><span class="v2-widget-label">5.1 D4</span><div id="di-5-20" class="v2-led led-off"></div></div>
+          <div class="v2-widget"><span class="v2-widget-label">5.1 D5</span><div id="di-5-21" class="v2-led led-off"></div></div>
+          <div class="v2-widget"><span class="v2-widget-label">5.1 D6</span><div id="di-5-22" class="v2-led led-off"></div></div>
+          <div class="v2-widget"><span class="v2-widget-label">5.1 D7</span><div id="di-5-23" class="v2-led led-off"></div></div>
+        </div>
+      </div>
+
+      <!-- Device 6 — 169.254.4.105 -->
+      <div class="v2-device-row">
+        <div class="v2-device-label">Controller 6</div>
+        <div class="v2-signal-group">
+          <div class="v2-widget"><span class="v2-widget-label">6.2 A</span><input type="checkbox" id="do-6-0"  class="v2-do-cb" data-dev="6" data-addr="0"></div>
+          <div class="v2-widget"><span class="v2-widget-label">6.2 B</span><input type="checkbox" id="do-6-1"  class="v2-do-cb" data-dev="6" data-addr="1"></div>
+          <div class="v2-widget"><span class="v2-widget-label">6.2 C</span><input type="checkbox" id="do-6-2"  class="v2-do-cb" data-dev="6" data-addr="2"></div>
+          <div class="v2-widget"><span class="v2-widget-label">6.2 D</span><input type="checkbox" id="do-6-3"  class="v2-do-cb" data-dev="6" data-addr="3"></div>
+          <div class="v2-widget"><span class="v2-widget-label">6.2 E</span><input type="checkbox" id="do-6-4"  class="v2-do-cb" data-dev="6" data-addr="4"></div>
+          <div class="v2-widget"><span class="v2-widget-label">6.2 F</span><input type="checkbox" id="do-6-5"  class="v2-do-cb" data-dev="6" data-addr="5"></div>
+          <div class="v2-widget"><span class="v2-widget-label">6.2 G</span><input type="checkbox" id="do-6-6"  class="v2-do-cb" data-dev="6" data-addr="6"></div>
+          <div class="v2-widget"><span class="v2-widget-label">6.2 H</span><input type="checkbox" id="do-6-7"  class="v2-do-cb" data-dev="6" data-addr="7"></div>
+          <div class="v2-widget"><span class="v2-widget-label">6.3 A</span><input type="checkbox" id="do-6-8"  class="v2-do-cb" data-dev="6" data-addr="8"></div>
+          <div class="v2-widget"><span class="v2-widget-label">6.3 B</span><input type="checkbox" id="do-6-9"  class="v2-do-cb" data-dev="6" data-addr="9"></div>
+          <div class="v2-widget"><span class="v2-widget-label">6.3 C</span><input type="checkbox" id="do-6-10" class="v2-do-cb" data-dev="6" data-addr="10"></div>
+          <div class="v2-widget"><span class="v2-widget-label">6.3 D</span><input type="checkbox" id="do-6-11" class="v2-do-cb" data-dev="6" data-addr="11"></div>
+          <div class="v2-widget"><span class="v2-widget-label">6.3 E</span><input type="checkbox" id="do-6-12" class="v2-do-cb" data-dev="6" data-addr="12"></div>
+          <div class="v2-widget"><span class="v2-widget-label">6.3 F</span><input type="checkbox" id="do-6-13" class="v2-do-cb" data-dev="6" data-addr="13"></div>
+          <div class="v2-widget"><span class="v2-widget-label">6.3 G</span><input type="checkbox" id="do-6-14" class="v2-do-cb" data-dev="6" data-addr="14"></div>
+          <div class="v2-widget"><span class="v2-widget-label">6.3 H</span><input type="checkbox" id="do-6-15" class="v2-do-cb" data-dev="6" data-addr="15"></div>
+        </div>
+        <div class="v2-section-divider"></div>
+        <div class="v2-signal-group">
+          <div class="v2-widget"><span class="v2-widget-label">6.1 D0</span><div id="di-6-16" class="v2-led led-off"></div></div>
+          <div class="v2-widget"><span class="v2-widget-label">6.1 D1</span><div id="di-6-17" class="v2-led led-off"></div></div>
+          <div class="v2-widget"><span class="v2-widget-label">6.1 D2</span><div id="di-6-18" class="v2-led led-off"></div></div>
+          <div class="v2-widget"><span class="v2-widget-label">6.1 D3</span><div id="di-6-19" class="v2-led led-off"></div></div>
+          <div class="v2-widget"><span class="v2-widget-label">6.1 D4</span><div id="di-6-20" class="v2-led led-off"></div></div>
+          <div class="v2-widget"><span class="v2-widget-label">6.1 D5</span><div id="di-6-21" class="v2-led led-off"></div></div>
+          <div class="v2-widget"><span class="v2-widget-label">6.1 D6</span><div id="di-6-22" class="v2-led led-off"></div></div>
+          <div class="v2-widget"><span class="v2-widget-label">6.1 D7</span><div id="di-6-23" class="v2-led led-off"></div></div>
+        </div>
+      </div>
+
+      <!-- Device 7 — 169.254.4.106 -->
+      <div class="v2-device-row">
+        <div class="v2-device-label">Controller 7</div>
+        <div class="v2-signal-group">
+          <div class="v2-widget"><span class="v2-widget-label">7.2 A</span><input type="checkbox" id="do-7-0"  class="v2-do-cb" data-dev="7" data-addr="0"></div>
+          <div class="v2-widget"><span class="v2-widget-label">7.2 B</span><input type="checkbox" id="do-7-1"  class="v2-do-cb" data-dev="7" data-addr="1"></div>
+          <div class="v2-widget"><span class="v2-widget-label">7.2 C</span><input type="checkbox" id="do-7-2"  class="v2-do-cb" data-dev="7" data-addr="2"></div>
+          <div class="v2-widget"><span class="v2-widget-label">7.2 D</span><input type="checkbox" id="do-7-3"  class="v2-do-cb" data-dev="7" data-addr="3"></div>
+          <div class="v2-widget"><span class="v2-widget-label">7.2 E</span><input type="checkbox" id="do-7-4"  class="v2-do-cb" data-dev="7" data-addr="4"></div>
+          <div class="v2-widget"><span class="v2-widget-label">7.2 F</span><input type="checkbox" id="do-7-5"  class="v2-do-cb" data-dev="7" data-addr="5"></div>
+          <div class="v2-widget"><span class="v2-widget-label">7.2 G</span><input type="checkbox" id="do-7-6"  class="v2-do-cb" data-dev="7" data-addr="6"></div>
+          <div class="v2-widget"><span class="v2-widget-label">7.2 H</span><input type="checkbox" id="do-7-7"  class="v2-do-cb" data-dev="7" data-addr="7"></div>
+          <div class="v2-widget"><span class="v2-widget-label">7.3 A</span><input type="checkbox" id="do-7-8"  class="v2-do-cb" data-dev="7" data-addr="8"></div>
+          <div class="v2-widget"><span class="v2-widget-label">7.3 B</span><input type="checkbox" id="do-7-9"  class="v2-do-cb" data-dev="7" data-addr="9"></div>
+          <div class="v2-widget"><span class="v2-widget-label">7.3 C</span><input type="checkbox" id="do-7-10" class="v2-do-cb" data-dev="7" data-addr="10"></div>
+          <div class="v2-widget"><span class="v2-widget-label">7.3 D</span><input type="checkbox" id="do-7-11" class="v2-do-cb" data-dev="7" data-addr="11"></div>
+          <div class="v2-widget"><span class="v2-widget-label">7.3 E</span><input type="checkbox" id="do-7-12" class="v2-do-cb" data-dev="7" data-addr="12"></div>
+          <div class="v2-widget"><span class="v2-widget-label">7.3 F</span><input type="checkbox" id="do-7-13" class="v2-do-cb" data-dev="7" data-addr="13"></div>
+          <div class="v2-widget"><span class="v2-widget-label">7.3 G</span><input type="checkbox" id="do-7-14" class="v2-do-cb" data-dev="7" data-addr="14"></div>
+          <div class="v2-widget"><span class="v2-widget-label">7.3 H</span><input type="checkbox" id="do-7-15" class="v2-do-cb" data-dev="7" data-addr="15"></div>
+        </div>
+        <div class="v2-section-divider"></div>
+        <div class="v2-signal-group">
+          <div class="v2-widget"><span class="v2-widget-label">7.1 D0</span><div id="di-7-16" class="v2-led led-off"></div></div>
+          <div class="v2-widget"><span class="v2-widget-label">7.1 D1</span><div id="di-7-17" class="v2-led led-off"></div></div>
+          <div class="v2-widget"><span class="v2-widget-label">7.1 D2</span><div id="di-7-18" class="v2-led led-off"></div></div>
+          <div class="v2-widget"><span class="v2-widget-label">7.1 D3</span><div id="di-7-19" class="v2-led led-off"></div></div>
+          <div class="v2-widget"><span class="v2-widget-label">7.1 D4</span><div id="di-7-20" class="v2-led led-off"></div></div>
+          <div class="v2-widget"><span class="v2-widget-label">7.1 D5</span><div id="di-7-21" class="v2-led led-off"></div></div>
+          <div class="v2-widget"><span class="v2-widget-label">7.1 D6</span><div id="di-7-22" class="v2-led led-off"></div></div>
+          <div class="v2-widget"><span class="v2-widget-label">7.1 D7</span><div id="di-7-23" class="v2-led led-off"></div></div>
+        </div>
+      </div>
+
+      <!-- Device 8 — 169.254.4.107 -->
+      <div class="v2-device-row">
+        <div class="v2-device-label">Controller 8</div>
+        <div class="v2-signal-group">
+          <div class="v2-widget"><span class="v2-widget-label">8.2 A</span><input type="checkbox" id="do-8-0"  class="v2-do-cb" data-dev="8" data-addr="0"></div>
+          <div class="v2-widget"><span class="v2-widget-label">8.2 B</span><input type="checkbox" id="do-8-1"  class="v2-do-cb" data-dev="8" data-addr="1"></div>
+          <div class="v2-widget"><span class="v2-widget-label">8.2 C</span><input type="checkbox" id="do-8-2"  class="v2-do-cb" data-dev="8" data-addr="2"></div>
+          <div class="v2-widget"><span class="v2-widget-label">8.2 D</span><input type="checkbox" id="do-8-3"  class="v2-do-cb" data-dev="8" data-addr="3"></div>
+          <div class="v2-widget"><span class="v2-widget-label">8.2 E</span><input type="checkbox" id="do-8-4"  class="v2-do-cb" data-dev="8" data-addr="4"></div>
+          <div class="v2-widget"><span class="v2-widget-label">8.2 F</span><input type="checkbox" id="do-8-5"  class="v2-do-cb" data-dev="8" data-addr="5"></div>
+          <div class="v2-widget"><span class="v2-widget-label">8.2 G</span><input type="checkbox" id="do-8-6"  class="v2-do-cb" data-dev="8" data-addr="6"></div>
+          <div class="v2-widget"><span class="v2-widget-label">8.2 H</span><input type="checkbox" id="do-8-7"  class="v2-do-cb" data-dev="8" data-addr="7"></div>
+          <div class="v2-widget"><span class="v2-widget-label">8.3 A</span><input type="checkbox" id="do-8-8"  class="v2-do-cb" data-dev="8" data-addr="8"></div>
+          <div class="v2-widget"><span class="v2-widget-label">8.3 B</span><input type="checkbox" id="do-8-9"  class="v2-do-cb" data-dev="8" data-addr="9"></div>
+          <div class="v2-widget"><span class="v2-widget-label">8.3 C</span><input type="checkbox" id="do-8-10" class="v2-do-cb" data-dev="8" data-addr="10"></div>
+          <div class="v2-widget"><span class="v2-widget-label">8.3 D</span><input type="checkbox" id="do-8-11" class="v2-do-cb" data-dev="8" data-addr="11"></div>
+          <div class="v2-widget"><span class="v2-widget-label">8.3 E</span><input type="checkbox" id="do-8-12" class="v2-do-cb" data-dev="8" data-addr="12"></div>
+          <div class="v2-widget"><span class="v2-widget-label">8.3 F</span><input type="checkbox" id="do-8-13" class="v2-do-cb" data-dev="8" data-addr="13"></div>
+          <div class="v2-widget"><span class="v2-widget-label">8.3 G</span><input type="checkbox" id="do-8-14" class="v2-do-cb" data-dev="8" data-addr="14"></div>
+          <div class="v2-widget"><span class="v2-widget-label">8.3 H</span><input type="checkbox" id="do-8-15" class="v2-do-cb" data-dev="8" data-addr="15"></div>
+        </div>
+        <div class="v2-section-divider"></div>
+        <div class="v2-signal-group">
+          <div class="v2-widget"><span class="v2-widget-label">8.1 D0</span><div id="di-8-16" class="v2-led led-off"></div></div>
+          <div class="v2-widget"><span class="v2-widget-label">8.1 D1</span><div id="di-8-17" class="v2-led led-off"></div></div>
+          <div class="v2-widget"><span class="v2-widget-label">8.1 D2</span><div id="di-8-18" class="v2-led led-off"></div></div>
+          <div class="v2-widget"><span class="v2-widget-label">8.1 D3</span><div id="di-8-19" class="v2-led led-off"></div></div>
+          <div class="v2-widget"><span class="v2-widget-label">8.1 D4</span><div id="di-8-20" class="v2-led led-off"></div></div>
+          <div class="v2-widget"><span class="v2-widget-label">8.1 D5</span><div id="di-8-21" class="v2-led led-off"></div></div>
+          <div class="v2-widget"><span class="v2-widget-label">8.1 D6</span><div id="di-8-22" class="v2-led led-off"></div></div>
+          <div class="v2-widget"><span class="v2-widget-label">8.1 D7</span><div id="di-8-23" class="v2-led led-off"></div></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Manual Dashboard v1 — hidden, kept for calibration/signal-mapping compatibility -->
+  <div class="tab-content" id="manual-dashboard" style="display: none; position: relative;">
+    <div class="lockout-overlay" id="manual-lockout-v1">
       <div class="lockout-banner">SEQUENCE ACTIVE - MANUAL CONTROLS LOCKED</div>
     </div>
 

@@ -21,6 +21,7 @@ contextBridge.exposeInMainWorld("api", {
 	saveLayoutPosition: (params) => ipcRenderer.invoke("db:saveLayoutPosition", params),
 
 	modbusPreemptWrite: (signal_id, value) => ipcRenderer.invoke("modbus:preemptWrite", { signal_id, value }),
+	directWrite: (params) => ipcRenderer.invoke("modbus:directWrite", params),
 
 	// Device Registry API
 	getDevices: () => ipcRenderer.invoke("db:getDevices"),
@@ -54,4 +55,7 @@ contextBridge.exposeInMainWorld("api", {
 
 	onNetworkUpdate: (callback) =>
 		ipcRenderer.on("network-update", (event, data) => callback(data)),
+
+	// Send events to Main Process (e.g. active dashboard changes)
+	setActiveDashboard: (tabName) => ipcRenderer.send("app:setActiveDashboard", tabName),
 });

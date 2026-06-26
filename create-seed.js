@@ -80,7 +80,7 @@ db.serialize(() => {
         };
 
         for (const [jsonType, config] of Object.entries(types)) {
-            const regs = registersData.registers[jsonType] || [];
+            const regs = registersData[jsonType] || [];
             for (const reg of regs) {
                 const finalAddress = reg.address + config.offset;
                 stmtRegister.run(i, config.dbType, finalAddress, reg.description || reg.name);
@@ -285,10 +285,10 @@ const signalMappings = [
   { label: '8.1 D5 (O-61)', type: 'digital-in', device_id: 8, reg_address: 22, pos_x: 600, pos_y: 1310 },
   { label: '8.1 D6 (O-62)', type: 'digital-in', device_id: 8, reg_address: 23, pos_x: 700, pos_y: 1310 },
   { label: '8.1 D7 (O-63)', type: 'digital-in', device_id: 8, reg_address: 24, pos_x: 800, pos_y: 1310 },
-  { label: '40-110 VAC 50HZ', type: 'analog-out', device_id: 1, reg_address: 40001, pos_x: 1100, pos_y: 190 },
-  { label: '0-5 AMP AC 50HZ', type: 'analog-out', device_id: 1, reg_address: 40004, pos_x: 1200, pos_y: 190 },
-  { label: '4-20 mA DC', type: 'analog-out', device_id: 1, reg_address: 40007, pos_x: 1300, pos_y: 190 },
-  { label: '0-10 VDC', type: 'analog-out', device_id: 1, reg_address: 40010, pos_x: 1400, pos_y: 190 },
+  { label: '40-110 VAC 50HZ', type: 'analog-out', device_id: 1, reg_address: 40001, cal_scale_reg_id: 40123, cal_offset_reg_id: 40125, cal_deadzone_reg_id: 40127, pos_x: 1100, pos_y: 190 },
+  { label: '0-5 AMP AC 50HZ', type: 'analog-out', device_id: 1, reg_address: 40004, cal_scale_reg_id: 40129, cal_offset_reg_id: 40131, cal_deadzone_reg_id: 40133, pos_x: 1200, pos_y: 190 },
+  { label: '4-20 mA DC', type: 'analog-out', device_id: 1, reg_address: 40007, cal_scale_reg_id: 40135, cal_offset_reg_id: 40137, cal_deadzone_reg_id: 40139, pos_x: 1300, pos_y: 190 },
+  { label: '0-10 VDC', type: 'analog-out', device_id: 1, reg_address: 40010, cal_scale_reg_id: 40141, cal_offset_reg_id: 40143, cal_deadzone_reg_id: 40145, pos_x: 1400, pos_y: 190 },
   { label: '40-110 VAC 50HZ', type: 'analog-in', device_id: 1, reg_address: 30005, scale_address: 40105, offset_address: 40107, deadzone_address: 40109, pos_x: 1100, pos_y: 400 },
   { label: '40-110 VAC 50HZ', type: 'analog-in', device_id: 1, reg_address: 30007, scale_address: 40111, offset_address: 40113, deadzone_address: 40115, pos_x: 1200, pos_y: 400 },
   { label: '0-5 AMP AC 50HZ', type: 'analog-in', device_id: 1, reg_address: 30009, scale_address: 40117, offset_address: 40119, deadzone_address: 40121, pos_x: 1300, pos_y: 400 },
@@ -313,15 +313,26 @@ const signalMappings = [
             let offsetRegId = null;
             let deadzoneRegId = null;
             
-            if (mapping.scale_address) {
+            if (mapping.cal_scale_reg_id) {
+                const sr = rows.find(r => r.device_id === mapping.device_id && r.address === mapping.cal_scale_reg_id);
+                if (sr) scaleRegId = sr.id;
+            } else if (mapping.scale_address) {
                 const sr = rows.find(r => r.device_id === mapping.device_id && r.address === mapping.scale_address);
                 if (sr) scaleRegId = sr.id;
             }
-            if (mapping.offset_address) {
+
+            if (mapping.cal_offset_reg_id) {
+                const or = rows.find(r => r.device_id === mapping.device_id && r.address === mapping.cal_offset_reg_id);
+                if (or) offsetRegId = or.id;
+            } else if (mapping.offset_address) {
                 const or = rows.find(r => r.device_id === mapping.device_id && r.address === mapping.offset_address);
                 if (or) offsetRegId = or.id;
             }
-            if (mapping.deadzone_address) {
+
+            if (mapping.cal_deadzone_reg_id) {
+                const dr = rows.find(r => r.device_id === mapping.device_id && r.address === mapping.cal_deadzone_reg_id);
+                if (dr) deadzoneRegId = dr.id;
+            } else if (mapping.deadzone_address) {
                 const dr = rows.find(r => r.device_id === mapping.device_id && r.address === mapping.deadzone_address);
                 if (dr) deadzoneRegId = dr.id;
             }

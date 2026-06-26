@@ -48,10 +48,17 @@ function registersToFloat(regs, encoding) {
             buf[3] = w1 >> 8;   // A
             break;
         case 'BADC': // Big-Endian Byte Swap
-            buf[0] = w1 & 0xFF; // B
-            buf[1] = w1 >> 8;   // A
-            buf[2] = w2 & 0xFF; // D
-            buf[3] = w2 >> 8;   // C
+            /*
+             * Word layout for BADC:
+             *   buf[0] = A  (high byte of word 1)
+             *   buf[1] = B  (low byte  of word 1)
+             *   buf[2] = C  (high byte of word 2)
+             *   buf[3] = D  (low byte  of word 2)
+             */
+            buf[0] = w1 >> 8;
+            buf[1] = w1 & 0xFF;
+            buf[2] = w2 >> 8;
+            buf[3] = w2 & 0xFF;
             break;
         case 'CDAB': // Little-Endian Word Swap
             buf.writeUInt16BE(w2, 0); // CD
@@ -66,25 +73,38 @@ function registersToFloat(regs, encoding) {
     return buf.readFloatBE(0);
 }
 
-// Convert 1-based Data Model Address to 0-based Protocol Address
+/**
+ * Convert a Data Model Address (1-based 5-digit, e.g. 40001) or a raw
+ * 0-based Protocol Address (0–9999) to a 0-based Protocol Address.
+ *
+ * Rules (per docs/addressing_scheme.md):
+ *   4xxxx  → Holding Register  (40001–49999) → subtract 40001
+ *   3xxxx  → Input Register    (30001–39999) → subtract 30001
+ *   1xxxx  → Discrete Input    (10001–19999) → subtract 10001
+ *   0–9999 → already a raw 0-based protocol address → return as-is
+ *
+ * The previous fallback of `num - 1` was incorrect for raw addresses:
+ * passing 0 returned -1, crashing the Modbus read.
+ */
 function toProtocolAddress(address, type) {
+    if (address === null || address === undefined) return 0;
     let num = parseInt(address, 10);
     if (isNaN(num)) return 0;
 
-    // Holding Registers (4xxxx)
-    if (type.includes('holding') || type === 'analog-out') {
-        if (num >= 40001 && num <= 49999) return num - 40001;
-    }
-    // Input Registers (3xxxx)
-    if (type.includes('input') || type === 'analog-in') {
-        if (num >= 30001 && num <= 39999) return num - 30001;
-    }
-    // Discrete Inputs (1xxxx)
-    if (type.includes('discrete') || type === 'digital-in') {
-        if (num >= 10001 && num <= 19999) return num - 10001;
-    }
-    
-    return num - 1;
+    /* Data-model 1-based ranges — subtract the range base */
+    if (num >= 40001 && num <= 49999) return num - 40001; // Holding Registers (4xxxx)
+    if (num >= 30001 && num <= 39999) return num - 30001; // Input Registers   (3xxxx)
+    if (num >= 10001 && num <= 19999) return num - 10001; // Discrete Inputs   (1xxxx)
+
+    /*
+     * Raw 0-based protocol address (0–9999) — pass through unchanged.
+     * Covers coil addresses and signals configured with a raw protocol
+     * address instead of the 5-digit data-model format.
+     */
+    if (num >= 0 && num <= 9999) return num;
+
+    /* Outside all known ranges — clamp to 0 to avoid negative addresses. */
+    return 0;
 }
 
 // --- Math Helpers ---
