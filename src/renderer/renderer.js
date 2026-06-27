@@ -922,4 +922,5 @@ document.addEventListener("DOMContentLoaded", async () => {
 
 	// Init Dashboard
 	loadMappedSignalsForCal();
+	document.getElementById("tab-manual-v2").click();
 });

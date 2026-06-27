@@ -150,7 +150,7 @@ async function startPollingLoop() {
                         client.setID(dev.unitId);
                         const t0 = Date.now();
                         const res = await client.readCoils(0, 24);
-                        log.info(`[Polling] ${key}: readCoils(0,24) OK in ${Date.now() - t0} ms`);
+                        log.info(`[Polling] ${key}: readCoils(0,24) OK in ${Date.now() - t0} ms ${res.data}`);
                         for (let i = 0; i < 16; i++) {
                             updates.push({ guiId: `do-${dev.id}-${i}`, value: res.data[i] ? 1 : 0 });
                         }

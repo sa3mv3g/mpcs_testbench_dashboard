@@ -366,7 +366,7 @@
   </div>
 
   <div class="tabs">
-    <button id="tab-manual-v2" class="tablinks active" onclick="openTab(event, 'manual-dashboard-v2')">Manual Dashboard</button>
+    <button id="tab-manual-v2" class="tablinks" onclick="openTab(event, 'manual-dashboard-v2')">Manual Dashboard</button>
     <button id="tab-sequence" class="tablinks" onclick="openTab(event, 'sequence-dashboard')">Sequence Execution</button>
     <button id="tab-device-registry" class="tablinks" onclick="openTab(event, 'device-registry')">Device Registry</button>
     <button id="tab-raw-registers" class="tablinks" onclick="openTab(event, 'raw-registers')">Raw Registers Explorer</button>
@@ -375,7 +375,7 @@
   </div>
 
   <!-- Manual Dashboard v2 — static hardcoded layout matching the jerry testbench panel -->
-  <div class="tab-content" id="manual-dashboard-v2" style="display: block; position: relative;">
+  <div class="tab-content" id="manual-dashboard-v2" style="position: relative;">
     <div class="lockout-overlay" id="manual-lockout">
       <div class="lockout-banner">SEQUENCE ACTIVE - MANUAL CONTROLS LOCKED</div>
     </div>
