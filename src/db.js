@@ -57,6 +57,11 @@ function initDatabase(dbPath) {
                     FOREIGN KEY(signal_id) REFERENCES mapped_signals(id) ON DELETE CASCADE
                 )`);
 
+                db.run(`CREATE TABLE IF NOT EXISTS manual_desired_state (
+                    guiId TEXT PRIMARY KEY,
+                    value REAL
+                )`);
+
                 db.run(`CREATE TABLE IF NOT EXISTS device_registers (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     device_id INTEGER,
@@ -356,6 +361,81 @@ function deleteDeviceRegister(id) {
     });
 }
 
+// --- Manual Desired State Operations ---
+function getDesiredStates() {
+    return new Promise((resolve, reject) => {
+        if (!db) return resolve({});
+        db.all("SELECT * FROM manual_desired_state", (err, rows) => {
+            if (err) {
+                log.error("Error fetching desired states", err);
+                resolve({});
+            } else {
+                const states = {};
+                rows.forEach(r => states[r.guiId] = r.value);
+                resolve(states);
+            }
+        });
+    });
+}
+
+function setDesiredState(guiId, value) {
+    return new Promise((resolve, reject) => {
+        db.run(
+            `INSERT INTO manual_desired_state (guiId, value) VALUES (?, ?)
+             ON CONFLICT(guiId) DO UPDATE SET value=excluded.value`,
+            [guiId, value],
+            function (err) {
+                if (err) {
+                    log.error("Error setting desired state", err);
+                    resolve({ success: false, error: err.message });
+                } else {
+                    resolve({ success: true });
+                }
+            }
+        );
+    });
+}
+
+const ALL_OUTPUT_GUI_IDS = [];
+for (let i = 1; i <= 8; i++) {
+    for (let j = 0; j < 16; j++) {
+        ALL_OUTPUT_GUI_IDS.push(`do-${i}-${j}`);
+    }
+}
+ALL_OUTPUT_GUI_IDS.push('ao-1-0', 'ao-1-3', 'ao-1-6', 'ao-1-9');
+
+
+function resetAllDesiredStates() {
+    return new Promise((resolve, reject) => {
+        const stmt = db.prepare(
+            `INSERT INTO manual_desired_state (guiId, value) VALUES (?, ?)
+             ON CONFLICT(guiId) DO UPDATE SET value=excluded.value`
+        );
+        db.serialize(() => {
+            db.run('BEGIN TRANSACTION');
+            for (const guiId of ALL_OUTPUT_GUI_IDS) {
+                stmt.run(guiId, 0);
+            }
+            stmt.finalize((err) => {
+                if (err) {
+                    db.run('ROLLBACK');
+                    log.error('Failed to finalize resetAllDesiredStates transaction', err);
+                    return resolve({ success: false, error: err.message });
+                }
+                db.run('COMMIT', (commitErr) => {
+                    if (commitErr) {
+                        log.error('Failed to commit resetAllDesiredStates transaction', commitErr);
+                        resolve({ success: false, error: commitErr.message });
+                    } else {
+                        log.info(`resetAllDesiredStates successfully upserted 0 for ${ALL_OUTPUT_GUI_IDS.length} outputs.`);
+                        resolve({ success: true });
+                    }
+                });
+            });
+        });
+    });
+}
+
 module.exports = {
     initDatabase,
     closeDatabase,
@@ -375,5 +455,8 @@ module.exports = {
     getDeviceRegisters,
     addDeviceRegister,
     updateDeviceRegister,
-    deleteDeviceRegister
+    deleteDeviceRegister,
+    getDesiredStates,
+    setDesiredState,
+    resetAllDesiredStates
 };

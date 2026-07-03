@@ -20,6 +20,10 @@ contextBridge.exposeInMainWorld("api", {
 	clearLayout: () => ipcRenderer.invoke("db:clearLayout"),
 	saveLayoutPosition: (params) => ipcRenderer.invoke("db:saveLayoutPosition", params),
 
+	getDesiredStates: () => ipcRenderer.invoke("db:getDesiredStates"),
+	setDesiredState: (guiId, value) => ipcRenderer.invoke("db:setDesiredState", { guiId, value }),
+	resetAllDesiredStates: () => ipcRenderer.invoke("db:resetAllDesiredStates"),
+
 	modbusPreemptWrite: (signal_id, value) => ipcRenderer.invoke("modbus:preemptWrite", { signal_id, value }),
 	directWrite: (params) => ipcRenderer.invoke("modbus:directWrite", params),
 

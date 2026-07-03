@@ -33,6 +33,29 @@ let isSequenceActive = false;
 let isNetworkEnabled = false;
 let pollingTimer = null;
 let activeDashboard = '';
+let outputStateCache = {}; // Replaces desiredStateCache
+
+// Handle configuration writes on device connection
+modbusManager.on('connected', async ({ ip, port }) => {
+    try {
+        const devices = await db.getDevices();
+        const dev = devices.find(d => d.ip === ip && d.port === port);
+        if (!dev) return;
+
+        if (dev.id === 2 || dev.id === 4) {
+            log.info(`[Main] Device ${dev.id} (${ip}:${port}) connected. Writing configuration data (pwm_0_phase = 65535)...`);
+            await modbusManager.enqueueHighPriority(ip, port, (client) => {
+                return client.writeRegister(1, 65535);
+            });
+            log.info(`[Main] Configuration data written successfully to device ${dev.id}`);
+        }
+    } catch (err) {
+        log.error(`[Main] Failed to write configuration data to device at ${ip}:${port}: ${err.message}`);
+    }
+});
+
+const CONFIRMATION_GRACE_MS = 1500; // 3 polls
+const MAX_CONSECUTIVE_FAILS = 3;
 
 ipcMain.on('app:setActiveDashboard', (event, tabName) => {
     log.info(`[IPC Main] Active dashboard set to: ${tabName}`);
@@ -152,7 +175,36 @@ async function startPollingLoop() {
                         const res = await client.readCoils(0, 24);
                         log.info(`[Polling] ${key}: readCoils(0,24) OK in ${Date.now() - t0} ms ${res.data}`);
                         for (let i = 0; i < 16; i++) {
-                            updates.push({ guiId: `do-${dev.id}-${i}`, value: res.data[i] ? 1 : 0 });
+                            const guiId = `do-${dev.id}-${i}`;
+                            const processValue = res.data[i] ? 1 : 0;
+                            
+                            const state = outputStateCache[guiId] || { setpoint: 0, confirmationState: 'SYNCED', consecutiveFails: 0 };
+                            
+                            if (processValue === state.setpoint) {
+                                state.confirmationState = 'SYNCED';
+                                state.pendingUntil = null;
+                                state.consecutiveFails = 0; // Reset on success
+                            } else {
+                                if (state.confirmationState === 'FAULT') {
+                                    // Do nothing, already in terminal fault state
+                                } else if (state.confirmationState !== 'PENDING' || (state.pendingUntil && Date.now() > state.pendingUntil)) {
+                                    state.confirmationState = 'MISMATCH';
+                                    log.warn(`[Polling] MISMATCH on ${guiId}: PV=${processValue} but Setpoint=${state.setpoint}. Re-enforcing.`);
+                                    modbusManager.enqueueHighPriority(dev.ip, dev.port, async (c) => {
+                                        c.setID(dev.unitId);
+                                        await c.writeCoil(i, !!state.setpoint);
+                                    }).catch(e => {
+                                        log.error(`[Polling] Mismatch correction failed for ${guiId}:`, e);
+                                        state.consecutiveFails = (state.consecutiveFails || 0) + 1;
+                                        if (state.consecutiveFails >= MAX_CONSECUTIVE_FAILS) {
+                                            state.confirmationState = 'FAULT';
+                                            log.error(`[Polling] FAULT on ${guiId}: write failed ${state.consecutiveFails} times. Disabling further writes.`);
+                                        }
+                                    });
+                                }
+                            }
+                            outputStateCache[guiId] = state;
+                            updates.push({ guiId, processValue, confirmationState: state.confirmationState });
                         }
                         for (let i = 16; i < 24; i++) {
                             updates.push({ guiId: `di-${dev.id}-${i}`, value: res.data[i] ? 1 : 0 });
@@ -162,18 +214,43 @@ async function startPollingLoop() {
                     log.error(`[Polling] ${key}: readCoils FAILED — ${e.message}`);
                 }
 
-                /* ── Holding registers (0–9): PWM duty cycles — device 1 only ── */
-                if (dev.id === 1) {
+                /* PWM duty cycles */
+                if (dev.id >= 1 && dev.id <= 4) {
                     try {
                         await modbusManager.enqueue(dev.ip, dev.port, async (client) => {
                             client.setID(dev.unitId);
                             const t0 = Date.now();
-                            const res = await client.readHoldingRegisters(0, 10);
-                            log.info(`[Polling] ${key}: readHoldingRegisters(0,10) OK in ${Date.now() - t0} ms`);
-                            updates.push({ guiId: 'ao-1-0', value: res.data[0] });
-                            updates.push({ guiId: 'ao-1-3', value: res.data[3] });
-                            updates.push({ guiId: 'ao-1-6', value: res.data[6] });
-                            updates.push({ guiId: 'ao-1-9', value: res.data[9] });
+                            const res = await client.readHoldingRegisters(0, 1);
+                            log.info(`[Polling] ${key}: readHoldingRegisters(0,1) OK in ${Date.now() - t0} ms`);
+                            const guiId = `ao-${dev.id}-0`;
+                            const processValue = res.data[0];
+                            const state = outputStateCache[guiId] || { setpoint: 0, confirmationState: 'SYNCED', consecutiveFails: 0 };
+
+                            if (processValue === state.setpoint) {
+                                state.confirmationState = 'SYNCED';
+                                state.pendingUntil = null;
+                                state.consecutiveFails = 0;
+                            } else {
+                                 if (state.confirmationState === 'FAULT') {
+                                    // Do nothing
+                                 } else if (state.confirmationState !== 'PENDING' || (state.pendingUntil && Date.now() > state.pendingUntil)) {
+                                    state.confirmationState = 'MISMATCH';
+                                    log.warn(`[Polling] MISMATCH on ${guiId}: PV=${processValue} but Setpoint=${state.setpoint}. Re-enforcing.`);
+                                    modbusManager.enqueueHighPriority(dev.ip, dev.port, async (c) => {
+                                        c.setID(dev.unitId);
+                                        await c.writeRegister(0, parseInt(state.setpoint));
+                                    }).catch(e => {
+                                        log.error(`[Polling] Mismatch correction failed for ${guiId}:`, e);
+                                        state.consecutiveFails = (state.consecutiveFails || 0) + 1;
+                                        if (state.consecutiveFails >= MAX_CONSECUTIVE_FAILS) {
+                                            state.confirmationState = 'FAULT';
+                                            log.error(`[Polling] FAULT on ${guiId}: write failed ${state.consecutiveFails} times. Disabling further writes.`);
+                                        }
+                                    });
+                                }
+                            }
+                            outputStateCache[guiId] = state;
+                            updates.push({ guiId, processValue, confirmationState: state.confirmationState });
                         });
                     } catch (e) {
                         log.error(`[Polling] ${key}: readHoldingRegisters FAILED — ${e.message}`);
@@ -261,6 +338,17 @@ app.whenReady().then(async () => {
         await db.initDatabase(dbPath);
     } catch (error) {
         log.error("Database initialization failed", error);
+    }
+
+    // Initialize the setpoints from the database
+    try {
+        const initialSetpoints = await db.getDesiredStates();
+        for (const [guiId, setpoint] of Object.entries(initialSetpoints)) {
+            outputStateCache[guiId] = { setpoint, confirmationState: 'SYNCED', pendingUntil: null };
+        }
+        log.info(`[App] Initialized outputStateCache with ${Object.keys(outputStateCache).length} items`);
+    } catch (e) {
+        log.error("Failed to fetch initial setpoints", e);
     }
 
     createWindow();
@@ -553,6 +641,40 @@ ipcMain.handle("db:saveLayoutPosition", async (event, { signal_id, pos_x, pos_y 
 
 ipcMain.handle("db:clearLayout", async (event) => {
     return await db.clearLayout();
+});
+
+ipcMain.handle("db:getDesiredStates", async (event) => {
+    return await db.getDesiredStates();
+});
+
+ipcMain.handle("db:setDesiredState", async (event, { guiId, value }) => {
+    if (!outputStateCache[guiId]) {
+        outputStateCache[guiId] = {};
+    }
+    // If we're in a FAULT state, a new user interaction should re-enable writes.
+    if (outputStateCache[guiId].confirmationState === 'FAULT') {
+        outputStateCache[guiId].consecutiveFails = 0;
+    }
+    outputStateCache[guiId].setpoint = value;
+    outputStateCache[guiId].confirmationState = 'PENDING';
+    outputStateCache[guiId].pendingUntil = Date.now() + CONFIRMATION_GRACE_MS;
+    
+    return await db.setDesiredState(guiId, value);
+});
+
+ipcMain.handle("db:resetAllDesiredStates", async (event) => {
+    const res = await db.resetAllDesiredStates();
+    if (res.success) {
+        const now = Date.now();
+        const guiIds = Object.keys(outputStateCache);
+        for (const guiId of guiIds) {
+            outputStateCache[guiId].setpoint = 0;
+            outputStateCache[guiId].confirmationState = 'PENDING';
+            outputStateCache[guiId].pendingUntil = now + CONFIRMATION_GRACE_MS;
+        }
+        log.info(`[IPC] resetAllDesiredStates: set ${guiIds.length} outputs to 0 and marked as PENDING.`);
+    }
+    return res;
 });
 
 // Device Registry interactions
