@@ -22,6 +22,18 @@ window.openTab = function (evt, tabName) {
 	evt.currentTarget.className += " active";
 };
 
+window.showStatus = function(message, isError = false) {
+    const bar = document.getElementById('bottom-status-bar');
+    if (!bar) return;
+    bar.textContent = message;
+    bar.style.backgroundColor = isError ? '#dc3545' : '#333';
+    clearTimeout(window.statusTimeout);
+    window.statusTimeout = setTimeout(() => {
+        bar.textContent = 'Ready';
+        bar.style.backgroundColor = '#333';
+    }, 4000);
+};
+
 document.addEventListener("DOMContentLoaded", async () => {
 	const controlsContainer = document.getElementById("controls-container");
 
@@ -103,37 +115,31 @@ document.addEventListener("DOMContentLoaded", async () => {
 	// --- Global State Polling Listener (Manual Dashboard v2) ---
 	if (window.api.onStateUpdate) {
 		window.api.onStateUpdate((updates) => {
-			updates.forEach(({ guiId, value }) => {
+			updates.forEach(({ guiId, processValue, confirmationState }) => {
 				const el = document.getElementById(guiId);
 				if (!el) return;
 
-				if (guiId.startsWith('do-')) {
-					/*
-					 * Digital output — checkbox reflects confirmed hardware state.
-					 * Skip update if the user is actively interacting with this checkbox
-					 * to avoid fighting the user's intent mid-click.
-					 */
-					if (document.activeElement !== el) {
-						el.checked = !!value;
+				const feedbackDot = document.getElementById(guiId.replace('do-', 'do-fb-').replace('ao-', 'ao-fb-'));
+
+				if (guiId.startsWith('do-') || guiId.startsWith('ao-')) {
+					// Update feedback dot for output controls
+					if (feedbackDot) {
+						feedbackDot.className = 'v2-feedback-dot'; // Reset classes
+						feedbackDot.title = `State: ${confirmationState}`;
+						if (confirmationState === 'PENDING') {
+							feedbackDot.classList.add('pending');
+						} else if (confirmationState === 'MISMATCH') {
+							feedbackDot.classList.add('mismatch');
+						} else if (confirmationState === 'FAULT') {
+							feedbackDot.classList.add('fault');
+						}
 					}
 				} else if (guiId.startsWith('di-')) {
-					/* Digital input LED */
-					el.className = value ? 'v2-led led-on' : 'v2-led led-off';
-				} else if (guiId.startsWith('ao-')) {
-					/*
-					 * Analog output — update slider position and readout display.
-					 * The raw register value is 0–10000 (= 0.00–100.00%).
-					 * Skip slider update if user is dragging it.
-					 */
-					if (document.activeElement !== el) {
-						el.value = value;
-					}
-					const roId = guiId.replace('ao-', 'ao-ro-');
-					const ro = document.getElementById(roId);
-					if (ro) ro.textContent = (value / 100).toFixed(2) + '%';
+					// webaudio-switch (enable=0) used as LED indicator
+					el.value = processValue ? 1 : 0;
 				} else if (guiId.startsWith('ai-')) {
-					/* Analog input display — 6.2f format to prevent overflow */
-					el.textContent = typeof value === 'number' ? value.toFixed(2) : value;
+					// webaudio-param used as read-only numeric display
+					el.value = typeof processValue === 'number' ? processValue : 0;
 				}
 			});
 		});
@@ -150,40 +156,39 @@ document.addEventListener("DOMContentLoaded", async () => {
 		7: '169.254.4.106', 8: '169.254.4.107'
 	};
 
-	/* Digital output checkboxes — writeCoil on change */
-	document.querySelectorAll('.v2-do-cb').forEach(cb => {
-		cb.addEventListener('change', async (e) => {
-			const dev  = parseInt(e.target.dataset.dev,  10);
-			const addr = parseInt(e.target.dataset.addr, 10);
-			const val  = e.target.checked;
-			const prevVal = !val;
+	/* Digital output switches (webaudio-switch) — writeCoil on change */
+	document.querySelectorAll('.v2-do-switch').forEach(sw => {
+		sw.addEventListener('change', async (e) => {
+			const dev    = parseInt(e.target.dataset.dev,  10);
+			const addr   = parseInt(e.target.dataset.addr, 10);
+			const val    = e.target.value;          // webaudio-switch: 0 or 1
+			const prevVal = val ? 0 : 1;
+			const guiId  = e.target.id;
+
+			// Save desired state
+			await window.api.setDesiredState(guiId, val);
+
 			const res = await window.api.directWrite({
 				ip: JERRY_IPS[dev], port: 502,
-				fc: 'writeCoil', address: addr, value: val,
+				fc: 'writeCoil', address: addr, value: !!val,
 				unitId: dev
 			});
-			if (res && !res.success) {
-				/* Revert checkbox on failure */
-				e.target.checked = prevVal;
-			}
 		});
 	});
 
-	/* Analog output sliders — writeRegister on input (live) */
+	/* Analog output sliders (webaudio-slider) — writeRegister on change */
 	document.querySelectorAll('.v2-ao-slider').forEach(slider => {
-		slider.addEventListener('input', (e) => {
-			/* Update readout immediately for responsive feel */
-			const rawVal = parseInt(e.target.value, 10);
-			const roId = e.target.id.replace('ao-', 'ao-ro-');
-			const ro = document.getElementById(roId);
-			if (ro) ro.textContent = (rawVal / 100).toFixed(2) + '%';
-		});
-
 		slider.addEventListener('change', async (e) => {
-			/* Send write only when user releases the slider */
-			const dev  = parseInt(e.target.dataset.dev,  10);
-			const addr = parseInt(e.target.dataset.addr, 10);
-			const rawVal = parseInt(e.target.value, 10);
+			/* webaudio-slider fires 'change' continuously while dragging and
+			 * on release. We write on every change for live feel. */
+			const dev    = parseInt(e.target.dataset.dev,  10);
+			const addr   = parseInt(e.target.dataset.addr, 10);
+			const rawVal = Math.round(e.target.value);
+			const guiId  = e.target.id;
+
+			// Save desired state
+			await window.api.setDesiredState(guiId, rawVal);
+
 			await window.api.directWrite({
 				ip: JERRY_IPS[dev], port: 502,
 				fc: 'writeRegister', address: addr, value: rawVal,
@@ -191,6 +196,57 @@ document.addEventListener("DOMContentLoaded", async () => {
 			});
 		});
 	});
+
+	// --- Set sprite src from preloaded data URIs (avoids Electron path issues) ---
+	if (window.SWITCH_METAL_SRC) {
+		document.querySelectorAll('.v2-do-switch').forEach(sw => {
+			sw.src = window.SWITCH_METAL_SRC;
+		});
+	}
+
+	// --- Dynamic Feedback Dot Generation ---
+	// Appends a feedback dot to each output widget. The dot is absolutely
+	// positioned in the top-right corner of the widget via CSS and is invisible
+	// in the SYNCED state, only appearing for PENDING/MISMATCH/FAULT.
+	const generateFeedbackDots = () => {
+		document.querySelectorAll('.v2-do-switch, .v2-ao-slider').forEach(control => {
+			const guiId = control.id;
+			const fbId = guiId.replace('do-', 'do-fb-').replace('ao-', 'ao-fb-');
+
+			const dot = document.createElement('div');
+			dot.id = fbId;
+			dot.className = 'v2-feedback-dot';
+			dot.title = 'State: SYNCED';
+
+			// The widget container holds the label, the control, and (for ao) the readout.
+			const widget = control.closest('.v2-widget');
+			if (widget) {
+				widget.appendChild(dot);
+			}
+		});
+	};
+	generateFeedbackDots();
+
+	// --- Initialize Desired States from DB ---
+	const initDesiredStates = async () => {
+		const states = await window.api.getDesiredStates();
+		for (const [guiId, val] of Object.entries(states)) {
+			const el = document.getElementById(guiId);
+			if (!el) continue;
+
+			if (guiId.startsWith('do-')) {
+				// webaudio-switch: set .value (0 or 1)
+				if (typeof el.setValue === 'function') el.setValue(val ? 1 : 0, false);
+				else el.value = val ? 1 : 0;
+			} else if (guiId.startsWith('ao-')) {
+				// webaudio-slider: set .value directly
+				if (typeof el.setValue === 'function') el.setValue(val, false);
+				else el.value = val;
+				el.dispatchEvent(new Event('input'));
+			}
+		}
+	};
+	initDesiredStates();
 
 	// --- 1. Manual Dashboard Logic (v1 — hidden) ---
 	const canvasContainer = document.getElementById("canvas-container");
@@ -335,8 +391,39 @@ document.addEventListener("DOMContentLoaded", async () => {
 
 	document.getElementById("btn-snapshot").addEventListener("click", async () => {
 		const res = await window.api.saveManualSnapshot({});
-		if (res.success) alert("Snapshot saved!");
+		if (res.success) window.showStatus("Snapshot saved!");
 	});
+
+	const btnResetDesired = document.getElementById("btn-reset-desired");
+	if (btnResetDesired) {
+		btnResetDesired.addEventListener("click", async () => {
+			if (confirm("Reset all manual controls to default (0/Off)?")) {
+				await window.api.resetAllDesiredStates();
+
+				// Zero-out the UI elements immediately and set all feedback dots to PENDING.
+				document.querySelectorAll('.v2-do-switch').forEach(sw => {
+					sw.value = 0;
+					const feedbackDot = document.getElementById(sw.id.replace('do-', 'do-fb-'));
+					if (feedbackDot) {
+						feedbackDot.className = 'v2-feedback-dot pending';
+						feedbackDot.title = 'State: PENDING';
+					}
+				});
+				document.querySelectorAll('.v2-ao-slider').forEach(slider => {
+					if (typeof slider.setValue === 'function') slider.setValue(0, false);
+					else slider.value = 0;
+					slider.dispatchEvent(new Event('input'));
+					const feedbackDot = document.getElementById(slider.id.replace('ao-', 'ao-fb-'));
+					if (feedbackDot) {
+						feedbackDot.className = 'v2-feedback-dot pending';
+						feedbackDot.title = 'State: PENDING';
+					}
+				});
+
+				window.showStatus("All states reset to default. Hardware will de-energize on the next polling tick.");
+			}
+		});
+	}
 
 	// --- Sequence Logic ---
 	document.getElementById("btn-start-seq").addEventListener("click", async () => {
@@ -391,27 +478,27 @@ document.addEventListener("DOMContentLoaded", async () => {
 	};
 
 	window.readRawRegister = async (regId, type, address) => {
-		if(!currentRawDevIp) return alert("Select device first");
+		if(!currentRawDevIp) return window.showStatus("Select device first");
 		const res = await window.api.readRawRegister({
 			deviceIp: currentRawDevIp, port: currentRawDevPort, address, type
 		});
 		if(res.success) {
 			document.getElementById(`raw-val-${regId}`).textContent = res.value;
 		} else {
-			alert("Read Error: " + res.error);
+			window.showStatus("Read Error: " + res.error, true);
 		}
 	};
 
 	window.writeRawRegister = async (regId, type, address) => {
-		if(!currentRawDevIp) return alert("Select device first");
+		if(!currentRawDevIp) return window.showStatus("Select device first");
 		const valStr = document.getElementById(`raw-input-${regId}`).value;
-		if(!valStr) return alert("Enter value to write");
+		if(!valStr) return window.showStatus("Enter value to write");
 		
 		const res = await window.api.writeRegister({
 			deviceIp: currentRawDevIp, port: currentRawDevPort, address, value: parseFloat(valStr), type
 		});
-		if(res.success) alert("Write successful");
-		else alert("Write Error: " + res.error);
+		if(res.success) window.showStatus("Write successful");
+		else window.showStatus("Write Error: " + res.error, true);
 	};
 
 	window.editRawRegister = (id, type, address, desc) => {
@@ -431,12 +518,12 @@ document.addEventListener("DOMContentLoaded", async () => {
 
 	document.getElementById("btn-save-raw-reg").addEventListener("click", async () => {
 		const devId = parseInt(document.getElementById("raw-dev-id").value, 10);
-		if(!devId) return alert("Select a device from the left panel first.");
+		if(!devId) return window.showStatus("Select a device from the left panel first.");
 
 		const id = document.getElementById("raw-reg-id").value;
 		const address = parseInt(document.getElementById("raw-reg-addr").value, 10);
 
-		if (isNaN(address) || address < 0 || address > 49999) return alert("Protocol Address must be between 0 and 49999.");
+		if (isNaN(address) || address < 0 || address > 49999) return window.showStatus("Protocol Address must be between 0 and 49999.");
 
 		const reg = {
 			device_id: devId,
@@ -451,7 +538,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 			document.getElementById("btn-clear-raw-reg").click();
 			loadRawRegisters(devId);
 		} else {
-			alert("Error saving: " + res.error);
+			window.showStatus("Error saving: " + res.error, true);
 		}
 	});
 
@@ -524,7 +611,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 		if (confirm("Are you sure you want to delete this device?")) {
 			const res = await window.api.deleteDevice(id);
 			if (res.success) loadDevices();
-			else alert("Error deleting device: " + res.error);
+			else window.showStatus("Error deleting device: " + res.error, true);
 		}
 	};
 
@@ -536,8 +623,8 @@ document.addEventListener("DOMContentLoaded", async () => {
 		const key1 = parseInt(document.getElementById("dev-key1").value, 10);
 		const key2 = parseInt(document.getElementById("dev-key2").value, 10);
 
-		if (!isNaN(key1) && (key1 < 0 || key1 > 49999)) return alert("Key 1 Address must be between 0 and 49999.");
-		if (!isNaN(key2) && (key2 < 0 || key2 > 49999)) return alert("Key 2 Address must be between 0 and 49999.");
+		if (!isNaN(key1) && (key1 < 0 || key1 > 49999)) return window.showStatus("Key 1 Address must be between 0 and 49999.");
+		if (!isNaN(key2) && (key2 < 0 || key2 > 49999)) return window.showStatus("Key 2 Address must be between 0 and 49999.");
 
 		const device = { display_name: name, ip, port, key1: isNaN(key1) ? null : key1, key2: isNaN(key2) ? null : key2 };
 
@@ -546,7 +633,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 			document.getElementById("btn-clear-form").click();
 			loadDevices();
 		} else {
-			alert("Error saving device: " + res.error);
+			window.showStatus("Error saving device: " + res.error, true);
 		}
 	});
 
@@ -685,7 +772,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 		const isAnalog = type.startsWith("analog");
 		
 		const read_register = parseInt(document.getElementById("cal-sig-read").value, 10);
-		if (isNaN(read_register) || read_register < 0 || read_register > 49999) return alert("Read Register must be between 0 and 49999.");
+		if (isNaN(read_register) || read_register < 0 || read_register > 49999) return window.showStatus("Read Register must be between 0 and 49999.");
 
 		let cal_scale_reg = null;
 		let cal_offset_reg = null;
@@ -698,9 +785,9 @@ document.addEventListener("DOMContentLoaded", async () => {
 			cal_deadzone_reg = parseInt(document.getElementById("cal-sig-deadzone").value, 10);
 			encoding = document.getElementById("cal-sig-enc").value;
 
-			if (isNaN(cal_scale_reg) || cal_scale_reg < 0 || cal_scale_reg > 49999) return alert("Scale Register must be between 0 and 49999.");
-			if (isNaN(cal_offset_reg) || cal_offset_reg < 0 || cal_offset_reg > 49999) return alert("Offset Register must be between 0 and 49999.");
-			if (isNaN(cal_deadzone_reg) || cal_deadzone_reg < 0 || cal_deadzone_reg > 49999) return alert("Deadzone Register must be between 0 and 49999.");
+			if (isNaN(cal_scale_reg) || cal_scale_reg < 0 || cal_scale_reg > 49999) return window.showStatus("Scale Register must be between 0 and 49999.");
+			if (isNaN(cal_offset_reg) || cal_offset_reg < 0 || cal_offset_reg > 49999) return window.showStatus("Offset Register must be between 0 and 49999.");
+			if (isNaN(cal_deadzone_reg) || cal_deadzone_reg < 0 || cal_deadzone_reg > 49999) return window.showStatus("Deadzone Register must be between 0 and 49999.");
 		}
 
 		const signal = {
@@ -714,7 +801,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 			cal_deadzone_reg_id: cal_deadzone_reg
 		};
 
-		if (isNaN(signal.device_id)) return alert("Please select a valid device.");
+		if (isNaN(signal.device_id)) return window.showStatus("Please select a valid device.");
 
 		let res = id ? await window.api.updateMappedSignal({...signal, id}) : await window.api.addMappedSignal(signal);
 		if(res.success) {
@@ -722,7 +809,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 			loadMappedSignalsForCal();
 			renderManualDashboard();
 		} else {
-			alert("Error: " + res.error);
+			window.showStatus("Error: " + res.error, true);
 		}
 	});
 
@@ -819,7 +906,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 		});
 
 		if (hasError || xs.length < 2) {
-			alert("Please fill in at least 2 valid numeric data points (highlighted in red).");
+			window.showStatus("Please fill in at least 2 valid numeric data points (highlighted in red).");
 			return null;
 		}
 
@@ -848,22 +935,22 @@ document.addEventListener("DOMContentLoaded", async () => {
 	});
 
 	document.getElementById("btn-cal-zero").addEventListener("click", async () => {
-		if(!currentActiveSignal) return alert("Select a signal first.");
+		if(!currentActiveSignal) return window.showStatus("Select a signal first.");
 		const res = await window.api.performCalibration({
 			label: currentActiveSignal.label,
 			scale: 1.0, offset: 0.0, deadzone: 0.0
 		});
-		if(res.success) alert("Device Zeroed!");
+		if(res.success) window.showStatus("Device Zeroed!");
 	});
 
 	document.getElementById("btn-cal-program").addEventListener("click", async () => {
-		if(!currentActiveSignal) return alert("Select a signal first.");
+		if(!currentActiveSignal) return window.showStatus("Select a signal first.");
 		
 		const m = parseFloat(document.getElementById("cal-calc-m").value);
 		const c = parseFloat(document.getElementById("cal-calc-c").value);
 		const dz = parseFloat(document.getElementById("cal-input-dz").value);
 
-		if(isNaN(m) || isNaN(c) || isNaN(dz)) return alert("Invalid m, c, or deadzone values.");
+		if(isNaN(m) || isNaN(c) || isNaN(dz)) return window.showStatus("Invalid m, c, or deadzone values.");
 
 		/*
 		 * Validate data points before sending to main process.
@@ -882,7 +969,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 		});
 
 		if(res.success) {
-			alert("Successfully programmed and handshaked!");
+			window.showStatus("Successfully programmed and handshaked!");
 			// 2. Audit Log
 			await window.api.saveCalibrationHistory({
 				signal_label: currentActiveSignal.label,
@@ -891,7 +978,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 			});
 			loadCalibrationHistoryForSignal(currentActiveSignal.label);
 		} else {
-			alert("Error programming: " + res.error);
+			window.showStatus("Error programming: " + res.error, true);
 		}
 	});
 
