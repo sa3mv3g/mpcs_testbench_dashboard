@@ -1,8 +1,10 @@
 const ModbusRTU = require('modbus-serial');
 const log = require('electron-log');
+const EventEmitter = require('events');
 
-class ModbusManager {
+class ModbusManager extends EventEmitter {
     constructor() {
+        super();
         // Map of connection keys (e.g., '192.168.1.100:502') to { client, queue, isConnected }
         this.connections = new Map();
         // Per-device queue depth counter for observability
@@ -115,6 +117,7 @@ class ModbusManager {
             connectionObj.isConnected = true;
             connectionObj.retryCount = 0;
             log.info(`[ModbusManager] connect(${key}): TCP connected in ${Date.now() - t0} ms`);
+            this.emit('connected', { ip, port: parseInt(port) });
         } catch (err) {
             log.error(`[ModbusManager] connect(${key}): connectTCP FAILED — ${err.message || err}`);
             this._handleDisconnect(ip, port);
@@ -204,6 +207,7 @@ class ModbusManager {
                         connectionObj.retryCount = 0;
 
                         log.info(`[ModbusManager] reconnect(${key}): SUCCESS in ${Date.now() - t0} ms`);
+                        this.emit('connected', { ip, port: parseInt(port) });
                     } catch (e) {
                         log.error(`[ModbusManager] reconnect(${key}): FAILED — ${e.message || e} — will retry`);
                         this._handleDisconnect(ip, port); // Trigger another retry
