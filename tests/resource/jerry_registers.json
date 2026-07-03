@@ -1,545 +1,847 @@
 {
-  "coils": [
-    {
-      "address": 0,
-      "name": "digital_output_0",
-      "description": "Digital output 0 control"
-    },
-    {
-      "address": 1,
-      "name": "digital_output_1",
-      "description": "Digital output 1 control"
-    },
-    {
-      "address": 2,
-      "name": "digital_output_2",
-      "description": "Digital output 2 control"
-    },
-    {
-      "address": 3,
-      "name": "digital_output_3",
-      "description": "Digital output 3 control"
-    },
-    {
-      "address": 4,
-      "name": "digital_output_4",
-      "description": "Digital output 4 control"
-    },
-    {
-      "address": 5,
-      "name": "digital_output_5",
-      "description": "Digital output 5 control"
-    },
-    {
-      "address": 6,
-      "name": "digital_output_6",
-      "description": "Digital output 6 control"
-    },
-    {
-      "address": 7,
-      "name": "digital_output_7",
-      "description": "Digital output 7 control"
-    },
-    {
-      "address": 8,
-      "name": "digital_output_8",
-      "description": "Digital output 8 control"
-    },
-    {
-      "address": 9,
-      "name": "digital_output_9",
-      "description": "Digital output 9 control"
-    },
-    {
-      "address": 10,
-      "name": "digital_output_10",
-      "description": "Digital output 10 control"
-    },
-    {
-      "address": 11,
-      "name": "digital_output_11",
-      "description": "Digital output 11 control"
-    },
-    {
-      "address": 12,
-      "name": "digital_output_12",
-      "description": "Digital output 12 control"
-    },
-    {
-      "address": 13,
-      "name": "digital_output_13",
-      "description": "Digital output 13 control"
-    },
-    {
-      "address": 14,
-      "name": "digital_output_14",
-      "description": "Digital output 14 control"
-    },
-    {
-      "address": 15,
-      "name": "digital_output_15",
-      "description": "Digital output 15 control"
-    },
-    {
-      "address": 16,
-      "name": "digital_input_0",
-      "description": "Digital input 0 status (mirror of discrete input)"
-    },
-    {
-      "address": 17,
-      "name": "digital_input_1",
-      "description": "Digital input 1 status (mirror of discrete input)"
-    },
-    {
-      "address": 18,
-      "name": "digital_input_2",
-      "description": "Digital input 2 status (mirror of discrete input)"
-    },
-    {
-      "address": 19,
-      "name": "digital_input_3",
-      "description": "Digital input 3 status (mirror of discrete input)"
-    },
-    {
-      "address": 20,
-      "name": "digital_input_4",
-      "description": "Digital input 4 status (mirror of discrete input)"
-    },
-    {
-      "address": 21,
-      "name": "digital_input_5",
-      "description": "Digital input 5 status (mirror of discrete input)"
-    },
-    {
-      "address": 22,
-      "name": "digital_input_6",
-      "description": "Digital input 6 status (mirror of discrete input)"
-    },
-    {
-      "address": 23,
-      "name": "digital_input_7",
-      "description": "Digital input 7 status (mirror of discrete input)"
-    },
-    {
-      "address": 24,
-      "name": "pwm_0_enable",
-      "description": "PWM channel 0 enable"
-    },
-    {
-      "address": 25,
-      "name": "pwm_1_enable",
-      "description": "PWM channel 1 enable"
-    },
-    {
-      "address": 26,
-      "name": "pwm_2_enable",
-      "description": "PWM channel 2 enable"
-    },
-    {
-      "address": 27,
-      "name": "pwm_3_enable",
-      "description": "PWM channel 3 enable"
-    },
-    {
-      "address": 30,
-      "name": "rtc_commit",
-      "description": "Write 1 to commit the cached RTC holding registers to the hardware RTC"
-    }
-  ],
-  "discrete_inputs": [
-    {
-      "address": 0,
-      "name": "digital_input_0",
-      "description": "Digital input 0 status"
-    },
-    {
-      "address": 1,
-      "name": "digital_input_1",
-      "description": "Digital input 1 status"
-    },
-    {
-      "address": 2,
-      "name": "digital_input_2",
-      "description": "Digital input 2 status"
-    },
-    {
-      "address": 3,
-      "name": "digital_input_3",
-      "description": "Digital input 3 status"
-    },
-    {
-      "address": 4,
-      "name": "digital_input_4",
-      "description": "Digital input 4 status"
-    },
-    {
-      "address": 5,
-      "name": "digital_input_5",
-      "description": "Digital input 5 status"
-    },
-    {
-      "address": 6,
-      "name": "digital_input_6",
-      "description": "Digital input 6 status"
-    },
-    {
-      "address": 7,
-      "name": "digital_input_7",
-      "description": "Digital input 7 status"
-    }
-  ],
-  "holding_registers": [
-    {
-      "address": 0,
-      "name": "pwm_0_duty_cycle",
-      "type": "uint16",
-      "size": 1,
-      "description": "PWM channel 0 duty cycle (0-10000 = 0.00-100.00%) [Range: 0-10000] [%]"
-    },
-    {
-      "address": 1,
-      "name": "pwm_0_frequency",
-      "type": "uint32",
-      "size": 2,
-      "description": "PWM channel 0 frequency in Hz [Range: 1-100000] [Hz]"
-    },
-    {
-      "address": 3,
-      "name": "pwm_1_duty_cycle",
-      "type": "uint16",
-      "size": 1,
-      "description": "PWM channel 1 duty cycle (0-10000 = 0.00-100.00%) [Range: 0-10000] [%]"
-    },
-    {
-      "address": 4,
-      "name": "pwm_1_frequency",
-      "type": "uint32",
-      "size": 2,
-      "description": "PWM channel 1 frequency in Hz [Range: 1-100000] [Hz]"
-    },
-    {
-      "address": 6,
-      "name": "pwm_2_duty_cycle",
-      "type": "uint16",
-      "size": 1,
-      "description": "PWM channel 2 duty cycle (0-10000 = 0.00-100.00%) [Range: 0-10000] [%]"
-    },
-    {
-      "address": 7,
-      "name": "pwm_2_frequency",
-      "type": "uint32",
-      "size": 2,
-      "description": "PWM channel 2 frequency in Hz [Range: 1-100000] [Hz]"
-    },
-    {
-      "address": 9,
-      "name": "pwm_3_duty_cycle",
-      "type": "uint16",
-      "size": 1,
-      "description": "PWM channel 3 duty cycle (0-10000 = 0.00-100.00%) [Range: 0-10000] [%]"
-    },
-    {
-      "address": 10,
-      "name": "pwm_3_frequency",
-      "type": "uint32",
-      "size": 2,
-      "description": "PWM channel 3 frequency in Hz [Range: 1-100000] [Hz]"
-    },
-    {
-      "address": 100,
-      "name": "adc_0_value",
-      "type": "uint16",
-      "size": 1,
-      "description": "ADC channel 0 raw value (mirror of input register)"
-    },
-    {
-      "address": 101,
-      "name": "adc_1_value",
-      "type": "uint16",
-      "size": 1,
-      "description": "ADC channel 1 raw value (mirror of input register)"
-    },
-    {
-      "address": 102,
-      "name": "adc_2_value",
-      "type": "uint16",
-      "size": 1,
-      "description": "ADC channel 2 raw value (mirror of input register)"
-    },
-    {
-      "address": 103,
-      "name": "adc_3_value",
-      "type": "uint16",
-      "size": 1,
-      "description": "ADC channel 3 raw value (mirror of input register)"
-    },
-    {
-      "address": 104,
-      "name": "adc_0_scale_factor",
-      "type": "float32",
-      "size": 2,
-      "description": "ADC channel 0 scale factor"
-    },
-    {
-      "address": 106,
-      "name": "adc_0_offset_term",
-      "type": "float32",
-      "size": 2,
-      "description": "ADC channel 0 offset term"
-    },
-    {
-      "address": 108,
-      "name": "adc_0_dead_zone",
-      "type": "float32",
-      "size": 2,
-      "description": "ADC channel 0 dead zone"
-    },
-    {
-      "address": 110,
-      "name": "adc_1_scale_factor",
-      "type": "float32",
-      "size": 2,
-      "description": "ADC channel 1 scale factor"
-    },
-    {
-      "address": 112,
-      "name": "adc_1_offset_term",
-      "type": "float32",
-      "size": 2,
-      "description": "ADC channel 1 offset term"
-    },
-    {
-      "address": 114,
-      "name": "adc_1_dead_zone",
-      "type": "float32",
-      "size": 2,
-      "description": "ADC channel 1 dead zone"
-    },
-    {
-      "address": 116,
-      "name": "adc_2_scale_factor",
-      "type": "float32",
-      "size": 2,
-      "description": "ADC channel 2 scale factor"
-    },
-    {
-      "address": 118,
-      "name": "adc_2_offset_term",
-      "type": "float32",
-      "size": 2,
-      "description": "ADC channel 2 offset term"
-    },
-    {
-      "address": 120,
-      "name": "adc_2_dead_zone",
-      "type": "float32",
-      "size": 2,
-      "description": "ADC channel 2 dead zone"
-    },
-    {
-      "address": 122,
-      "name": "adc_3_scale_factor",
-      "type": "float32",
-      "size": 2,
-      "description": "ADC channel 3 scale factor"
-    },
-    {
-      "address": 124,
-      "name": "adc_3_offset_term",
-      "type": "float32",
-      "size": 2,
-      "description": "ADC channel 3 offset term"
-    },
-    {
-      "address": 126,
-      "name": "adc_3_dead_zone",
-      "type": "float32",
-      "size": 2,
-      "description": "ADC channel 3 dead zone"
-    },
-    {
-      "address": 128,
-      "name": "key1",
-      "type": "uint16",
-      "size": 1,
-      "description": "key1"
-    },
-    {
-      "address": 129,
-      "name": "key2",
-      "type": "uint16",
-      "size": 1,
-      "description": "key2"
-    },
-    {
-      "address": 200,
-      "name": "system_tick_low",
-      "type": "uint16",
-      "size": 1,
-      "description": "System tick counter low word"
-    },
-    {
-      "address": 201,
-      "name": "system_tick_high",
-      "type": "uint16",
-      "size": 1,
-      "description": "System tick counter high word"
-    },
-    {
-      "address": 210,
-      "name": "rtc_year",
-      "type": "uint16",
-      "size": 1,
-      "description": "RTC year (2000-2099) [Range: 2000-2099]"
-    },
-    {
-      "address": 211,
-      "name": "rtc_month",
-      "type": "uint16",
-      "size": 1,
-      "description": "RTC month (1-12) [Range: 1-12]"
-    },
-    {
-      "address": 212,
-      "name": "rtc_day",
-      "type": "uint16",
-      "size": 1,
-      "description": "RTC day of month (1-31) [Range: 1-31]"
-    },
-    {
-      "address": 213,
-      "name": "rtc_hour",
-      "type": "uint16",
-      "size": 1,
-      "description": "RTC hour (0-23) [Range: 0-23]"
-    },
-    {
-      "address": 214,
-      "name": "rtc_minute",
-      "type": "uint16",
-      "size": 1,
-      "description": "RTC minute (0-59) [Range: 0-59]"
-    },
-    {
-      "address": 215,
-      "name": "rtc_second",
-      "type": "uint16",
-      "size": 1,
-      "description": "RTC second (0-59) [Range: 0-59]"
-    },
-    {
-      "address": 300,
-      "name": "app_version_major",
-      "type": "uint16",
-      "size": 1,
-      "description": "Application version major (mirror of input register)"
-    },
-    {
-      "address": 301,
-      "name": "app_version_minor",
-      "type": "uint16",
-      "size": 1,
-      "description": "Application version minor (mirror of input register)"
-    },
-    {
-      "address": 302,
-      "name": "app_version_patch",
-      "type": "uint16",
-      "size": 1,
-      "description": "Application version patch (mirror of input register)"
-    },
-    {
-      "address": 303,
-      "name": "app_build_number",
-      "type": "uint32",
-      "size": 2,
-      "description": "Application build number (mirror of input register)"
-    }
-  ],
-  "input_registers": [
-    {
-      "address": 0,
-      "name": "adc_0_value",
-      "type": "uint16",
-      "size": 1,
-      "description": "ADC channel 0 raw value (12-bit, 0-4095)"
-    },
-    {
-      "address": 1,
-      "name": "adc_1_value",
-      "type": "uint16",
-      "size": 1,
-      "description": "ADC channel 1 raw value (12-bit, 0-4095)"
-    },
-    {
-      "address": 2,
-      "name": "adc_2_value",
-      "type": "uint16",
-      "size": 1,
-      "description": "ADC channel 2 raw value (12-bit, 0-4095)"
-    },
-    {
-      "address": 3,
-      "name": "adc_3_value",
-      "type": "uint16",
-      "size": 1,
-      "description": "ADC channel 3 raw value (12-bit, 0-4095)"
-    },
-    {
-      "address": 4,
-      "name": "adc_0_calibrated_value",
-      "type": "float32",
-      "size": 2,
-      "description": "ADC channel 0 calibrated value"
-    },
-    {
-      "address": 6,
-      "name": "adc_1_calibrated_value",
-      "type": "float32",
-      "size": 2,
-      "description": "ADC channel 1 calibrated value"
-    },
-    {
-      "address": 8,
-      "name": "adc_2_calibrated_value",
-      "type": "float32",
-      "size": 2,
-      "description": "ADC channel 2 calibrated value"
-    },
-    {
-      "address": 10,
-      "name": "adc_3_calibrated_value",
-      "type": "float32",
-      "size": 2,
-      "description": "ADC channel 3 calibrated value"
-    },
-    {
-      "address": 100,
-      "name": "app_version_major",
-      "type": "uint16",
-      "size": 1,
-      "description": "Application version major number"
-    },
-    {
-      "address": 101,
-      "name": "app_version_minor",
-      "type": "uint16",
-      "size": 1,
-      "description": "Application version minor number"
-    },
-    {
-      "address": 102,
-      "name": "app_version_patch",
-      "type": "uint16",
-      "size": 1,
-      "description": "Application version patch number"
-    },
-    {
-      "address": 103,
-      "name": "app_build_number",
-      "type": "uint32",
-      "size": 2,
-      "description": "Application build number"
+  "$schema": "../tools/modbus_codegen/schema/modbus_registers.schema.json",
+  "device": {
+    "name": "jerry_device",
+    "description": "STM32H5xx based industrial controller with digital I/O, ADC, and PWM",
+    "slave_id": 1,
+    "version": "1.0.0"
+  },
+  "registers": {
+    "coils": [
+      {
+        "name": "digital_output_0",
+        "address": 0,
+        "description": "Digital output 0 control",
+        "default_value": false,
+        "group": "digital_outputs",
+        "access": "read_write"
+      },
+      {
+        "name": "digital_output_1",
+        "address": 1,
+        "description": "Digital output 1 control",
+        "default_value": false,
+        "group": "digital_outputs",
+        "access": "read_write"
+      },
+      {
+        "name": "digital_output_2",
+        "address": 2,
+        "description": "Digital output 2 control",
+        "default_value": false,
+        "group": "digital_outputs",
+        "access": "read_write"
+      },
+      {
+        "name": "digital_output_3",
+        "address": 3,
+        "description": "Digital output 3 control",
+        "default_value": false,
+        "group": "digital_outputs",
+        "access": "read_write"
+      },
+      {
+        "name": "digital_output_4",
+        "address": 4,
+        "description": "Digital output 4 control",
+        "default_value": false,
+        "group": "digital_outputs",
+        "access": "read_write"
+      },
+      {
+        "name": "digital_output_5",
+        "address": 5,
+        "description": "Digital output 5 control",
+        "default_value": false,
+        "group": "digital_outputs",
+        "access": "read_write"
+      },
+      {
+        "name": "digital_output_6",
+        "address": 6,
+        "description": "Digital output 6 control",
+        "default_value": false,
+        "group": "digital_outputs",
+        "access": "read_write"
+      },
+      {
+        "name": "digital_output_7",
+        "address": 7,
+        "description": "Digital output 7 control",
+        "default_value": false,
+        "group": "digital_outputs",
+        "access": "read_write"
+      },
+      {
+        "name": "digital_output_8",
+        "address": 8,
+        "description": "Digital output 8 control",
+        "default_value": false,
+        "group": "digital_outputs",
+        "access": "read_write"
+      },
+      {
+        "name": "digital_output_9",
+        "address": 9,
+        "description": "Digital output 9 control",
+        "default_value": false,
+        "group": "digital_outputs",
+        "access": "read_write"
+      },
+      {
+        "name": "digital_output_10",
+        "address": 10,
+        "description": "Digital output 10 control",
+        "default_value": false,
+        "group": "digital_outputs",
+        "access": "read_write"
+      },
+      {
+        "name": "digital_output_11",
+        "address": 11,
+        "description": "Digital output 11 control",
+        "default_value": false,
+        "group": "digital_outputs",
+        "access": "read_write"
+      },
+      {
+        "name": "digital_output_12",
+        "address": 12,
+        "description": "Digital output 12 control",
+        "default_value": false,
+        "group": "digital_outputs",
+        "access": "read_write"
+      },
+      {
+        "name": "digital_output_13",
+        "address": 13,
+        "description": "Digital output 13 control",
+        "default_value": false,
+        "group": "digital_outputs",
+        "access": "read_write"
+      },
+      {
+        "name": "digital_output_14",
+        "address": 14,
+        "description": "Digital output 14 control",
+        "default_value": false,
+        "group": "digital_outputs",
+        "access": "read_write"
+      },
+      {
+        "name": "digital_output_15",
+        "address": 15,
+        "description": "Digital output 15 control",
+        "default_value": false,
+        "group": "digital_outputs",
+        "access": "read_write"
+      },
+      {
+        "name": "digital_input_0",
+        "address": 16,
+        "description": "Digital input 0 status (mirror of discrete input)",
+        "default_value": false,
+        "group": "digital_inputs",
+        "access": "read_only"
+      },
+      {
+        "name": "digital_input_1",
+        "address": 17,
+        "description": "Digital input 1 status (mirror of discrete input)",
+        "default_value": false,
+        "group": "digital_inputs",
+        "access": "read_only"
+      },
+      {
+        "name": "digital_input_2",
+        "address": 18,
+        "description": "Digital input 2 status (mirror of discrete input)",
+        "default_value": false,
+        "group": "digital_inputs",
+        "access": "read_only"
+      },
+      {
+        "name": "digital_input_3",
+        "address": 19,
+        "description": "Digital input 3 status (mirror of discrete input)",
+        "default_value": false,
+        "group": "digital_inputs",
+        "access": "read_only"
+      },
+      {
+        "name": "digital_input_4",
+        "address": 20,
+        "description": "Digital input 4 status (mirror of discrete input)",
+        "default_value": false,
+        "group": "digital_inputs",
+        "access": "read_only"
+      },
+      {
+        "name": "digital_input_5",
+        "address": 21,
+        "description": "Digital input 5 status (mirror of discrete input)",
+        "default_value": false,
+        "group": "digital_inputs",
+        "access": "read_only"
+      },
+      {
+        "name": "digital_input_6",
+        "address": 22,
+        "description": "Digital input 6 status (mirror of discrete input)",
+        "default_value": false,
+        "group": "digital_inputs",
+        "access": "read_only"
+      },
+      {
+        "name": "digital_input_7",
+        "address": 23,
+        "description": "Digital input 7 status (mirror of discrete input)",
+        "default_value": false,
+        "group": "digital_inputs",
+        "access": "read_only"
+      },
+      {
+        "name": "pwm_0_enable",
+        "address": 24,
+        "description": "PWM channel 0 enable",
+        "default_value": false,
+        "group": "pwm_control",
+        "access": "read_write"
+      },
+      {
+        "name": "pwm_1_enable",
+        "address": 25,
+        "description": "PWM channel 1 enable",
+        "default_value": false,
+        "group": "pwm_control",
+        "access": "read_write"
+      },
+      {
+        "name": "pwm_2_enable",
+        "address": 26,
+        "description": "PWM channel 2 enable",
+        "default_value": false,
+        "group": "pwm_control",
+        "access": "read_write"
+      },
+      {
+        "name": "pwm_3_enable",
+        "address": 27,
+        "description": "PWM channel 3 enable",
+        "default_value": false,
+        "group": "pwm_control",
+        "access": "read_write"
+      },
+      {
+        "name": "rtc_commit",
+        "address": 30,
+        "description": "Write 1 to commit the cached RTC holding registers to the hardware RTC",
+        "default_value": false,
+        "group": "date_time",
+        "access": "read_write"
+      }
+    ],
+    "discrete_inputs": [
+      {
+        "name": "digital_input_0",
+        "address": 0,
+        "description": "Digital input 0 status",
+        "group": "digital_inputs"
+      },
+      {
+        "name": "digital_input_1",
+        "address": 1,
+        "description": "Digital input 1 status",
+        "group": "digital_inputs"
+      },
+      {
+        "name": "digital_input_2",
+        "address": 2,
+        "description": "Digital input 2 status",
+        "group": "digital_inputs"
+      },
+      {
+        "name": "digital_input_3",
+        "address": 3,
+        "description": "Digital input 3 status",
+        "group": "digital_inputs"
+      },
+      {
+        "name": "digital_input_4",
+        "address": 4,
+        "description": "Digital input 4 status",
+        "group": "digital_inputs"
+      },
+      {
+        "name": "digital_input_5",
+        "address": 5,
+        "description": "Digital input 5 status",
+        "group": "digital_inputs"
+      },
+      {
+        "name": "digital_input_6",
+        "address": 6,
+        "description": "Digital input 6 status",
+        "group": "digital_inputs"
+      },
+      {
+        "name": "digital_input_7",
+        "address": 7,
+        "description": "Digital input 7 status",
+        "group": "digital_inputs"
+      }
+    ],
+    "holding_registers": [
+      {
+        "name": "pwm_0_amplitude",
+        "address": 0,
+        "description": "AC DAC channel 0 amplitude (0-10000 = 0.00-100.00%)",
+        "data_type": "uint16",
+        "size": 1,
+        "default_value": 0,
+        "min_value": 0,
+        "max_value": 10000,
+        "scale_factor": 0.01,
+        "unit": "%",
+        "group": "pwm_control",
+        "access": "read_write"
+      },
+      {
+        "name": "pwm_0_phase",
+        "address": 1,
+        "description": "AC DAC channel 0 phase offset (0-360 degrees)",
+        "data_type": "uint16",
+        "size": 1,
+        "default_value": 0,
+        "min_value": 0,
+        "max_value": 360,
+        "unit": "deg",
+        "group": "pwm_control",
+        "access": "read_write"
+      },
+      {
+        "name": "pwm_1_amplitude",
+        "address": 2,
+        "description": "AC DAC channel 1 amplitude (0-10000 = 0.00-100.00%)",
+        "data_type": "uint16",
+        "size": 1,
+        "default_value": 0,
+        "min_value": 0,
+        "max_value": 10000,
+        "scale_factor": 0.01,
+        "unit": "%",
+        "group": "pwm_control",
+        "access": "read_write"
+      },
+      {
+        "name": "pwm_1_phase",
+        "address": 3,
+        "description": "AC DAC channel 1 phase offset (0-360 degrees)",
+        "data_type": "uint16",
+        "size": 1,
+        "default_value": 0,
+        "min_value": 0,
+        "max_value": 360,
+        "unit": "deg",
+        "group": "pwm_control",
+        "access": "read_write"
+      },
+      {
+        "name": "pwm_2_amplitude",
+        "address": 4,
+        "description": "AC DAC channel 2 amplitude (0-10000 = 0.00-100.00%)",
+        "data_type": "uint16",
+        "size": 1,
+        "default_value": 0,
+        "min_value": 0,
+        "max_value": 10000,
+        "scale_factor": 0.01,
+        "unit": "%",
+        "group": "pwm_control",
+        "access": "read_write"
+      },
+      {
+        "name": "pwm_2_phase",
+        "address": 5,
+        "description": "AC DAC channel 2 phase offset (0-360 degrees)",
+        "data_type": "uint16",
+        "size": 1,
+        "default_value": 0,
+        "min_value": 0,
+        "max_value": 360,
+        "unit": "deg",
+        "group": "pwm_control",
+        "access": "read_write"
+      },
+      {
+        "name": "pwm_3_amplitude",
+        "address": 6,
+        "description": "AC DAC channel 3 amplitude (0-10000 = 0.00-100.00%)",
+        "data_type": "uint16",
+        "size": 1,
+        "default_value": 0,
+        "min_value": 0,
+        "max_value": 10000,
+        "scale_factor": 0.01,
+        "unit": "%",
+        "group": "pwm_control",
+        "access": "read_write"
+      },
+      {
+        "name": "pwm_3_phase",
+        "address": 7,
+        "description": "AC DAC channel 3 phase offset (0-360 degrees)",
+        "data_type": "uint16",
+        "size": 1,
+        "default_value": 0,
+        "min_value": 0,
+        "max_value": 360,
+        "unit": "deg",
+        "group": "pwm_control",
+        "access": "read_write"
+      },
+      {
+        "name": "adc_0_value",
+        "address": 100,
+        "description": "ADC channel 0 raw value (mirror of input register)",
+        "data_type": "uint16",
+        "size": 1,
+        "group": "adc_values",
+        "access": "read_only"
+      },
+      {
+        "name": "adc_1_value",
+        "address": 101,
+        "description": "ADC channel 1 raw value (mirror of input register)",
+        "data_type": "uint16",
+        "size": 1,
+        "group": "adc_values",
+        "access": "read_only"
+      },
+      {
+        "name": "adc_2_value",
+        "address": 102,
+        "description": "ADC channel 2 raw value (mirror of input register)",
+        "data_type": "uint16",
+        "size": 1,
+        "group": "adc_values",
+        "access": "read_only"
+      },
+      {
+        "name": "adc_3_value",
+        "address": 103,
+        "description": "ADC channel 3 raw value (mirror of input register)",
+        "data_type": "uint16",
+        "size": 1,
+        "group": "adc_values",
+        "access": "read_only"
+      },
+      {
+        "name": "adc_0_scale_factor",
+        "address": 104,
+        "description": "ADC channel 0 scale factor",
+        "data_type": "float32",
+        "size": 2,
+        "default_value": 1.0,
+        "group": "adc_values",
+        "access": "read_write",
+        "persistent": true
+      },
+      {
+        "name": "adc_0_offset_term",
+        "address": 106,
+        "description": "ADC channel 0 offset term",
+        "data_type": "float32",
+        "size": 2,
+        "default_value": 0.0,
+        "group": "adc_values",
+        "access": "read_write",
+        "persistent": true
+      },
+      {
+        "name": "adc_0_dead_zone",
+        "address": 108,
+        "description": "ADC channel 0 dead zone",
+        "data_type": "float32",
+        "size": 2,
+        "default_value": 0.0,
+        "group": "adc_values",
+        "access": "read_write",
+        "persistent": true
+      },
+      {
+        "name": "adc_1_scale_factor",
+        "address": 110,
+        "description": "ADC channel 1 scale factor",
+        "data_type": "float32",
+        "size": 2,
+        "default_value": 1.0,
+        "group": "adc_values",
+        "access": "read_write",
+        "persistent": true
+      },
+      {
+        "name": "adc_1_offset_term",
+        "address": 112,
+        "description": "ADC channel 1 offset term",
+        "data_type": "float32",
+        "size": 2,
+        "default_value": 0.0,
+        "group": "adc_values",
+        "access": "read_write",
+        "persistent": true
+      },
+      {
+        "name": "adc_1_dead_zone",
+        "address": 114,
+        "description": "ADC channel 1 dead zone",
+        "data_type": "float32",
+        "size": 2,
+        "default_value": 0.0,
+        "group": "adc_values",
+        "access": "read_write",
+        "persistent": true
+      },
+      {
+        "name": "adc_2_scale_factor",
+        "address": 116,
+        "description": "ADC channel 2 scale factor",
+        "data_type": "float32",
+        "size": 2,
+        "default_value": 1.0,
+        "group": "adc_values",
+        "access": "read_write",
+        "persistent": true
+      },
+      {
+        "name": "adc_2_offset_term",
+        "address": 118,
+        "description": "ADC channel 2 offset term",
+        "data_type": "float32",
+        "size": 2,
+        "default_value": 0.0,
+        "group": "adc_values",
+        "access": "read_write",
+        "persistent": true
+      },
+      {
+        "name": "adc_2_dead_zone",
+        "address": 120,
+        "description": "ADC channel 2 dead zone",
+        "data_type": "float32",
+        "size": 2,
+        "default_value": 0.0,
+        "group": "adc_values",
+        "access": "read_write",
+        "persistent": true
+      },
+      {
+        "name": "adc_3_scale_factor",
+        "address": 122,
+        "description": "ADC channel 3 scale factor",
+        "data_type": "float32",
+        "size": 2,
+        "default_value": 1.0,
+        "group": "adc_values",
+        "access": "read_write",
+        "persistent": true
+      },
+      {
+        "name": "adc_3_offset_term",
+        "address": 124,
+        "description": "ADC channel 3 offset term",
+        "data_type": "float32",
+        "size": 2,
+        "default_value": 0.0,
+        "group": "adc_values",
+        "access": "read_write",
+        "persistent": true
+      },
+      {
+        "name": "adc_3_dead_zone",
+        "address": 126,
+        "description": "ADC channel 3 dead zone",
+        "data_type": "float32",
+        "size": 2,
+        "default_value": 0.0,
+        "group": "adc_values",
+        "access": "read_write",
+        "persistent": true
+      },
+      {
+        "name": "key1",
+        "address": 128,
+        "description": "key1",
+        "data_type": "uint16",
+        "size": 1,
+        "default_value": 0,
+        "group": "adc_values",
+        "access": "read_write"
+      },
+      {
+        "name": "key2",
+        "address": 129,
+        "description": "key2",
+        "data_type": "uint16",
+        "size": 1,
+        "default_value": 0,
+        "group": "adc_values",
+        "access": "read_write"
+      },
+      {
+        "name": "system_tick_low",
+        "address": 200,
+        "description": "System tick counter low word",
+        "data_type": "uint16",
+        "size": 1,
+        "group": "system_info",
+        "access": "read_only"
+      },
+      {
+        "name": "system_tick_high",
+        "address": 201,
+        "description": "System tick counter high word",
+        "data_type": "uint16",
+        "size": 1,
+        "group": "system_info",
+        "access": "read_only"
+      },
+      {
+        "name": "rtc_year",
+        "address": 210,
+        "description": "RTC year (2000-2099)",
+        "data_type": "uint16",
+        "size": 1,
+        "default_value": 2026,
+        "min_value": 2000,
+        "max_value": 2099,
+        "group": "date_time",
+        "access": "read_write"
+      },
+      {
+        "name": "rtc_month",
+        "address": 211,
+        "description": "RTC month (1-12)",
+        "data_type": "uint16",
+        "size": 1,
+        "default_value": 1,
+        "min_value": 1,
+        "max_value": 12,
+        "group": "date_time",
+        "access": "read_write"
+      },
+      {
+        "name": "rtc_day",
+        "address": 212,
+        "description": "RTC day of month (1-31)",
+        "data_type": "uint16",
+        "size": 1,
+        "default_value": 1,
+        "min_value": 1,
+        "max_value": 31,
+        "group": "date_time",
+        "access": "read_write"
+      },
+      {
+        "name": "rtc_hour",
+        "address": 213,
+        "description": "RTC hour (0-23)",
+        "data_type": "uint16",
+        "size": 1,
+        "default_value": 0,
+        "min_value": 0,
+        "max_value": 23,
+        "group": "date_time",
+        "access": "read_write"
+      },
+      {
+        "name": "rtc_minute",
+        "address": 214,
+        "description": "RTC minute (0-59)",
+        "data_type": "uint16",
+        "size": 1,
+        "default_value": 0,
+        "min_value": 0,
+        "max_value": 59,
+        "group": "date_time",
+        "access": "read_write"
+      },
+      {
+        "name": "rtc_second",
+        "address": 215,
+        "description": "RTC second (0-59)",
+        "data_type": "uint16",
+        "size": 1,
+        "default_value": 0,
+        "min_value": 0,
+        "max_value": 59,
+        "group": "date_time",
+        "access": "read_write"
+      },
+      {
+        "name": "app_version_major",
+        "address": 300,
+        "description": "Application version major (mirror of input register)",
+        "data_type": "uint16",
+        "size": 1,
+        "group": "version_info",
+        "access": "read_only"
+      },
+      {
+        "name": "app_version_minor",
+        "address": 301,
+        "description": "Application version minor (mirror of input register)",
+        "data_type": "uint16",
+        "size": 1,
+        "group": "version_info",
+        "access": "read_only"
+      },
+      {
+        "name": "app_version_patch",
+        "address": 302,
+        "description": "Application version patch (mirror of input register)",
+        "data_type": "uint16",
+        "size": 1,
+        "group": "version_info",
+        "access": "read_only"
+      },
+      {
+        "name": "app_build_number",
+        "address": 303,
+        "description": "Application build number (mirror of input register)",
+        "data_type": "uint32",
+        "size": 2,
+        "group": "version_info",
+        "access": "read_only"
+      }
+    ],
+    "input_registers": [
+      {
+        "name": "adc_0_value",
+        "address": 0,
+        "description": "ADC channel 0 raw value (12-bit, 0-4095)",
+        "data_type": "uint16",
+        "size": 1,
+        "group": "adc_values"
+      },
+      {
+        "name": "adc_1_value",
+        "address": 1,
+        "description": "ADC channel 1 raw value (12-bit, 0-4095)",
+        "data_type": "uint16",
+        "size": 1,
+        "group": "adc_values"
+      },
+      {
+        "name": "adc_2_value",
+        "address": 2,
+        "description": "ADC channel 2 raw value (12-bit, 0-4095)",
+        "data_type": "uint16",
+        "size": 1,
+        "group": "adc_values"
+      },
+      {
+        "name": "adc_3_value",
+        "address": 3,
+        "description": "ADC channel 3 raw value (12-bit, 0-4095)",
+        "data_type": "uint16",
+        "size": 1,
+        "group": "adc_values"
+      },
+      {
+        "name": "adc_0_calibrated_value",
+        "address": 4,
+        "description": "ADC channel 0 calibrated value",
+        "data_type": "float32",
+        "size": 2,
+        "group": "adc_values"
+      },
+      {
+        "name": "adc_1_calibrated_value",
+        "address": 6,
+        "description": "ADC channel 1 calibrated value",
+        "data_type": "float32",
+        "size": 2,
+        "group": "adc_values"
+      },
+      {
+        "name": "adc_2_calibrated_value",
+        "address": 8,
+        "description": "ADC channel 2 calibrated value",
+        "data_type": "float32",
+        "size": 2,
+        "group": "adc_values"
+      },
+      {
+        "name": "adc_3_calibrated_value",
+        "address": 10,
+        "description": "ADC channel 3 calibrated value",
+        "data_type": "float32",
+        "size": 2,
+        "group": "adc_values"
+      },
+      {
+        "name": "app_version_major",
+        "address": 100,
+        "description": "Application version major number",
+        "data_type": "uint16",
+        "size": 1,
+        "group": "version_info"
+      },
+      {
+        "name": "app_version_minor",
+        "address": 101,
+        "description": "Application version minor number",
+        "data_type": "uint16",
+        "size": 1,
+        "group": "version_info"
+      },
+      {
+        "name": "app_version_patch",
+        "address": 102,
+        "description": "Application version patch number",
+        "data_type": "uint16",
+        "size": 1,
+        "group": "version_info"
+      },
+      {
+        "name": "app_build_number",
+        "address": 103,
+        "description": "Application build number",
+        "data_type": "uint32",
+        "size": 2,
+        "group": "version_info"
+      }
+    ]
+  },
+  "groups": [
+    {
+      "name": "digital_outputs",
+      "description": "16 digital output pins controlled via Modbus"
+    },
+    {
+      "name": "digital_inputs",
+      "description": "8 digital input pins read via Modbus"
+    },
+    {
+      "name": "pwm_control",
+      "description": "4 PWM output channels with duty cycle and frequency control"
+    },
+    {
+      "name": "adc_values",
+      "description": "4 ADC input channels (12-bit resolution)"
+    },
+    {
+      "name": "system_info",
+      "description": "System information including tick counter"
+    },
+    {
+      "name": "date_time",
+      "description": "Real-time clock date and time registers"
+    },
+    {
+      "name": "version_info",
+      "description": "Application version information"
     }
   ]
 }
