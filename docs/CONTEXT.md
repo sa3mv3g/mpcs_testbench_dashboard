@@ -19,6 +19,16 @@
   * *Definition*: A dedicated UI view for hardware maintenance. Like the Manual Dashboard, it is organized intuitively by Front Panel labels (e.g., `AO-05`). It uses the Signal Mapping Dictionary to route calibration inputs to the correct hardware registers behind the scenes.
 * **Calibration Audit Log**
   * *Definition*: A historical record maintained in SQLite that tracks every successful hardware calibration. It records the timestamp, the affected signal, the calculated data points, and the final finalized `m`, `c`, and `deadzone` values applied to the EEPROM for QA and maintenance tracking.
+* **Setpoint**
+  * *Definition*: The operator's commanded value for a Manual Dashboard output (a digital-out coil or analog-out duty cycle). Owned by the software, persisted in SQLite so it survives restarts, and the sole driver of the output control widget (checkbox/slider). Replaces the earlier, looser term "Desired Manual State".
+* **Process Value**
+  * *Definition*: The value an output actually reports back from the hardware on each poll. Read-only. It drives a separate feedback indicator next to the control, and is compared against the Setpoint to derive the Output Confirmation State. It must never be written into the control widget itself.
+* **Output Confirmation State**
+  * *Definition*: A per-output state machine, owned by the Main Process, describing the relationship between a Setpoint and its Process Value: **SYNCED** (Process Value matches Setpoint), **PENDING** (Setpoint changed recently and a write is awaiting confirmation within a short grace window — shown neutrally, never as a fault), **MISMATCH** (Process Value still disagrees after the grace window — shown as a fault, e.g. a device reset, triggering a corrective write), and **FAULT** (a terminal state after N consecutive corrective writes have failed, e.g. due to a Modbus exception; enforcement stops until the next user interaction).
+* **Continuous State Enforcement**
+  * *Definition*: The mechanism by which the Main Process keeps the physical hardware outputs matching their Setpoints during manual operation. When an output reaches the MISMATCH state, the polling loop queues a corrective Modbus write to force the hardware back into compliance. During Test Sequences this enforcement is suspended; on sequence completion the hardware snaps back to the stored Setpoints.
+* **Default State**
+  * *Definition*: The safe, de-energised target for all Manual Dashboard outputs: every digital-out and analog-out Setpoint set explicitly to 0/Off. The "Reset All to Default" action upserts an explicit 0 for every output (it does not delete the stored Setpoints), ensuring enforcement has a concrete target to drive the hardware toward.
 * **Manual Snapshot**
   * *Definition*: A user-triggered action from the Manual Dashboard that captures the exact current state of all mapped signals and saves it to the SQLite database as a discrete "Manual Log Entry", independent of automated sequences.
 * **Signal Mapping Dictionary**
