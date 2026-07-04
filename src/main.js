@@ -257,18 +257,16 @@ async function startPollingLoop() {
                     }
                 }
 
-                /* ── Input registers (4–11): ADC calibrated floats — devices 1 and 3 ── */
-                if (dev.id === 1 || dev.id === 3) {
+                /* ── Input registers (4–7): ADC calibrated floats — devices 1 to 4 ── */
+                if (dev.id >= 1 && dev.id <= 4) {
                     try {
                         await modbusManager.enqueue(dev.ip, dev.port, async (client) => {
                             client.setID(dev.unitId);
                             const t0 = Date.now();
-                            const res = await client.readInputRegisters(4, 8);
-                            log.info(`[Polling] ${key}: readInputRegisters(4,8) OK in ${Date.now() - t0} ms`);
+                            const res = await client.readInputRegisters(4, 4);
+                            log.info(`[Polling] ${key}: readInputRegisters(4,4) OK in ${Date.now() - t0} ms`);
                             updates.push({ guiId: `ai-${dev.id}-4`,  processValue: registersToFloat([res.data[0], res.data[1]], 'CDAB') });
                             updates.push({ guiId: `ai-${dev.id}-6`,  processValue: registersToFloat([res.data[2], res.data[3]], 'CDAB') });
-                            updates.push({ guiId: `ai-${dev.id}-8`,  processValue: registersToFloat([res.data[4], res.data[5]], 'CDAB') });
-                            updates.push({ guiId: `ai-${dev.id}-10`, processValue: registersToFloat([res.data[6], res.data[7]], 'CDAB') });
                         });
                     } catch (e) {
                         log.error(`[Polling] ${key}: readInputRegisters FAILED — ${e.message}`);
