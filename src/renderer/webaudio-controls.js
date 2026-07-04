@@ -1251,7 +1251,7 @@ ${this.basestyle}
 </linearGradient>
 <radialGradient id="g2" cx="50%" cy="30%">
     <stop offset="0%" stop-color="${this.coltab[2]}"/>
-    <stop offset="100%" stop-color="${this.coltab[0]}"/>
+    <stop offset="100%" stop-color="${this.coltab[2]}" stop-opacity="0.3"/>
   </radialGradient>
   <filter id="f1">
     <feGaussianBlur in="SourceGraphic" stdDeviation=".4" />
@@ -1263,7 +1263,7 @@ ${this.basestyle}
 </g>
 <g id="p2">
   <circle cx="${kw*0.5}" cy="${kh*0.5}" r="${mm*0.35}" stroke="#000" stroke-width="${mm*.03}" fill="${this.coltab[0]}" filter="url(#f1)"/>
-  <circle cx="${kw*0.5}" cy="${kh*0.5}" r="${mm*0.27}" stroke="#000" stroke-width="${mm*.03}" fill="#000" filter="url(#f1)"/>
+  <circle cx="${kw*0.5}" cy="${kh*0.5}" r="${mm*0.27}" stroke="#000" stroke-width="${mm*.03}" fill="#444" filter="url(#f1)"/>
   <rect x="${kw*.075}" y="${kh*.075}" width="${kw*.85}" height="${kh*.85}" rx="${mm*.1}" ry="${mm*.1}" fill="url(#g1)"/>
 </g>
 <use href="#p1" y="${kh}"/>

@@ -207,7 +207,7 @@ async function startPollingLoop() {
                             updates.push({ guiId, processValue, confirmationState: state.confirmationState });
                         }
                         for (let i = 16; i < 24; i++) {
-                            updates.push({ guiId: `di-${dev.id}-${i}`, value: res.data[i] ? 1 : 0 });
+                            updates.push({ guiId: `di-${dev.id}-${i}`, processValue: res.data[i] ? 1 : 0 });
                         }
                     });
                 } catch (e) {
@@ -265,10 +265,10 @@ async function startPollingLoop() {
                             const t0 = Date.now();
                             const res = await client.readInputRegisters(4, 8);
                             log.info(`[Polling] ${key}: readInputRegisters(4,8) OK in ${Date.now() - t0} ms`);
-                            updates.push({ guiId: `ai-${dev.id}-4`,  value: registersToFloat([res.data[0], res.data[1]], 'CDAB') });
-                            updates.push({ guiId: `ai-${dev.id}-6`,  value: registersToFloat([res.data[2], res.data[3]], 'CDAB') });
-                            updates.push({ guiId: `ai-${dev.id}-8`,  value: registersToFloat([res.data[4], res.data[5]], 'CDAB') });
-                            updates.push({ guiId: `ai-${dev.id}-10`, value: registersToFloat([res.data[6], res.data[7]], 'CDAB') });
+                            updates.push({ guiId: `ai-${dev.id}-4`,  processValue: registersToFloat([res.data[0], res.data[1]], 'CDAB') });
+                            updates.push({ guiId: `ai-${dev.id}-6`,  processValue: registersToFloat([res.data[2], res.data[3]], 'CDAB') });
+                            updates.push({ guiId: `ai-${dev.id}-8`,  processValue: registersToFloat([res.data[4], res.data[5]], 'CDAB') });
+                            updates.push({ guiId: `ai-${dev.id}-10`, processValue: registersToFloat([res.data[6], res.data[7]], 'CDAB') });
                         });
                     } catch (e) {
                         log.error(`[Polling] ${key}: readInputRegisters FAILED — ${e.message}`);
