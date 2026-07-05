@@ -31,7 +31,8 @@ process.on('unhandledRejection', (reason, promise) => {
 let mainWindow;
 let isSequenceActive = false;
 let isNetworkEnabled = false;
-let pollingTimer = null;
+let pollingTimer = null;   // setTimeout handle for the self-scheduling polling loop
+let isPollingActive = false; // true while the self-scheduling loop is running
 let activeDashboard = '';
 let outputStateCache = {}; // Replaces desiredStateCache
 
@@ -61,9 +62,6 @@ ipcMain.on('app:setActiveDashboard', (event, tabName) => {
     log.info(`[IPC Main] Active dashboard set to: ${tabName}`);
     activeDashboard = tabName;
 });
-
-/* Guard flag to prevent overlapping polling ticks. */
-let isTickRunning = false;
 
 /*
  * In-memory cache for mapped signals.
@@ -106,191 +104,210 @@ const JERRY_DEVICES = [
     { id: 8, ip: '169.254.4.107', port: 502, unitId: 8 },
 ];
 
-async function startPollingLoop() {
-    if (pollingTimer) {
-        log.warn('[Polling] startPollingLoop called but timer already running — ignoring duplicate start');
+/*
+ * Self-scheduling polling loop — replaces setInterval.
+ *
+ * The next tick is only scheduled AFTER the current tick's Promise.all resolves,
+ * making it structurally impossible for two ticks to overlap.  This eliminates
+ * the isTickRunning guard and the UI-blackout problem it caused.
+ *
+ * Cadence: next tick fires max(0, 500 - tickDuration) ms after the current tick
+ * completes, maintaining a ~500 ms wall-clock cadence under normal conditions.
+ * Under slow/timing-out devices the cadence degrades gracefully (no blackout).
+ */
+function startPollingLoop() {
+    if (isPollingActive) {
+        log.warn('[Polling] startPollingLoop called but already active — ignoring duplicate start');
         return;
     }
-    log.info('[Polling] startPollingLoop: starting 500 ms interval');
+    isPollingActive = true;
+    log.info('[Polling] startPollingLoop: starting self-scheduling loop');
+    scheduleTick();
+}
 
-    pollingTimer = setInterval(async () => {
-        if (isSequenceActive) {
-            log.info('[Polling] tick skipped — isSequenceActive=true');
-            return;
-        }
-        if (!isNetworkEnabled) {
-            log.info('[Polling] tick skipped — isNetworkEnabled=false');
-            return;
-        }
-        if (activeDashboard !== 'manual-dashboard-v2') {
-            log.info(`[Polling] tick skipped — manual dashboard (v2) not active (current: ${activeDashboard})`);
-            return;
-        }
-        /* Skip this tick if the previous one is still running. */
-        if (isTickRunning) {
-            log.warn('[Polling] tick skipped — previous tick still running');
-            return;
-        }
+function stopPollingLoop() {
+    isPollingActive = false;
+    if (pollingTimer) {
+        clearTimeout(pollingTimer);
+        pollingTimer = null;
+    }
+    log.info('[Polling] stopPollingLoop: loop stopped');
+}
 
-        isTickRunning = true;
-        const tickStart = Date.now();
-        const updates = [];
+async function scheduleTick() {
+    if (!isPollingActive) return;
 
-        try {
-            /*
-             * Static polling plan — Manual Dashboard v2.
-             *
-             * Per device (all 8):
-             *   readCoils(0, 24)
-             *     offsets  0–15 → digital outputs  do-{d}-0  .. do-{d}-15
-             *     offsets 16–23 → digital inputs   di-{d}-16 .. di-{d}-23
-             *
-             * Device 1 only:
-             *   readHoldingRegisters(0, 10)
-             *     offset 0 → ao-1-0  (PWM0 duty, uint16)
-             *     offset 3 → ao-1-3  (PWM1 duty, uint16)
-             *     offset 6 → ao-1-6  (PWM2 duty, uint16)
-             *     offset 9 → ao-1-9  (PWM3 duty, uint16)
-             *
-             * Devices 1 and 3:
-             *   readInputRegisters(4, 8)
-             *     offsets 0+1 → ai-{d}-4   (ADC0 calibrated, float32 CDAB)
-             *     offsets 2+3 → ai-{d}-6   (ADC1 calibrated, float32 CDAB)
-             *     offsets 4+5 → ai-{d}-8   (ADC2 calibrated, float32 CDAB)
-             *     offsets 6+7 → ai-{d}-10  (ADC3 calibrated, float32 CDAB)
-             */
-            const promises = JERRY_DEVICES.map(dev => (async () => {
-                const key = `${dev.ip}:${dev.port}`;
-                const conn = modbusManager.connections.get(key);
-                if (!conn || !conn.isConnected || !conn.client || !conn.client.isOpen) {
-                    log.warn(`[Polling] ${key}: skipping — not connected`);
-                    return;
-                }
+    // Skip conditions — reschedule immediately rather than returning
+    if (isSequenceActive || !isNetworkEnabled || activeDashboard !== 'manual-dashboard-v2') {
+        log.info(`[Polling] tick skipped — isSequenceActive=${isSequenceActive} isNetworkEnabled=${isNetworkEnabled} activeDashboard=${activeDashboard}`);
+        pollingTimer = setTimeout(scheduleTick, 500);
+        return;
+    }
 
-                /* ── Coils (0–23): digital outputs + digital input mirrors ── */
+    const tickStart = Date.now();
+    /*
+     * Fresh updates array per tick — never shared between ticks since the next
+     * tick cannot start until this one's await Promise.all resolves.
+     */
+    const updates = [];
+
+    try {
+        /*
+         * Static polling plan — Manual Dashboard v2.
+         *
+         * Per device (all 8):
+         *   readCoils(0, 24)
+         *     offsets  0–15 → digital outputs  do-{d}-0  .. do-{d}-15
+         *     offsets 16–23 → digital inputs   di-{d}-16 .. di-{d}-23
+         *
+         * Devices 1–4:
+         *   readHoldingRegisters(0, 1)
+         *     offset 0 → ao-{d}-0  (PWM0 duty, uint16)
+         *
+         * Devices 1 and 3:
+         *   readInputRegisters(4, 8)
+         *     offsets 0+1 → ai-{d}-4   (ADC0 calibrated, float32 CDAB)
+         *     offsets 2+3 → ai-{d}-6   (ADC1 calibrated, float32 CDAB)
+         *     offsets 4+5 → ai-{d}-8   (ADC2 calibrated, float32 CDAB)
+         *     offsets 6+7 → ai-{d}-10  (ADC3 calibrated, float32 CDAB)
+         */
+        const promises = JERRY_DEVICES.map(dev => (async () => {
+            const key = `${dev.ip}:${dev.port}`;
+            const conn = modbusManager.connections.get(key);
+            if (!conn || !conn.isConnected || !conn.client || !conn.client.isOpen) {
+                log.warn(`[Polling] ${key}: skipping — not connected`);
+                return;
+            }
+
+            /* ── Coils (0–23): digital outputs + digital input mirrors ── */
+            try {
+                await modbusManager.enqueue(dev.ip, dev.port, async (client) => {
+                    client.setID(dev.unitId);
+                    const t0 = Date.now();
+                    const res = await client.readCoils(0, 24);
+                    log.info(`[Polling] ${key}: readCoils(0,24) OK in ${Date.now() - t0} ms ${res.data}`);
+                    for (let i = 0; i < 16; i++) {
+                        const guiId = `do-${dev.id}-${i}`;
+                        const processValue = res.data[i] ? 1 : 0;
+
+                        const state = outputStateCache[guiId] || { setpoint: 0, confirmationState: 'SYNCED', consecutiveFails: 0 };
+
+                        if (processValue === state.setpoint) {
+                            state.confirmationState = 'SYNCED';
+                            state.pendingUntil = null;
+                            state.consecutiveFails = 0;
+                        } else {
+                            if (state.confirmationState === 'FAULT') {
+                                // Do nothing, already in terminal fault state
+                            } else if (state.confirmationState !== 'PENDING' || (state.pendingUntil && Date.now() > state.pendingUntil)) {
+                                state.confirmationState = 'MISMATCH';
+                                log.warn(`[Polling] MISMATCH on ${guiId}: PV=${processValue} but Setpoint=${state.setpoint}. Re-enforcing.`);
+                                modbusManager.enqueueHighPriority(dev.ip, dev.port, async (c) => {
+                                    c.setID(dev.unitId);
+                                    await c.writeCoil(i, !!state.setpoint);
+                                }).catch(e => {
+                                    log.error(`[Polling] Mismatch correction failed for ${guiId}:`, e);
+                                    state.consecutiveFails = (state.consecutiveFails || 0) + 1;
+                                    if (state.consecutiveFails >= MAX_CONSECUTIVE_FAILS) {
+                                        state.confirmationState = 'FAULT';
+                                        log.error(`[Polling] FAULT on ${guiId}: write failed ${state.consecutiveFails} times. Disabling further writes.`);
+                                    }
+                                });
+                            }
+                        }
+                        outputStateCache[guiId] = state;
+                        updates.push({ guiId, processValue, confirmationState: state.confirmationState });
+                    }
+                    for (let i = 16; i < 24; i++) {
+                        updates.push({ guiId: `di-${dev.id}-${i}`, value: res.data[i] ? 1 : 0 });
+                    }
+                });
+            } catch (e) {
+                log.error(`[Polling] ${key}: readCoils FAILED — ${e.message}`);
+            }
+
+            /* ── PWM duty cycles — devices 1–4 ── */
+            if (dev.id >= 1 && dev.id <= 4) {
                 try {
                     await modbusManager.enqueue(dev.ip, dev.port, async (client) => {
                         client.setID(dev.unitId);
                         const t0 = Date.now();
-                        const res = await client.readCoils(0, 24);
-                        log.info(`[Polling] ${key}: readCoils(0,24) OK in ${Date.now() - t0} ms ${res.data}`);
-                        for (let i = 0; i < 16; i++) {
-                            const guiId = `do-${dev.id}-${i}`;
-                            const processValue = res.data[i] ? 1 : 0;
-                            
-                            const state = outputStateCache[guiId] || { setpoint: 0, confirmationState: 'SYNCED', consecutiveFails: 0 };
-                            
-                            if (processValue === state.setpoint) {
-                                state.confirmationState = 'SYNCED';
-                                state.pendingUntil = null;
-                                state.consecutiveFails = 0; // Reset on success
-                            } else {
-                                if (state.confirmationState === 'FAULT') {
-                                    // Do nothing, already in terminal fault state
-                                } else if (state.confirmationState !== 'PENDING' || (state.pendingUntil && Date.now() > state.pendingUntil)) {
-                                    state.confirmationState = 'MISMATCH';
-                                    log.warn(`[Polling] MISMATCH on ${guiId}: PV=${processValue} but Setpoint=${state.setpoint}. Re-enforcing.`);
-                                    modbusManager.enqueueHighPriority(dev.ip, dev.port, async (c) => {
-                                        c.setID(dev.unitId);
-                                        await c.writeCoil(i, !!state.setpoint);
-                                    }).catch(e => {
-                                        log.error(`[Polling] Mismatch correction failed for ${guiId}:`, e);
-                                        state.consecutiveFails = (state.consecutiveFails || 0) + 1;
-                                        if (state.consecutiveFails >= MAX_CONSECUTIVE_FAILS) {
-                                            state.confirmationState = 'FAULT';
-                                            log.error(`[Polling] FAULT on ${guiId}: write failed ${state.consecutiveFails} times. Disabling further writes.`);
-                                        }
-                                    });
-                                }
+                        const res = await client.readHoldingRegisters(0, 1);
+                        log.info(`[Polling] ${key}: readHoldingRegisters(0,1) OK in ${Date.now() - t0} ms`);
+                        const guiId = `ao-${dev.id}-0`;
+                        const processValue = res.data[0];
+                        const state = outputStateCache[guiId] || { setpoint: 0, confirmationState: 'SYNCED', consecutiveFails: 0 };
+
+                        if (processValue === state.setpoint) {
+                            state.confirmationState = 'SYNCED';
+                            state.pendingUntil = null;
+                            state.consecutiveFails = 0;
+                        } else {
+                            if (state.confirmationState === 'FAULT') {
+                                // Do nothing
+                            } else if (state.confirmationState !== 'PENDING' || (state.pendingUntil && Date.now() > state.pendingUntil)) {
+                                state.confirmationState = 'MISMATCH';
+                                log.warn(`[Polling] MISMATCH on ${guiId}: PV=${processValue} but Setpoint=${state.setpoint}. Re-enforcing.`);
+                                modbusManager.enqueueHighPriority(dev.ip, dev.port, async (c) => {
+                                    c.setID(dev.unitId);
+                                    await c.writeRegister(0, parseInt(state.setpoint));
+                                }).catch(e => {
+                                    log.error(`[Polling] Mismatch correction failed for ${guiId}:`, e);
+                                    state.consecutiveFails = (state.consecutiveFails || 0) + 1;
+                                    if (state.consecutiveFails >= MAX_CONSECUTIVE_FAILS) {
+                                        state.confirmationState = 'FAULT';
+                                        log.error(`[Polling] FAULT on ${guiId}: write failed ${state.consecutiveFails} times. Disabling further writes.`);
+                                    }
+                                });
                             }
-                            outputStateCache[guiId] = state;
-                            updates.push({ guiId, processValue, confirmationState: state.confirmationState });
                         }
-                        for (let i = 16; i < 24; i++) {
-                            updates.push({ guiId: `di-${dev.id}-${i}`, value: res.data[i] ? 1 : 0 });
-                        }
+                        outputStateCache[guiId] = state;
+                        updates.push({ guiId, processValue, confirmationState: state.confirmationState });
                     });
                 } catch (e) {
-                    log.error(`[Polling] ${key}: readCoils FAILED — ${e.message}`);
+                    log.error(`[Polling] ${key}: readHoldingRegisters FAILED — ${e.message}`);
                 }
-
-                /* PWM duty cycles */
-                if (dev.id >= 1 && dev.id <= 4) {
-                    try {
-                        await modbusManager.enqueue(dev.ip, dev.port, async (client) => {
-                            client.setID(dev.unitId);
-                            const t0 = Date.now();
-                            const res = await client.readHoldingRegisters(0, 1);
-                            log.info(`[Polling] ${key}: readHoldingRegisters(0,1) OK in ${Date.now() - t0} ms`);
-                            const guiId = `ao-${dev.id}-0`;
-                            const processValue = res.data[0];
-                            const state = outputStateCache[guiId] || { setpoint: 0, confirmationState: 'SYNCED', consecutiveFails: 0 };
-
-                            if (processValue === state.setpoint) {
-                                state.confirmationState = 'SYNCED';
-                                state.pendingUntil = null;
-                                state.consecutiveFails = 0;
-                            } else {
-                                 if (state.confirmationState === 'FAULT') {
-                                    // Do nothing
-                                 } else if (state.confirmationState !== 'PENDING' || (state.pendingUntil && Date.now() > state.pendingUntil)) {
-                                    state.confirmationState = 'MISMATCH';
-                                    log.warn(`[Polling] MISMATCH on ${guiId}: PV=${processValue} but Setpoint=${state.setpoint}. Re-enforcing.`);
-                                    modbusManager.enqueueHighPriority(dev.ip, dev.port, async (c) => {
-                                        c.setID(dev.unitId);
-                                        await c.writeRegister(0, parseInt(state.setpoint));
-                                    }).catch(e => {
-                                        log.error(`[Polling] Mismatch correction failed for ${guiId}:`, e);
-                                        state.consecutiveFails = (state.consecutiveFails || 0) + 1;
-                                        if (state.consecutiveFails >= MAX_CONSECUTIVE_FAILS) {
-                                            state.confirmationState = 'FAULT';
-                                            log.error(`[Polling] FAULT on ${guiId}: write failed ${state.consecutiveFails} times. Disabling further writes.`);
-                                        }
-                                    });
-                                }
-                            }
-                            outputStateCache[guiId] = state;
-                            updates.push({ guiId, processValue, confirmationState: state.confirmationState });
-                        });
-                    } catch (e) {
-                        log.error(`[Polling] ${key}: readHoldingRegisters FAILED — ${e.message}`);
-                    }
-                }
-
-                /* ── Input registers (4–11): ADC calibrated floats — devices 1 and 3 ── */
-                if (dev.id === 1 || dev.id === 3) {
-                    try {
-                        await modbusManager.enqueue(dev.ip, dev.port, async (client) => {
-                            client.setID(dev.unitId);
-                            const t0 = Date.now();
-                            const res = await client.readInputRegisters(4, 8);
-                            log.info(`[Polling] ${key}: readInputRegisters(4,8) OK in ${Date.now() - t0} ms`);
-                            updates.push({ guiId: `ai-${dev.id}-4`,  value: registersToFloat([res.data[0], res.data[1]], 'CDAB') });
-                            updates.push({ guiId: `ai-${dev.id}-6`,  value: registersToFloat([res.data[2], res.data[3]], 'CDAB') });
-                            updates.push({ guiId: `ai-${dev.id}-8`,  value: registersToFloat([res.data[4], res.data[5]], 'CDAB') });
-                            updates.push({ guiId: `ai-${dev.id}-10`, value: registersToFloat([res.data[6], res.data[7]], 'CDAB') });
-                        });
-                    } catch (e) {
-                        log.error(`[Polling] ${key}: readInputRegisters FAILED — ${e.message}`);
-                    }
-                }
-            })());
-
-            await Promise.all(promises);
-            log.info(`[Polling] tick complete — ${updates.length} update(s) in ${Date.now() - tickStart} ms`);
-
-            if (mainWindow && !mainWindow.isDestroyed() && mainWindow.webContents && updates.length > 0) {
-                mainWindow.webContents.send('state-update', updates);
             }
 
-        } catch (e) {
-            log.error(`[Polling] unhandled error in tick after ${Date.now() - tickStart} ms:`, e);
-        } finally {
-            /* Always release the guard so the next tick can run. */
-            isTickRunning = false;
+            /* ── Input registers (4–11): ADC calibrated floats — devices 1 and 3 ── */
+            if (dev.id === 1 || dev.id === 3) {
+                try {
+                    await modbusManager.enqueue(dev.ip, dev.port, async (client) => {
+                        client.setID(dev.unitId);
+                        const t0 = Date.now();
+                        const res = await client.readInputRegisters(4, 8);
+                        log.info(`[Polling] ${key}: readInputRegisters(4,8) OK in ${Date.now() - t0} ms`);
+                        updates.push({ guiId: `ai-${dev.id}-4`,  value: registersToFloat([res.data[0], res.data[1]], 'CDAB') });
+                        updates.push({ guiId: `ai-${dev.id}-6`,  value: registersToFloat([res.data[2], res.data[3]], 'CDAB') });
+                        updates.push({ guiId: `ai-${dev.id}-8`,  value: registersToFloat([res.data[4], res.data[5]], 'CDAB') });
+                        updates.push({ guiId: `ai-${dev.id}-10`, value: registersToFloat([res.data[6], res.data[7]], 'CDAB') });
+                    });
+                } catch (e) {
+                    log.error(`[Polling] ${key}: readInputRegisters FAILED — ${e.message}`);
+                }
+            }
+        })());
+
+        await Promise.all(promises);
+        log.info(`[Polling] tick complete — ${updates.length} update(s) in ${Date.now() - tickStart} ms`);
+
+        if (mainWindow && !mainWindow.isDestroyed() && mainWindow.webContents && updates.length > 0) {
+            mainWindow.webContents.send('state-update', updates);
         }
 
-    }, 500);
+    } catch (e) {
+        log.error(`[Polling] unhandled error in tick after ${Date.now() - tickStart} ms:`, e);
+    } finally {
+        /*
+         * Schedule the next tick only after this one fully completes.
+         * Maintain ~500 ms wall-clock cadence by subtracting elapsed time.
+         */
+        if (isPollingActive) {
+            const elapsed = Date.now() - tickStart;
+            const delay = Math.max(0, 500 - elapsed);
+            pollingTimer = setTimeout(scheduleTick, delay);
+        }
+    }
 }
 
 function createWindow() {
@@ -305,14 +322,19 @@ function createWindow() {
     });
 
     mainWindow.loadFile(path.join(__dirname, 'renderer', 'index.html'));
-
-    // Start a lightweight network status broadcaster
-    setInterval(() => {
-        if (mainWindow && !mainWindow.isDestroyed() && mainWindow.webContents) {
-            mainWindow.webContents.send("network-update", modbusManager.getConnectionStatuses());
-        }
-    }, 1000);
 }
+
+/*
+ * Event-driven network status broadcast (C6).
+ * ModbusManager emits 'statusChanged' whenever a device connects, disconnects,
+ * or completes a reconnect attempt.  We push the update to the renderer
+ * immediately — no polling, no 1 Hz setInterval, no log spam.
+ */
+modbusManager.on('statusChanged', (statuses) => {
+    if (mainWindow && !mainWindow.isDestroyed() && mainWindow.webContents) {
+        mainWindow.webContents.send('network-update', statuses);
+    }
+});
 
 app.whenReady().then(async () => {
     const dbPath = path.join(app.getPath('userData'), 'database.sqlite');
@@ -360,6 +382,7 @@ app.whenReady().then(async () => {
 });
 
 app.on('window-all-closed', function () {
+    stopPollingLoop();
     db.closeDatabase();
     if (process.platform !== 'darwin') app.quit();
 });
