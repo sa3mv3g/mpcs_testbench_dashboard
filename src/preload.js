@@ -1,8 +1,11 @@
 const { contextBridge, ipcRenderer } = require("electron");
 
 contextBridge.exposeInMainWorld("api", {
+	// System API
+	getNetworkInterfaces: () => ipcRenderer.invoke("system:getNetworkInterfaces"),
+
 	// Modbus API
-	connectAllDevices: () => ipcRenderer.invoke("modbus:connectAll"),
+	connectAllDevices: (interfaceIp) => ipcRenderer.invoke("modbus:connectAll", interfaceIp),
 	disconnectAllDevices: () => ipcRenderer.invoke("modbus:disconnectAll"),
 	refreshConnections: () => ipcRenderer.invoke("modbus:refreshConnections"),
 	readRegisters: (params) => ipcRenderer.invoke("modbus:readRegisters", params),
@@ -56,6 +59,11 @@ contextBridge.exposeInMainWorld("api", {
 		ipcRenderer.on("state-update", (event, data) => callback(data)),
 	removeStateUpdateListener: () =>
 		ipcRenderer.removeAllListeners("state-update"),
+
+	onDiscoveryDeviceFound: (callback) => {
+		ipcRenderer.removeAllListeners("discovery:device-found");
+		ipcRenderer.on("discovery:device-found", (event, device) => callback(device));
+	},
 
 	onNetworkUpdate: (callback) =>
 		ipcRenderer.on("network-update", (event, data) => callback(data)),

@@ -38,28 +38,49 @@ document.addEventListener("DOMContentLoaded", async () => {
 	const controlsContainer = document.getElementById("controls-container");
 
 	// --- Global Network State ---
+	const networkInterfaceSelect = document.getElementById("network-interface-select");
 	const btnConnect = document.getElementById("btn-network-connect");
 	const btnDisconnect = document.getElementById("btn-network-disconnect");
 	const btnRefresh = document.getElementById("btn-network-refresh");
 	const statusText = document.getElementById("network-status-text");
 
+	// Populate Network Interfaces
+	if (networkInterfaceSelect && window.api.getNetworkInterfaces) {
+		const interfaces = await window.api.getNetworkInterfaces();
+		interfaces.forEach(iface => {
+			const opt = document.createElement("option");
+			opt.value = iface.address;
+			opt.textContent = `${iface.name} - ${iface.address}`;
+			networkInterfaceSelect.appendChild(opt);
+		});
+	}
+
 	btnConnect.addEventListener("click", async () => {
+		const interfaceIp = networkInterfaceSelect ? networkInterfaceSelect.value : null;
+		if (!interfaceIp) {
+			window.showStatus("Please select a network interface", true);
+			return;
+		}
+
 		btnConnect.disabled = true;
-		statusText.textContent = "Connecting...";
-		statusText.style.color = "#ffc107"; // Yellow/warning color
+		networkInterfaceSelect.disabled = true;
+		statusText.textContent = "Discovering...";
+		statusText.style.color = "#17a2b8"; // Info color
 		
-		const res = await window.api.connectAllDevices();
+		const res = await window.api.connectAllDevices(interfaceIp);
 		if (res && res.success) {
 			btnConnect.style.display = "none";
+			if (networkInterfaceSelect) networkInterfaceSelect.style.display = "none";
 			btnDisconnect.style.display = "inline-block";
 			btnRefresh.style.display = "inline-block";
 			btnConnect.disabled = false;
 			statusText.textContent = "Connected (Polling)";
 			statusText.style.color = "#28a745"; // Green
 		} else {
-			statusText.textContent = "Error Connecting";
+			statusText.textContent = res && res.error ? `Error: ${res.error}` : "Error Connecting";
 			statusText.style.color = "#dc3545"; // Red
 			btnConnect.disabled = false;
+			networkInterfaceSelect.disabled = false;
 		}
 	});
 
@@ -70,6 +91,10 @@ document.addEventListener("DOMContentLoaded", async () => {
 			btnDisconnect.style.display = "none";
 			btnRefresh.style.display = "none";
 			btnConnect.style.display = "inline-block";
+			if (networkInterfaceSelect) {
+				networkInterfaceSelect.style.display = "inline-block";
+				networkInterfaceSelect.disabled = false;
+			}
 			btnDisconnect.disabled = false;
 			statusText.textContent = "Disconnected";
 			statusText.style.color = "#dc3545";
@@ -89,6 +114,26 @@ document.addEventListener("DOMContentLoaded", async () => {
 
 	// --- Live Device Status Monitoring ---
 	const liveDeviceStatusContainer = document.getElementById("live-device-status");
+	
+	// Stream Discovery devices
+	if (window.api.onDiscoveryDeviceFound) {
+		window.api.onDiscoveryDeviceFound((device) => {
+			if (liveDeviceStatusContainer.innerHTML.includes("No devices registered") || liveDeviceStatusContainer.innerHTML.includes("No devices discovered yet")) {
+				liveDeviceStatusContainer.innerHTML = "";
+			}
+			const div = document.createElement("div");
+			div.style.display = "flex";
+			div.style.alignItems = "center";
+			div.style.fontSize = "12px";
+			div.style.marginRight = "10px";
+			div.innerHTML = `
+				<div style="width:10px; height:10px; border-radius:50%; background-color:#17a2b8; margin-right:5px;"></div>
+				[Found] ${device.name} (${device.ip}:${device.port})
+			`;
+			liveDeviceStatusContainer.appendChild(div);
+		});
+	}
+
 	if (window.api.onNetworkUpdate) {
 		window.api.onNetworkUpdate((statuses) => {
 			liveDeviceStatusContainer.innerHTML = "";
@@ -146,14 +191,11 @@ document.addEventListener("DOMContentLoaded", async () => {
 	}
 
 	// --- Manual Dashboard v2 — directWrite event handlers ---
-	/*
-	 * Device IP lookup table — mirrors JERRY_DEVICES in src/main.js.
-	 * Used by the renderer to resolve device_id → IP for directWrite calls.
-	 */
-	const JERRY_IPS = {
-		1: '169.254.4.100', 2: '169.254.4.101', 3: '169.254.4.102',
-		4: '169.254.4.103', 5: '169.254.4.104', 6: '169.254.4.105',
-		7: '169.254.4.106', 8: '169.254.4.107'
+	// Helper to fetch the dynamic IP of a device from the database
+	const getDeviceIp = async (devId) => {
+		const devices = await window.api.getDevices();
+		const dev = devices.find(d => d.id === devId);
+		return dev ? dev.ip : null;
 	};
 
 	/* Digital output switches (webaudio-switch) — writeCoil on change */
@@ -168,8 +210,15 @@ document.addEventListener("DOMContentLoaded", async () => {
 			// Save desired state
 			await window.api.setDesiredState(guiId, val);
 
+			const ip = await getDeviceIp(dev);
+			if (!ip) {
+				window.showStatus(`Cannot write: Device ${dev} is not configured or offline`, true);
+				e.target.value = prevVal; // Revert visually
+				return;
+			}
+
 			const res = await window.api.directWrite({
-				ip: JERRY_IPS[dev], port: 502,
+				ip: ip, port: 502,
 				fc: 'writeCoil', address: addr, value: !!val,
 				unitId: dev
 			});
@@ -189,8 +238,14 @@ document.addEventListener("DOMContentLoaded", async () => {
 			// Save desired state
 			await window.api.setDesiredState(guiId, rawVal);
 
+			const ip = await getDeviceIp(dev);
+			if (!ip) {
+				window.showStatus(`Cannot write: Device ${dev} is not configured or offline`, true);
+				return;
+			}
+
 			await window.api.directWrite({
-				ip: JERRY_IPS[dev], port: 502,
+				ip: ip, port: 502,
 				fc: 'writeRegister', address: addr, value: rawVal,
 				unitId: dev
 			});

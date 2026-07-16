@@ -393,6 +393,9 @@
   <h4>MPCS Testbench Dashboard</h4>
   
   <div style="margin-bottom: 20px; padding: 10px; background-color: #e2e8f0; border-radius: 5px; display: flex; align-items: center; gap: 15px; flex-wrap: wrap;">
+    <select id="network-interface-select" style="padding: 5px; border-radius: 4px; border: 1px solid #ccc;">
+      <option value="">Select Network Interface...</option>
+    </select>
     <button class="action-btn" id="btn-network-connect" style="background-color: #28a745; color: white; border: none; border-radius: 4px;">Connect Devices</button>
     <button class="action-btn" id="btn-network-disconnect" style="background-color: #dc3545; color: white; border: none; border-radius: 4px; display: none;">Disconnect</button>
     <button class="action-btn" id="btn-network-refresh" style="background-color: #17a2b8; color: white; border: none; border-radius: 4px; display: none;">Refresh Offline Devices</button>
@@ -426,7 +429,7 @@
     </div>
     <div id="manual-dashboard-v2-content">
 
-      <!-- Device 1 — 169.254.4.100 -->
+      <!-- Device 1 -->
       <div class="v2-device-row">
         <div class="v2-device-label">Controller 1</div>
         <div class="v2-signal-group">

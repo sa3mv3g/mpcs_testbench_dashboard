@@ -69,7 +69,7 @@ db.serialize(() => {
     
     for (let i = 1; i <= 8; i++) {
         // Different IPs, e.g., 192.168.1.100, 192.168.1.101, ...
-        stmtDevice.run(`Controller ${i}`, `169.254.4.${99 + i}`, 502);
+        stmtDevice.run(`Controller ${i}`, `192.168.0.${200 - 1 + i}`, 502);
         
         // Add registers for this device based on jerry_registers.json
         const types = {

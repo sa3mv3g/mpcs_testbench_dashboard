@@ -1,15 +1,50 @@
 const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
 const fs = require('fs');
+const os = require('os');
 const log = require('electron-log');
+const winston = require('winston');
 const db = require('./db');
 const { floatToRegisters, registersToFloat, toProtocolAddress } = require('./utils');
 const modbusManager = require('./modbus-manager');
+const ModbusDiscovery = require('./discovery');
+
+require('winston-syslog').Syslog;
+
+const isFactory = process.env.APP_ENV === 'factory';
 
 // Configure electron-log
 log.transports.file.level = 'info';
 log.transports.file.maxSize = 100 * 1024 * 1024; // 100MB
 log.transports.console.level = 'debug'; // Disable console printing
+// Disable console in production
+log.transports.console.level = isFactory ? 'debug' : false;
+
+if (isFactory) {
+  const syslogger = winston.createLogger({
+    transports: [
+      new winston.transports.Syslog({
+        host: '192.168.0.1',   // or your syslog server IP
+        port: 514,
+        protocol: 'udp4',
+        facility: 'local0',
+        app_name: 'mpcs-testbench-dashboard'
+      })
+    ]
+  });
+
+  // Hook electron-log into syslog
+  log.hooks.push((message) => {
+    const text = message.data.join(' ');
+    switch (message.level) {
+      case 'error': syslogger.error(text); break;
+      case 'warn':  syslogger.warn(text);  break;
+      default:      syslogger.info(text);  break;
+    }
+    return message;  // must return message to continue the chain
+  });
+}
+
 
 log.info('Application starting...');
 
@@ -94,14 +129,14 @@ async function getCachedSignals() {
  * network address. All 8 controllers share the same jerry register map.
  */
 const JERRY_DEVICES = [
-    { id: 1, ip: '169.254.4.100', port: 502, unitId: 1 },
-    { id: 2, ip: '169.254.4.101', port: 502, unitId: 2 },
-    { id: 3, ip: '169.254.4.102', port: 502, unitId: 3 },
-    { id: 4, ip: '169.254.4.103', port: 502, unitId: 4 },
-    { id: 5, ip: '169.254.4.104', port: 502, unitId: 5 },
-    { id: 6, ip: '169.254.4.105', port: 502, unitId: 6 },
-    { id: 7, ip: '169.254.4.106', port: 502, unitId: 7 },
-    { id: 8, ip: '169.254.4.107', port: 502, unitId: 8 },
+    { id: 1, ip: '192.168.0.200', port: 502, unitId: 1 },
+    { id: 2, ip: '192.168.0.201', port: 502, unitId: 2 },
+    { id: 3, ip: '192.168.0.202', port: 502, unitId: 3 },
+    { id: 4, ip: '192.168.0.203', port: 502, unitId: 4 },
+    { id: 5, ip: '192.168.0.204', port: 502, unitId: 5 },
+    { id: 6, ip: '192.168.0.205', port: 502, unitId: 6 },
+    { id: 7, ip: '192.168.0.206', port: 502, unitId: 7 },
+    { id: 8, ip: '192.168.0.207', port: 502, unitId: 8 },
 ];
 
 /*
@@ -139,7 +174,6 @@ async function scheduleTick() {
 
     // Skip conditions — reschedule immediately rather than returning
     if (isSequenceActive || !isNetworkEnabled || activeDashboard !== 'manual-dashboard-v2') {
-        log.info(`[Polling] tick skipped — isSequenceActive=${isSequenceActive} isNetworkEnabled=${isNetworkEnabled} activeDashboard=${activeDashboard}`);
         pollingTimer = setTimeout(scheduleTick, 500);
         return;
     }
@@ -385,19 +419,87 @@ app.on('window-all-closed', function () {
 
 // --- High Level IPC Handlers ---
 
+ipcMain.handle('system:getNetworkInterfaces', () => {
+    const interfaces = os.networkInterfaces();
+    const result = [];
+    for (const name of Object.keys(interfaces)) {
+        for (const iface of interfaces[name]) {
+            if (iface.family === 'IPv4' && !iface.internal) {
+                result.push({ name, address: iface.address });
+            }
+        }
+    }
+    return result;
+});
+
 // Modbus interactions
-ipcMain.handle('modbus:connectAll', async () => {
-    log.info('[IPC] modbus:connectAll — user requested connect all');
-    const devices = await db.getDevices();
-    log.info(`[IPC] modbus:connectAll — found ${devices.length} device(s) in registry: ${devices.map(d => `${d.ip}:${d.port}`).join(', ')}`);
+ipcMain.handle('modbus:connectAll', async (event, interfaceIp) => {
+    log.info(`[IPC] modbus:connectAll — user requested connect all using interface ${interfaceIp}`);
+    
+    if (!interfaceIp) {
+        log.error('[IPC] modbus:connectAll — No interface IP provided');
+        return { success: false, error: 'No network interface selected.' };
+    }
 
-    // Kick off connection initialization asynchronously in the background.
-    // Do NOT await this, so the UI instantly becomes responsive and the polling loop starts.
-    modbusManager.initDevices(devices).catch(e => log.error('[IPC] modbus:connectAll — initDevices failed:', e));
+    try {
+        const discovery = new ModbusDiscovery(interfaceIp);
+        
+        // Forward found devices to the renderer so the UI updates live
+        discovery.on('device-found', (device) => {
+            if (mainWindow && !mainWindow.isDestroyed() && mainWindow.webContents) {
+                mainWindow.webContents.send('discovery:device-found', device);
+            }
+        });
 
-    isNetworkEnabled = true;
-    log.info('[IPC] modbus:connectAll — isNetworkEnabled set to true, polling loop will now execute ticks');
-    return { success: true };
+        // Run discovery for 3 seconds
+        const discoveredDevices = await discovery.startDiscovery(3000);
+        log.info(`[IPC] modbus:connectAll — Discovery finished, found ${discoveredDevices.length} devices.`);
+
+        if (discoveredDevices.length === 0) {
+            return { success: false, error: 'No Modbus devices found on the selected network.' };
+        }
+
+        const dbDevices = await db.getDevices();
+        
+        // Update database with discovery results
+        for (const dev of dbDevices) {
+            // Match DB id (1-8) with extracted Modbus id (0-7) + 1
+            const found = discoveredDevices.find(d => (d.id + 1) === dev.id);
+            if (found) {
+                // Device discovered, update its IP and port
+                dev.ip = found.ip;
+                dev.port = found.port;
+                await db.updateDevice(dev);
+                log.info(`[IPC] modbus:connectAll — Updated device ${dev.id} with discovered IP ${dev.ip}:${dev.port}`);
+            } else {
+                // Device not discovered, clear its IP to prevent zombie retries
+                if (dev.ip || dev.port) {
+                    log.warn(`[IPC] modbus:connectAll — Device ${dev.id} not found in discovery. Clearing its IP and disconnecting.`);
+                    // First disconnect the old IP cleanly if it exists
+                    if (dev.ip && dev.port) {
+                        await modbusManager.disconnect(dev.ip, dev.port).catch(e => log.error(`[IPC] modbus:connectAll — error disconnecting offline device ${dev.id}: ${e.message}`));
+                    }
+                    dev.ip = null;
+                    dev.port = null;
+                    await db.updateDevice(dev);
+                }
+            }
+        }
+
+        // Get the updated list of devices
+        const updatedDevices = await db.getDevices();
+        
+        // Kick off connection initialization asynchronously in the background.
+        modbusManager.initDevices(updatedDevices).catch(e => log.error('[IPC] modbus:connectAll — initDevices failed:', e));
+
+        isNetworkEnabled = true;
+        log.info('[IPC] modbus:connectAll — isNetworkEnabled set to true, polling loop will now execute ticks');
+        
+        return { success: true };
+    } catch (e) {
+        log.error('[IPC] modbus:connectAll — Discovery or Connection failed:', e);
+        return { success: false, error: `Discovery failed: ${e.message}` };
+    }
 });
 
 ipcMain.handle('modbus:disconnectAll', async () => {
