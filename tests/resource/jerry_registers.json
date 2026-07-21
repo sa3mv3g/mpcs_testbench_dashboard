@@ -239,6 +239,14 @@
         "default_value": false,
         "group": "date_time",
         "access": "read_write"
+      },
+      {
+        "name": "sntp_commit",
+        "address": 31,
+        "description": "Write 1 to commit the SNTP server IP holding register to EEPROM",
+        "default_value": false,
+        "group": "network_config",
+        "access": "read_write"
       }
     ],
     "discrete_inputs": [
@@ -309,12 +317,12 @@
       {
         "name": "pwm_0_phase",
         "address": 1,
-        "description": "AC DAC channel 0 phase offset (0-360 degrees)",
+        "description": "AC DAC channel 0 phase offset (0-360 degrees, 65535=Linear)",
         "data_type": "uint16",
         "size": 1,
         "default_value": 0,
         "min_value": 0,
-        "max_value": 360,
+        "max_value": 65535,
         "unit": "deg",
         "group": "pwm_control",
         "access": "read_write"
@@ -336,12 +344,12 @@
       {
         "name": "pwm_1_phase",
         "address": 3,
-        "description": "AC DAC channel 1 phase offset (0-360 degrees)",
+        "description": "AC DAC channel 1 phase offset (0-360 degrees, 65535=Linear)",
         "data_type": "uint16",
         "size": 1,
         "default_value": 0,
         "min_value": 0,
-        "max_value": 360,
+        "max_value": 65535,
         "unit": "deg",
         "group": "pwm_control",
         "access": "read_write"
@@ -363,12 +371,12 @@
       {
         "name": "pwm_2_phase",
         "address": 5,
-        "description": "AC DAC channel 2 phase offset (0-360 degrees)",
+        "description": "AC DAC channel 2 phase offset (0-360 degrees, 65535=Linear)",
         "data_type": "uint16",
         "size": 1,
         "default_value": 0,
         "min_value": 0,
-        "max_value": 360,
+        "max_value": 65535,
         "unit": "deg",
         "group": "pwm_control",
         "access": "read_write"
@@ -390,12 +398,12 @@
       {
         "name": "pwm_3_phase",
         "address": 7,
-        "description": "AC DAC channel 3 phase offset (0-360 degrees)",
+        "description": "AC DAC channel 3 phase offset (0-360 degrees, 65535=Linear)",
         "data_type": "uint16",
         "size": 1,
         "default_value": 0,
         "min_value": 0,
-        "max_value": 360,
+        "max_value": 65535,
         "unit": "deg",
         "group": "pwm_control",
         "access": "read_write"
@@ -713,6 +721,17 @@
         "size": 2,
         "group": "version_info",
         "access": "read_only"
+      },
+      {
+        "name": "sntp_server_ip",
+        "address": 305,
+        "description": "SNTP server IPv4 address",
+        "data_type": "uint32",
+        "size": 2,
+        "default_value": 3232235620,
+        "group": "network_config",
+        "access": "read_write",
+        "persistent": true
       }
     ],
     "input_registers": [
@@ -842,6 +861,10 @@
     {
       "name": "version_info",
       "description": "Application version information"
+    },
+    {
+      "name": "network_config",
+      "description": "Network configuration registers"
     }
   ]
 }

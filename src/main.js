@@ -66,6 +66,7 @@ process.on('unhandledRejection', (reason, promise) => {
 let mainWindow;
 let isSequenceActive = false;
 let isNetworkEnabled = false;
+let activeInterfaceIp = null;
 let pollingTimer = null;   // setTimeout handle for the self-scheduling polling loop
 let isPollingActive = false; // true while the self-scheduling loop is running
 let activeDashboard = '';
@@ -78,10 +79,23 @@ modbusManager.on('connected', async ({ ip, port }) => {
         const dev = devices.find(d => d.ip === ip && d.port === port);
         if (!dev) return;
 
+        if (activeInterfaceIp) {
+            const parts = activeInterfaceIp.split('.').map(Number);
+            if (parts.length === 4 && !parts.some(isNaN)) {
+                await modbusManager.enqueueHighPriority(ip, port, async (client) => {
+                    const reg1 = (parts[2] << 8) | parts[3];
+                    const reg2 = (parts[0] << 8) | parts[1];
+                    await client.writeRegisters(305, [reg1, reg2]);
+                    await client.writeCoil(31, true);
+                });
+                log.info(`[Main] Wrote SNTP server IP (${activeInterfaceIp}) to device ${dev.id}`);
+            }
+        }
+
         if (dev.id === 2 || dev.id === 4) {
-            log.info(`[Main] Device ${dev.id} (${ip}:${port}) connected. Writing configuration data (pwm_0_phase = 65535)...`);
-            await modbusManager.enqueueHighPriority(ip, port, (client) => {
-                return client.writeRegister(1, 65535);
+            log.info(`[Main] Device ${dev.id} (${ip}:${port}) connected. Writing configuration data...`);
+            await modbusManager.enqueueHighPriority(ip, port, async (client) => {
+                await client.writeRegister(1, 65535);
             });
             log.info(`[Main] Configuration data written successfully to device ${dev.id}`);
         }
@@ -427,6 +441,8 @@ ipcMain.handle('modbus:connectAll', async (event, interfaceIp) => {
         log.error('[IPC] modbus:connectAll — No interface IP provided');
         return { success: false, error: 'No network interface selected.' };
     }
+
+    activeInterfaceIp = interfaceIp;
 
     try {
         const discovery = new ModbusDiscovery(interfaceIp);
