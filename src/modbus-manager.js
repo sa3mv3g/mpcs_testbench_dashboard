@@ -53,7 +53,7 @@ class ModbusManager extends EventEmitter {
         await Promise.allSettled(valid.map((device, idx) => {
             const jitter = idx * 50 + Math.floor(Math.random() * 50);
             return new Promise(resolve => setTimeout(resolve, jitter))
-                .then(() => this.connect(device.ip, device.port));
+                .then(() => this.connect(device.ip, device.port, device.id));
         }));
 
         log.info(`[ModbusManager] initDevices: done. Connection map size = ${this.connections.size}`);
@@ -63,7 +63,7 @@ class ModbusManager extends EventEmitter {
      * Connects to a device and stores it in the manager.
      * Emits 'statusChanged' on successful connection.
      */
-    async connect(ip, port) {
+    async connect(ip, port, unitId = 1) {
         const key = this._getKey(ip, port);
         if (this.connections.has(key)) {
             log.info(`[ModbusManager] connect(${key}): already tracked, skipping duplicate connect`);
@@ -76,6 +76,7 @@ class ModbusManager extends EventEmitter {
 
         const connectionObj = {
             client,
+            unitId,
             readQueue:  [],    // polling reads — lower priority
             writeQueue: [],    // user writes  — higher priority
             isRunning:  false, // true while _drain() is executing
@@ -309,6 +310,7 @@ class ModbusManager extends EventEmitter {
                 isConnected: actuallyConnected,
                 retryCount: obj.retryCount,
                 queueDepth: obj.readQueue.length + obj.writeQueue.length + (obj.isRunning ? 1 : 0),
+                error: obj.error
             });
         }
         return statuses;
@@ -439,4 +441,6 @@ class ModbusManager extends EventEmitter {
     }
 }
 
-module.exports = new ModbusManager();
+const instance = new ModbusManager();
+instance.ModbusManager = ModbusManager;
+module.exports = instance;

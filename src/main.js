@@ -6,7 +6,7 @@ const log = require('electron-log');
 const winston = require('winston');
 const db = require('./db');
 const { floatToRegisters, registersToFloat, toProtocolAddress } = require('./utils');
-const modbusManager = require('./modbus-manager');
+const modbusManager = require('./jerry-device');
 const ModbusDiscovery = require('./discovery');
 
 require('winston-syslog').Syslog;
@@ -793,7 +793,7 @@ ipcMain.handle("db:getDevices", async () => {
 ipcMain.handle("db:addDevice", async (event, device) => {
     const res = await db.addDevice(device);
     if (res.success && device.ip && device.port) {
-        modbusManager.connect(device.ip, device.port).catch(e => log.error("Auto-connect failed", e));
+        modbusManager.connect(device.ip, device.port, device.id).catch(e => log.error("Auto-connect failed", e));
     }
     return res;
 });
@@ -821,7 +821,7 @@ ipcMain.handle("db:updateDevice", async (event, device) => {
         }
         // Connect to the new IP/Port
         if (device.ip && device.port) {
-            modbusManager.connect(device.ip, device.port).catch(e => log.error("Auto-connect failed", e));
+            modbusManager.connect(device.ip, device.port, device.id).catch(e => log.error("Auto-connect failed", e));
         }
     }
     return res;

@@ -26,7 +26,7 @@
 	},
 	"scripts": {
 		"prestart": "node -e \"const fs=require('fs');const p=require('path');const f=p.join(process.env.APPDATA || (process.platform == 'darwin' ? process.env.HOME + '/Library/Application Support' : process.env.HOME + '/.config'), 'mpcs_testbench_dashboard', 'database.sqlite');if(fs.existsSync(f))fs.unlinkSync(f);\"",
-		"start:factory": "APP_ENV=factory electron .",
+		"start:factory": "electron .",
 		"start:prod": "electron .",
 		"postinstall": "npm_config_build_from_source=true electron-rebuild -f -w sqlite3",
 		"rebuild": "electron-rebuild -f -w sqlite3",

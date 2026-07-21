@@ -143,6 +143,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 			}
 			statuses.forEach(s => {
 				const color = s.isConnected ? "#28a745" : "#dc3545";
+				const label = s.error ? `${s.ip}:${s.port} <span style="color:#dc3545;font-weight:bold;">[${s.error}]</span>` : `${s.ip}:${s.port}`;
 				const div = document.createElement("div");
 				div.style.display = "flex";
 				div.style.alignItems = "center";
@@ -150,7 +151,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 				div.style.marginRight = "10px";
 				div.innerHTML = `
 					<div style="width:10px; height:10px; border-radius:50%; background-color:${color}; margin-right:5px;"></div>
-					${s.ip}:${s.port}
+					${label}
 				`;
 				liveDeviceStatusContainer.appendChild(div);
 			});
