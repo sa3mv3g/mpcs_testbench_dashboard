@@ -124,22 +124,6 @@ async function getCachedSignals() {
 }
 
 /*
- * Static device table for the Manual Dashboard v2 polling loop.
- * Each entry maps a device_id (1-based, matching create-seed.js) to its
- * network address. All 8 controllers share the same jerry register map.
- */
-const JERRY_DEVICES = [
-    { id: 1, ip: '192.168.0.200', port: 502, unitId: 1 },
-    { id: 2, ip: '192.168.0.201', port: 502, unitId: 2 },
-    { id: 3, ip: '192.168.0.202', port: 502, unitId: 3 },
-    { id: 4, ip: '192.168.0.203', port: 502, unitId: 4 },
-    { id: 5, ip: '192.168.0.204', port: 502, unitId: 5 },
-    { id: 6, ip: '192.168.0.205', port: 502, unitId: 6 },
-    { id: 7, ip: '192.168.0.206', port: 502, unitId: 7 },
-    { id: 8, ip: '192.168.0.207', port: 502, unitId: 8 },
-];
-
-/*
  * Self-scheduling polling loop — replaces setInterval.
  *
  * The next tick is only scheduled AFTER the current tick's Promise.all resolves,
@@ -203,7 +187,8 @@ async function scheduleTick() {
          *     offsets 0+1 → ai-{d}-4   (ADC0 calibrated, float32 CDAB)
          *     offsets 2+3 → ai-{d}-6   (ADC1 calibrated, float32 CDAB)
          */
-        const promises = JERRY_DEVICES.map(dev => (async () => {
+        const activeDevices = await db.getDevices();
+        const promises = activeDevices.filter(d => d.ip && d.port).map(dev => (async () => {
             const key = `${dev.ip}:${dev.port}`;
             const conn = modbusManager.connections.get(key);
             if (!conn || !conn.isConnected || !conn.client || !conn.client.isOpen) {
@@ -211,10 +196,12 @@ async function scheduleTick() {
                 return;
             }
 
+            const unitId = dev.id;
+
             /* ── Coils (0–23): digital outputs + digital input mirrors ── */
             try {
                 await modbusManager.enqueue(dev.ip, dev.port, async (client) => {
-                    client.setID(dev.unitId);
+                    client.setID(unitId);
                     const t0 = Date.now();
                     const res = await client.readCoils(0, 24);
                     log.info(`[Polling] ${key}: readCoils(0,24) OK in ${Date.now() - t0} ms ${res.data}`);
@@ -235,7 +222,7 @@ async function scheduleTick() {
                                 state.confirmationState = 'MISMATCH';
                                 log.warn(`[Polling] MISMATCH on ${guiId}: PV=${processValue} but Setpoint=${state.setpoint}. Re-enforcing.`);
                                 modbusManager.enqueueHighPriority(dev.ip, dev.port, async (c) => {
-                                    c.setID(dev.unitId);
+                                    c.setID(unitId);
                                     await c.writeCoil(i, !!state.setpoint);
                                 }).catch(e => {
                                     log.error(`[Polling] Mismatch correction failed for ${guiId}:`, e);
@@ -262,7 +249,7 @@ async function scheduleTick() {
             if (dev.id >= 1 && dev.id <= 4) {
                 try {
                     await modbusManager.enqueue(dev.ip, dev.port, async (client) => {
-                        client.setID(dev.unitId);
+                        client.setID(unitId);
                         const t0 = Date.now();
                         const res = await client.readHoldingRegisters(0, 1);
                         log.info(`[Polling] ${key}: readHoldingRegisters(0,1) OK in ${Date.now() - t0} ms`);
@@ -281,7 +268,7 @@ async function scheduleTick() {
                                 state.confirmationState = 'MISMATCH';
                                 log.warn(`[Polling] MISMATCH on ${guiId}: PV=${processValue} but Setpoint=${state.setpoint}. Re-enforcing.`);
                                 modbusManager.enqueueHighPriority(dev.ip, dev.port, async (c) => {
-                                    c.setID(dev.unitId);
+                                    c.setID(unitId);
                                     await c.writeRegister(0, parseInt(state.setpoint));
                                 }).catch(e => {
                                     log.error(`[Polling] Mismatch correction failed for ${guiId}:`, e);
@@ -305,7 +292,7 @@ async function scheduleTick() {
             if (dev.id >= 1 && dev.id <= 4) {
                 try {
                     await modbusManager.enqueue(dev.ip, dev.port, async (client) => {
-                        client.setID(dev.unitId);
+                        client.setID(unitId);
                         const t0 = Date.now();
                         const res = await client.readInputRegisters(4, 4);
                         log.info(`[Polling] ${key}: readInputRegisters(4,4) OK in ${Date.now() - t0} ms`);
