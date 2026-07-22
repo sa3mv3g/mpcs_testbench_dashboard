@@ -307,6 +307,7 @@ class ModbusManager extends EventEmitter {
             statuses.push({
                 ip,
                 port,
+                unitId: obj.unitId,
                 isConnected: actuallyConnected,
                 retryCount: obj.retryCount,
                 queueDepth: obj.readQueue.length + obj.writeQueue.length + (obj.isRunning ? 1 : 0),

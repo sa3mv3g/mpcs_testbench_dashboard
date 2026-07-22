@@ -143,7 +143,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 			}
 			statuses.forEach(s => {
 				const color = s.isConnected ? "#28a745" : "#dc3545";
-				const label = s.error ? `${s.ip}:${s.port} <span style="color:#dc3545;font-weight:bold;">[${s.error}]</span>` : `${s.ip}:${s.port}`;
+				const label = s.error ? `Unit ${s.unitId} (${s.ip}:${s.port}) <span style="color:#dc3545;font-weight:bold;">[${s.error}]</span>` : `Unit ${s.unitId} (${s.ip}:${s.port})`;
 				const div = document.createElement("div");
 				div.style.display = "flex";
 				div.style.alignItems = "center";
