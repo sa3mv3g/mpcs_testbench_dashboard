@@ -76,6 +76,11 @@ document.addEventListener("DOMContentLoaded", async () => {
 			btnConnect.disabled = false;
 			statusText.textContent = "Connected (Polling)";
 			statusText.style.color = "#28a745"; // Green
+			
+			// Refresh UI tables to show newly discovered IPs
+			if (typeof loadDevices === 'function') loadDevices();
+			if (typeof loadMappedSignalsForCal === 'function') loadMappedSignalsForCal();
+			if (typeof window.renderManualDashboard === 'function') window.renderManualDashboard();
 		} else {
 			statusText.textContent = res && res.error ? `Error: ${res.error}` : "Error Connecting";
 			statusText.style.color = "#dc3545"; // Red
@@ -98,6 +103,11 @@ document.addEventListener("DOMContentLoaded", async () => {
 			btnDisconnect.disabled = false;
 			statusText.textContent = "Disconnected";
 			statusText.style.color = "#dc3545";
+			
+			// Refresh UI tables to show cleared IPs
+			if (typeof loadDevices === 'function') loadDevices();
+			if (typeof loadMappedSignalsForCal === 'function') loadMappedSignalsForCal();
+			if (typeof window.renderManualDashboard === 'function') window.renderManualDashboard();
 		} else {
 			statusText.textContent = "Error Disconnecting";
 			btnDisconnect.disabled = false;
@@ -107,6 +117,12 @@ document.addEventListener("DOMContentLoaded", async () => {
 	btnRefresh.addEventListener("click", async () => {
 		btnRefresh.disabled = true;
 		await window.api.refreshConnections();
+		
+		// Refresh UI tables
+		if (typeof loadDevices === 'function') loadDevices();
+		if (typeof loadMappedSignalsForCal === 'function') loadMappedSignalsForCal();
+		if (typeof window.renderManualDashboard === 'function') window.renderManualDashboard();
+		
 		setTimeout(() => {
 			btnRefresh.disabled = false;
 		}, 1000);
@@ -658,8 +674,8 @@ document.addEventListener("DOMContentLoaded", async () => {
 		document.getElementById("dev-name").value = name;
 		document.getElementById("dev-ip").value = ip;
 		document.getElementById("dev-port").value = port;
-		document.getElementById("dev-key1").value = key1 || "";
-		document.getElementById("dev-key2").value = key2 || "";
+		document.getElementById("dev-key1").value = key1 != null ? "0x" + key1.toString(16).toUpperCase() : "";
+		document.getElementById("dev-key2").value = key2 != null ? "0x" + key2.toString(16).toUpperCase() : "";
 		document.getElementById("device-registry").style.display = "block";
 	};
 
@@ -676,11 +692,13 @@ document.addEventListener("DOMContentLoaded", async () => {
 		const name = document.getElementById("dev-name").value;
 		const ip = document.getElementById("dev-ip").value;
 		const port = parseInt(document.getElementById("dev-port").value, 10);
-		const key1 = parseInt(document.getElementById("dev-key1").value, 10);
-		const key2 = parseInt(document.getElementById("dev-key2").value, 10);
+		const key1Val = document.getElementById("dev-key1").value;
+		const key2Val = document.getElementById("dev-key2").value;
+		const key1 = key1Val ? parseInt(key1Val, 16) : NaN;
+		const key2 = key2Val ? parseInt(key2Val, 16) : NaN;
 
-		if (!isNaN(key1) && (key1 < 0 || key1 > 49999)) return window.showStatus("Key 1 Address must be between 0 and 49999.");
-		if (!isNaN(key2) && (key2 < 0 || key2 > 49999)) return window.showStatus("Key 2 Address must be between 0 and 49999.");
+		if (!isNaN(key1) && (key1 < 0 || key1 > 65535)) return window.showStatus("Key 1 Value must be a valid 16-bit hex value.");
+		if (!isNaN(key2) && (key2 < 0 || key2 > 65535)) return window.showStatus("Key 2 Value must be a valid 16-bit hex value.");
 
 		const device = { display_name: name, ip, port, key1: isNaN(key1) ? null : key1, key2: isNaN(key2) ? null : key2 };
 
@@ -752,7 +770,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 			trMap.innerHTML = `
 				<td>${sig.label}</td>
 				<td>${sig.type}</td>
-				<td>${sig.ip || 'N/A'}:${sig.port || 'N/A'}</td>
+				<td>${sig.device_id}</td>
 				<td>${sig.encoding}</td>
 				<td>R:${sig.read_register}, S:${sig.cal_scale_reg}, O:${sig.cal_offset_reg}, D:${sig.cal_deadzone_reg}</td>
 				<td>
@@ -771,7 +789,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 			const trCal = document.createElement("tr");
 			trCal.innerHTML = `
 				<td>${sig.label}</td>
-				<td>${sig.ip || 'N/A'}</td>
+				<td>${sig.device_id}</td>
 				<td>
 					<button onclick="selectForCal(${sig.id}, '${sig.label}', '${sig.encoding}')" style="background:#007bff;color:white;">Select</button>
 				</td>
@@ -993,7 +1011,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 	document.getElementById("btn-cal-zero").addEventListener("click", async () => {
 		if(!currentActiveSignal) return window.showStatus("Select a signal first.");
 		const res = await window.api.performCalibration({
-			label: currentActiveSignal.label,
+			id: currentActiveSignal.id,
 			scale: 1.0, offset: 0.0, deadzone: 0.0
 		});
 		if(res.success) window.showStatus("Device Zeroed!");
@@ -1020,7 +1038,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
 		// 1. Program
 		const res = await window.api.performCalibration({
-			label: currentActiveSignal.label,
+			id: currentActiveSignal.id,
 			scale: m, offset: c, deadzone: dz
 		});
 

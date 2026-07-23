@@ -896,15 +896,15 @@ ipcMain.handle('sequence:stop', async (event) => {
 });
 
 // Hardware Calibration
-ipcMain.handle('calibration:perform', async (event, { label, scale, offset, deadzone }) => {
-    log.info(`[IPC] calibration:perform — label="${label}" scale=${scale} offset=${offset} deadzone=${deadzone}`);
+ipcMain.handle('calibration:perform', async (event, { id, scale, offset, deadzone }) => {
+    log.info(`[IPC] calibration:perform — id=${id} scale=${scale} offset=${offset} deadzone=${deadzone}`);
 
     try {
         /* Use cached signals instead of hitting DB on every calibration request. */
         const signals = await getCachedSignals();
-        const sig = signals.find(s => s.label === label);
+        const sig = signals.find(s => s.id === id);
         if (!sig) {
-            log.error(`[IPC] calibration:perform — signal "${label}" not found in mapped signals`);
+            log.error(`[IPC] calibration:perform — signal id=${id} not found in mapped signals`);
             throw new Error("Signal mapping not found");
         }
         log.info(`[IPC] calibration:perform — found signal id=${sig.id} at ${sig.ip}:${sig.port} type=${sig.type} encoding=${sig.encoding}`);
@@ -950,14 +950,14 @@ ipcMain.handle('calibration:perform', async (event, { label, scale, offset, dead
 
             // Handshake
             if (dev.key1 !== null && dev.key2 !== null) {
-                const rawKey1 = toProtocolAddress(dev.key1, 'holding');
-                const rawKey2 = toProtocolAddress(dev.key2, 'holding');
-                log.debug(`[IPC] calibration:perform — handshake: writing 0x5555 to key1 reg=${dev.key1} rawAddr=${rawKey1}`);
-                log.debug(`[DEBUG] Writing handshake key1. Raw address: ${rawKey1}, Value: 0x5555`);
-                await client.writeRegister(rawKey1, 0x5555);
-                log.debug(`[IPC] calibration:perform — handshake: writing 0xDDDD to key2 reg=${dev.key2} rawAddr=${rawKey2}`);
-                log.debug(`[DEBUG] Writing handshake key2. Raw address: ${rawKey2}, Value: 0xDDDD`);
-                await client.writeRegister(rawKey2, 0xDDDD);
+                const rawKey1 = 128; // Hardcoded handshake key 1 register address
+                const rawKey2 = 129; // Hardcoded handshake key 2 register address
+                log.debug(`[IPC] calibration:perform — handshake: writing 0x${dev.key1.toString(16).toUpperCase()} to key1 rawAddr=${rawKey1}`);
+                log.debug(`[DEBUG] Writing handshake key1. Raw address: ${rawKey1}, Value: 0x${dev.key1.toString(16).toUpperCase()}`);
+                await client.writeRegister(rawKey1, dev.key1);
+                log.debug(`[IPC] calibration:perform — handshake: writing 0x${dev.key2.toString(16).toUpperCase()} to key2 rawAddr=${rawKey2}`);
+                log.debug(`[DEBUG] Writing handshake key2. Raw address: ${rawKey2}, Value: 0x${dev.key2.toString(16).toUpperCase()}`);
+                await client.writeRegister(rawKey2, dev.key2);
                 log.info(`[IPC] calibration:perform — handshake complete`);
             } else {
                 log.warn(`[IPC] calibration:perform — handshake SKIPPED: device key1=${dev.key1} key2=${dev.key2} not configured`);
