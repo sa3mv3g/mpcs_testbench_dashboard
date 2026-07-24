@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain } = require('electron');
+const { app, BrowserWindow, ipcMain, powerMonitor } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
@@ -45,9 +45,9 @@ if (isFactory) {
   });
 }
 
-
 log.info('Application starting...');
 
+let lastUnhandledLogTime = 0;
 // modbus-serial often throws unhandled promise rejections during socket cleanup (ECONNABORTED, ECONNRESET)
 // Catch them here to prevent console spam and potential Node crashes.
 process.on('unhandledRejection', (reason, promise) => {
@@ -57,7 +57,12 @@ process.on('unhandledRejection', (reason, promise) => {
         reason.message.includes('Timed Out') ||
         reason.message.includes('Port Not Open')
     )) {
-        // Safe to ignore background socket cleanup errors
+        // Rate-limit this log to avoid floods during a massive outage
+        const now = Date.now();
+        if (now - lastUnhandledLogTime > 1000) {
+            log.warn(`[BackgroundNetworkError] Swallowed known unhandled rejection: ${reason.message}`);
+            lastUnhandledLogTime = now;
+        }
         return;
     }
     log.error('Unhandled Promise Rejection:', reason);
@@ -71,9 +76,19 @@ let pollingTimer = null;   // setTimeout handle for the self-scheduling polling 
 let isPollingActive = false; // true while the self-scheduling loop is running
 let activeDashboard = '';
 let outputStateCache = {}; // Replaces desiredStateCache
+let isShuttingDown = false; // Guards shutdown sequences
 
-// Handle configuration writes on device connection
-modbusManager.on('connected', async ({ ip, port }) => {
+async function performGracefulShutdown(reason) {
+    if (isShuttingDown) return;
+    isShuttingDown = true;
+    log.info(`[Main] Performing graceful shutdown (${reason})...`);
+    stopPollingLoop();
+    await modbusManager.shutdownAll(reason);
+    log.info(`[Main] Graceful shutdown complete.`);
+}
+
+// Handle configuration writes ONLY after connection is proven LIVE
+modbusManager.on('live', async ({ ip, port }) => {
     try {
         const devices = await db.getDevices();
         const dev = devices.find(d => d.ip === ip && d.port === port);
@@ -83,18 +98,20 @@ modbusManager.on('connected', async ({ ip, port }) => {
             const parts = activeInterfaceIp.split('.').map(Number);
             if (parts.length === 4 && !parts.some(isNaN)) {
                 await modbusManager.enqueueHighPriority(ip, port, async (client) => {
+                    client.setID(dev.id); // FIX: Ensure writes go to correct Unit ID
                     const reg1 = (parts[2] << 8) | parts[3];
                     const reg2 = (parts[0] << 8) | parts[1];
                     await client.writeRegisters(305, [reg1, reg2]);
                     await client.writeCoil(31, true);
                 });
-                log.info(`[Main] Wrote SNTP server IP (${activeInterfaceIp}) to device ${dev.id}`);
+                log.info(`[Main] Wrote SNTP server IP (${activeInterfaceIp}) to device ${dev.id} [Unit ${dev.id}]`);
             }
         }
 
         if (dev.id === 2 || dev.id === 4) {
-            log.info(`[Main] Device ${dev.id} (${ip}:${port}) connected. Writing configuration data...`);
+            log.info(`[Main] Device ${dev.id} (${ip}:${port}) is LIVE. Writing configuration data...`);
             await modbusManager.enqueueHighPriority(ip, port, async (client) => {
+                client.setID(dev.id); // FIX: Ensure writes go to correct Unit ID
                 await client.writeRegister(1, 65535);
             });
             log.info(`[Main] Configuration data written successfully to device ${dev.id}`);
@@ -213,6 +230,7 @@ async function scheduleTick() {
             const unitId = dev.id;
 
             /* ── Coils (0–23): digital outputs + digital input mirrors ── */
+            let pendingCorrections = [];
             try {
                 await modbusManager.enqueue(dev.ip, dev.port, async (client) => {
                     client.setID(unitId);
@@ -235,17 +253,7 @@ async function scheduleTick() {
                             } else if (state.confirmationState !== 'PENDING' || (state.pendingUntil && Date.now() > state.pendingUntil)) {
                                 state.confirmationState = 'MISMATCH';
                                 log.warn(`[Polling] MISMATCH on ${guiId}: PV=${processValue} but Setpoint=${state.setpoint}. Re-enforcing.`);
-                                modbusManager.enqueueHighPriority(dev.ip, dev.port, async (c) => {
-                                    c.setID(unitId);
-                                    await c.writeCoil(i, !!state.setpoint);
-                                }).catch(e => {
-                                    log.error(`[Polling] Mismatch correction failed for ${guiId}:`, e);
-                                    state.consecutiveFails = (state.consecutiveFails || 0) + 1;
-                                    if (state.consecutiveFails >= MAX_CONSECUTIVE_FAILS) {
-                                        state.confirmationState = 'FAULT';
-                                        log.error(`[Polling] FAULT on ${guiId}: write failed ${state.consecutiveFails} times. Disabling further writes.`);
-                                    }
-                                });
+                                pendingCorrections.push({ type: 'coil', address: i, value: !!state.setpoint, guiId });
                             }
                         }
                         outputStateCache[guiId] = state;
@@ -281,17 +289,7 @@ async function scheduleTick() {
                             } else if (state.confirmationState !== 'PENDING' || (state.pendingUntil && Date.now() > state.pendingUntil)) {
                                 state.confirmationState = 'MISMATCH';
                                 log.warn(`[Polling] MISMATCH on ${guiId}: PV=${processValue} but Setpoint=${state.setpoint}. Re-enforcing.`);
-                                modbusManager.enqueueHighPriority(dev.ip, dev.port, async (c) => {
-                                    c.setID(unitId);
-                                    await c.writeRegister(0, parseInt(state.setpoint));
-                                }).catch(e => {
-                                    log.error(`[Polling] Mismatch correction failed for ${guiId}:`, e);
-                                    state.consecutiveFails = (state.consecutiveFails || 0) + 1;
-                                    if (state.consecutiveFails >= MAX_CONSECUTIVE_FAILS) {
-                                        state.confirmationState = 'FAULT';
-                                        log.error(`[Polling] FAULT on ${guiId}: write failed ${state.consecutiveFails} times. Disabling further writes.`);
-                                    }
-                                });
+                                pendingCorrections.push({ type: 'register', address: 0, value: parseInt(state.setpoint), guiId });
                             }
                         }
                         outputStateCache[guiId] = state;
@@ -299,6 +297,30 @@ async function scheduleTick() {
                     });
                 } catch (e) {
                     log.error(`[Polling] ${key}: readHoldingRegisters FAILED — ${e.message}`);
+                }
+            }
+
+            // Enqueue all corrections sequentially AFTER the reads have fully completed
+            for (const c of pendingCorrections) {
+                try {
+                    await modbusManager.enqueueHighPriority(dev.ip, dev.port, async (client) => {
+                        client.setID(unitId);
+                        if (c.type === 'coil') {
+                            await client.writeCoil(c.address, c.value);
+                        } else {
+                            await client.writeRegister(c.address, c.value);
+                        }
+                    });
+                } catch (e) {
+                    log.error(`[Polling] Mismatch correction failed for ${c.guiId}:`, e);
+                    const state = outputStateCache[c.guiId];
+                    if (state) {
+                        state.consecutiveFails = (state.consecutiveFails || 0) + 1;
+                        if (state.consecutiveFails >= MAX_CONSECUTIVE_FAILS) {
+                            state.confirmationState = 'FAULT';
+                            log.error(`[Polling] FAULT on ${c.guiId}: write failed ${state.consecutiveFails} times. Disabling further writes.`);
+                        }
+                    }
                 }
             }
 
@@ -350,6 +372,12 @@ function createWindow() {
             nodeIntegration: false,
             contextIsolation: true
         }
+    });
+
+    mainWindow.webContents.on('render-process-gone', async (event, details) => {
+        log.error(`[Main] Render process gone! Reason: ${details.reason}. Performing safety shutdown of sockets.`);
+        await performGracefulShutdown(`render-gone-${details.reason}`);
+        // Optionally relaunch or leave dead depending on factory vs dev needs.
     });
 
     mainWindow.loadFile(path.join(__dirname, 'renderer', 'index.html'));
@@ -412,10 +440,55 @@ app.whenReady().then(async () => {
     });
 });
 
-app.on('window-all-closed', function () {
-    stopPollingLoop();
+app.on('before-quit', async (event) => {
+    if (!isShuttingDown) {
+        event.preventDefault();
+        log.info('[Main] before-quit event caught, beginning shutdown sequence...');
+        await performGracefulShutdown('before-quit');
+        db.closeDatabase();
+        app.quit();
+    }
+});
+
+app.on('window-all-closed', async function () {
+    log.info('[Main] window-all-closed event caught.');
+    if (!isShuttingDown) {
+        await performGracefulShutdown('window-all-closed');
+        db.closeDatabase();
+        if (process.platform !== 'darwin') app.quit();
+    }
+});
+
+process.on('SIGINT', async () => {
+    log.info('[Main] SIGINT received.');
+    await performGracefulShutdown('SIGINT');
     db.closeDatabase();
-    if (process.platform !== 'darwin') app.quit();
+    process.exit(0);
+});
+
+process.on('SIGTERM', async () => {
+    log.info('[Main] SIGTERM received.');
+    await performGracefulShutdown('SIGTERM');
+    db.closeDatabase();
+    process.exit(0);
+});
+
+powerMonitor.on('suspend', async () => {
+    log.info('[Main] System suspending. Closing all Modbus connections.');
+    await performGracefulShutdown('suspend');
+});
+
+powerMonitor.on('resume', async () => {
+    log.info('[Main] System resumed. Re-initializing Modbus connections.');
+    isShuttingDown = false; // Reset the flag so we can connect again
+    if (isNetworkEnabled) {
+        // Wait 2s for NICs to settle before trying to connect
+        setTimeout(async () => {
+            const devices = await db.getDevices();
+            modbusManager.initDevices(devices).catch(e => log.error('[Main] Resume initDevices failed:', e));
+            startPollingLoop();
+        }, 2000);
+    }
 });
 
 // --- High Level IPC Handlers ---

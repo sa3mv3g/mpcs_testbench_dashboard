@@ -15,13 +15,34 @@ state.inputRegisters[0] = 55;
 state.holdingRegisters[100] = 1234;
 
 // 2. Network Resilience Simulation Settings
-const FAULT_INJECTION = true; // Toggle for random drops/delays
+const FAULT_INJECTION = process.env.FAULT_INJECTION === 'true'; // Toggle for random drops/delays
 const DELAY_PROBABILITY = 0.1; // 10% chance to delay response
 const DROP_PROBABILITY = 0.05; // 5% chance to drop connection entirely
 const MAX_DELAY_MS = 2000;
 
+const HOSTAGE_MODE = process.env.HOSTAGE_MODE === 'true';
+const DROP_MID_POLL = process.env.DROP_MID_POLL === 'true';
+const WRONG_TID = process.env.WRONG_TID === 'true';
+
+let pollCounter = 0;
+
 // Helper to simulate network instability
 const simulateNetworkFaults = async () => {
+    if (HOSTAGE_MODE) {
+        console.warn("🧟 [Hostage Mode] ACKing data but never responding...");
+        // Wait forever (or well past client timeout)
+        await new Promise((resolve) => setTimeout(resolve, 60000));
+    }
+
+    if (DROP_MID_POLL) {
+        pollCounter++;
+        if (pollCounter > 10) { // Drop after 10 requests
+            pollCounter = 0;
+            console.warn("⚠️ [Drop Mid-Poll] Dropping connection intentionally.");
+            throw new Error("Simulated Connection Drop");
+        }
+    }
+
 	if (!FAULT_INJECTION) return;
 
 	if (Math.random() < DROP_PROBABILITY) {
@@ -96,6 +117,26 @@ try {
 			console.error("[Simulator Network Error]", err.message);
 		}
 	});
+
+    if (WRONG_TID) {
+        console.warn("😈 [Wrong TID Mode] Monkey-patching Modbus server to inject bad TIDs");
+        // We have to reach deep into the ModbusRTU.ServerTCP internals to mess with the response framing.
+        const netServer = serverTCP._server; // net.Server instance
+        if (netServer) {
+            netServer.on('connection', (socket) => {
+                const originalWrite = socket.write;
+                socket.write = function(data, ...args) {
+                    if (data && data.length >= 2 && Math.random() < 0.2) { // 20% chance to corrupt
+                        console.warn("😈 [Wrong TID Mode] Injecting mismatched TID into response");
+                        // Corrupt the TID (bytes 0 and 1 of MBAP)
+                        data[0] = 0xDE;
+                        data[1] = 0xAD;
+                    }
+                    return originalWrite.apply(socket, [data, ...args]);
+                };
+            });
+        }
+    }
 
 	console.log(`Simulator running. Retaining state across all 4 memory areas.`);
 } catch (err) {

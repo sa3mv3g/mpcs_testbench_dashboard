@@ -158,16 +158,21 @@ document.addEventListener("DOMContentLoaded", async () => {
 				return;
 			}
 			statuses.forEach(s => {
-				const color = s.isConnected ? "#28a745" : "#dc3545";
+				const color = s.state === 'LIVE' ? "#28a745" : (s.state === 'PROBATION' ? "#ffc107" : "#dc3545");
+				const age = s.lastResponseAt ? ((Date.now() - s.lastResponseAt)/1000).toFixed(1) + 's ago' : 'never';
+				const details = `[${s.state}] Age: ${age} | TOs: ${s.consecutiveTimeouts} | TIDs: ${s.tidMismatches} | BO: ${s.backoffIndex}`;
+				
 				const label = s.error ? `Unit ${s.unitId} (${s.ip}:${s.port}) <span style="color:#dc3545;font-weight:bold;">[${s.error}]</span>` : `Unit ${s.unitId} (${s.ip}:${s.port})`;
 				const div = document.createElement("div");
 				div.style.display = "flex";
 				div.style.alignItems = "center";
 				div.style.fontSize = "12px";
 				div.style.marginRight = "10px";
+	               // Show details on hover instead of alert popup
+				div.title = `${details} | Queue: ${s.queueDepth}`;
 				div.innerHTML = `
 					<div style="width:10px; height:10px; border-radius:50%; background-color:${color}; margin-right:5px;"></div>
-					${label}
+					<span style="cursor: help; text-decoration: underline dotted;">${label}</span>
 				`;
 				liveDeviceStatusContainer.appendChild(div);
 			});

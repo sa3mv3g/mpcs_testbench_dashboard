@@ -13,10 +13,21 @@ class JerryDevice extends ModbusManager {
         // Perform standard connection
         const connectionObj = await super.connect(ip, port, unitId);
         
-        if (!connectionObj.isConnected) {
-            return connectionObj;
+        if (connectionObj.state === 'PROBATION') {
+            await this._probe(ip, port, connectionObj);
         }
+        
+        return connectionObj;
+    }
 
+    // Override the base class hook to run the probe on auto-reconnects too
+    async onReconnected(ip, port, connectionObj) {
+        if (connectionObj.state === 'PROBATION') {
+            await this._probe(ip, port, connectionObj);
+        }
+    }
+
+    async _probe(ip, port, connectionObj) {
         const key = this._getKey(ip, port);
         try {
             let actualMajor = 0;
@@ -24,7 +35,7 @@ class JerryDevice extends ModbusManager {
             let actualPatch = 0;
 
             await this.enqueueHighPriority(ip, port, async (client) => {
-                client.setID(unitId);
+                client.setID(connectionObj.unitId);
                 // Read input registers 100, 101, 102 (major, minor, patch)
                 const res = await client.readInputRegisters(100, 3);
                 actualMajor = res.data[0];
@@ -50,13 +61,12 @@ class JerryDevice extends ModbusManager {
                 const errMsg = `Version Mismatch (Expected >= ${expectedMajor}.${expectedMinor}.x, got ${actualVersion})`;
                 log.error(`[JerryDevice] ${key}: ${errMsg}`);
                 
-                // Immediately reject all pending queues, abort reconnects, and close socket
+                // Disconnect handles DYING/BACKOFF state machine stuff cleanly now
                 await this.disconnect(ip, port);
                 
-                // Re-add object to connections map with error so UI sees it
-                // disconnect() deletes it, so we put it back in an offline, aborted state
-                connectionObj.isConnected = false;
-                connectionObj.aborted = true; // prevent auto-reconnect
+                // Re-add to map strictly to display the UI error (since disconnect removes it)
+                connectionObj.state = 'DISCONNECTED';
+                connectionObj.aborted = true;
                 connectionObj.error = errMsg;
                 this.connections.set(key, connectionObj);
                 
@@ -66,18 +76,18 @@ class JerryDevice extends ModbusManager {
             }
         } catch (err) {
             log.error(`[JerryDevice] ${key}: Failed to read version - ${err.message}`);
+            // Note: The base class _drain liveness checker might have already transitioned this to DYING,
+            // but we call disconnect here to ensure it's fully torn down and UI error is set if it timed out.
             await this.disconnect(ip, port);
             
             // Show error in UI
-            connectionObj.isConnected = false;
+            connectionObj.state = 'DISCONNECTED';
             connectionObj.aborted = true;
             connectionObj.error = "Failed to query version";
             this.connections.set(key, connectionObj);
             
             this.emit('statusChanged', this.getConnectionStatuses());
         }
-        
-        return connectionObj;
     }
 }
 
