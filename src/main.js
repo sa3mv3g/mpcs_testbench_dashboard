@@ -34,7 +34,8 @@ if (isFactory) {
   });
 
   // Hook electron-log into syslog
-  log.hooks.push((message) => {
+  log.hooks.push((message, transport) => {
+    if (transport && transport.name !== 'file') return message; // prevent double logging
     const text = message.data.join(' ');
     switch (message.level) {
       case 'error': syslogger.error(text); break;

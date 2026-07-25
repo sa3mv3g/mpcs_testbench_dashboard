@@ -78,7 +78,7 @@ class ModbusManager extends EventEmitter {
 
         log.info(`[ModbusManager] connect(${key}): creating new connection object`);
         const client = new ModbusRTU();
-        client.setTimeout(5000); // 5s timeout to ensure slow devices have time to connect
+        client.setTimeout(500); // 500ms timeout to prevent head-of-line blocking
 
         const connectionObj = {
             client,
@@ -254,7 +254,7 @@ class ModbusManager extends EventEmitter {
 
         try {
             const newClient = new ModbusRTU();
-            newClient.setTimeout(5000);
+            newClient.setTimeout(500);
 
             newClient.on('error', (err) => {
                 log.error(`[ModbusManager] SOCKET ERROR on ${key} (new client): ${err.message || err}`);
@@ -376,7 +376,7 @@ class ModbusManager extends EventEmitter {
         }
 
         try {
-            connectionObj.client.close();
+            await new Promise(resolve => connectionObj.client.close(resolve));
             log.info(`[ModbusManager] disconnect(${key}): socket closed cleanly`);
         } catch (e) {
             log.error(`[ModbusManager] disconnect(${key}): error closing socket — ${e.message}`);

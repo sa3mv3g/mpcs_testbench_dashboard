@@ -39,7 +39,7 @@ function attachTidGuard(client, ip, port, modbusManager) {
             // for the response currently arriving is the *previous* write TID.
             // MAX_TRANSACTIONS is 256 in modbus-serial.
             let expectedTid = portObj._transactionIdWrite - 1;
-            if (expectedTid <= 0) expectedTid = 255;
+            if (expectedTid < 0) expectedTid = 255;
 
             if (readTid !== expectedTid) {
                 tidMismatches++;
