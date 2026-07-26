@@ -331,10 +331,10 @@ async function scheduleTick() {
                     await modbusManager.enqueue(dev.ip, dev.port, async (client) => {
                         client.setID(unitId);
                         const t0 = Date.now();
-                        const res = await client.readInputRegisters(4, 4);
+                        const res = await client.readInputRegisters(4, 8);
                         log.info(`[Polling] ${key}: readInputRegisters(4,4) OK in ${Date.now() - t0} ms`);
-                        updates.push({ guiId: `ai-${dev.id}-4`,  processValue: registersToFloat([res.data[0], res.data[1]], 'CDAB') });
-                        updates.push({ guiId: `ai-${dev.id}-6`,  processValue: registersToFloat([res.data[2], res.data[3]], 'CDAB') });
+                        updates.push({ guiId: `ai-${dev.id}-4`,  processValue: registersToFloat([res.data[2], res.data[3]], 'CDAB') });
+                        updates.push({ guiId: `ai-${dev.id}-6`,  processValue: registersToFloat([res.data[6], res.data[7]], 'CDAB') });
                     });
                 } catch (e) {
                     log.error(`[Polling] ${key}: readInputRegisters FAILED — ${e.message}`);

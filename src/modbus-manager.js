@@ -376,7 +376,13 @@ class ModbusManager extends EventEmitter {
         }
 
         try {
-            await new Promise(resolve => connectionObj.client.close(resolve));
+            await Promise.race([
+                new Promise(resolve => connectionObj.client.close(resolve)),
+                new Promise(resolve => setTimeout(resolve, 500))
+            ]);
+            if (connectionObj.client && connectionObj.client._port && connectionObj.client._port._client) {
+                connectionObj.client._port._client.destroy();
+            }
             log.info(`[ModbusManager] disconnect(${key}): socket closed cleanly`);
         } catch (e) {
             log.error(`[ModbusManager] disconnect(${key}): error closing socket — ${e.message}`);
@@ -536,7 +542,8 @@ class ModbusManager extends EventEmitter {
                 log.error(`[ModbusManager] _drain(${key}): operation FAILED after ${Date.now() - t0} ms — ${err.message}`);
                 
                 // Liveness: track consecutive timeouts
-                if (err.message && (err.message.includes('Timed Out') || err.message.includes('Port Not Open') || err.message.includes('ECONN'))) {
+                const msg = err.message ? err.message.toLowerCase() : '';
+                if (msg.includes('timed out') || msg.includes('port not open') || msg.includes('econn')) {
                     connectionObj.consecutiveTimeouts = (connectionObj.consecutiveTimeouts || 0) + 1;
                     log.warn(`[ModbusManager] ${key}: timeout ${connectionObj.consecutiveTimeouts}/3`);
                     
