@@ -6,20 +6,6 @@ const { attachTidGuard } = require('./tid-guard');
 class ModbusManager extends EventEmitter {
     constructor() {
         super();
-        /*
-         * Map of connection keys (e.g., '192.168.1.100:502') to connectionObj.
-         * connectionObj shape:
-         *   client          — ModbusRTU instance
-         *   readQueue       — Array<{op, resolve, reject}> — polling reads (lower priority)
-         *   writeQueue      — Array<{op, resolve, reject}> — user writes (higher priority)
-         *   isRunning       — boolean — true while _drain() is executing
-         *   isConnected     — boolean (legacy, mapped from state === 'LIVE'/'PROBATION')
-         *   state           — string ('DISCONNECTED'|'CONNECTING'|'PROBATION'|'LIVE'|'DYING'|'BACKOFF'|'DRAINING')
-         *   reconnectTimer  — setTimeout handle | null
-         *   backoffIndex    — number (index into backoff ladder, replaces retryCount)
-         *   generation      — number (increments on reconnect to drop stale timer callbacks)
-         *   aborted         — boolean — set by disconnect()/shutdownAll() to abort pending reconnects
-         */
         this.connections = new Map();
     }
 
@@ -29,22 +15,15 @@ class ModbusManager extends EventEmitter {
 
     /**
      * Initializes connections for a list of devices in parallel.
-     * Connect attempts are staggered with per-device jitter to avoid thundering-herd.
-     * retryCount is reset when explicitly re-initialising a device.
      */
     async initDevices(devices) {
         const valid = devices.filter(d => d.ip && d.port);
         log.info(`[ModbusManager] initDevices: initialising ${valid.length} device(s): ${valid.map(d => `${d.ip}:${d.port}`).join(', ')}`);
 
-        /*
-         * If a device is already tracked (e.g. reconnect after failure), reset its
-         * retryCount so the fast 1 s retry path is available again.
-         */
         for (const device of valid) {
             const key = this._getKey(device.ip, device.port);
             const existing = this.connections.get(key);
             if (existing && existing.reconnectTimer) {
-                // Short-circuit backoff to connect immediately
                 log.info(`[ModbusManager] initDevices: fast-forwarding backoff for ${key}`);
                 clearTimeout(existing.reconnectTimer);
                 existing.reconnectTimer = null;
@@ -52,10 +31,6 @@ class ModbusManager extends EventEmitter {
             }
         }
 
-        /*
-         * Stagger parallel connect attempts by 50–200 ms jitter per device
-         * to avoid all TCP SYNs hitting the network simultaneously.
-         */
         await Promise.allSettled(valid.map((device, idx) => {
             const jitter = idx * 50 + Math.floor(Math.random() * 50);
             return new Promise(resolve => setTimeout(resolve, jitter))
@@ -67,31 +42,33 @@ class ModbusManager extends EventEmitter {
 
     /**
      * Connects to a device and stores it in the manager.
-     * Emits 'statusChanged' on successful connection.
+     * Before creating a new socket, it ensures any existing socket for the same IP/port is fully closed.
      */
     async connect(ip, port, unitId = 1) {
         const key = this._getKey(ip, port);
+
+        // Clean up any old/stale connection for this endpoint before opening a new one
         if (this.connections.has(key)) {
-            log.info(`[ModbusManager] connect(${key}): already tracked, skipping duplicate connect`);
-            return this.connections.get(key);
+            log.warn(`[ModbusManager] connect(${key}): existing socket found — closing old connection first.`);
+            await this.closeConnection(ip, port, 'Replacing existing socket');
         }
 
         log.info(`[ModbusManager] connect(${key}): creating new connection object`);
         const client = new ModbusRTU();
-        client.setTimeout(500); // 500ms timeout to prevent head-of-line blocking
+        client.setTimeout(500);
 
         const connectionObj = {
             client,
             unitId,
-            readQueue:  [],    // polling reads — lower priority
-            writeQueue: [],    // user writes  — higher priority
-            isRunning:  false, // true while _drain() is executing
+            readQueue:  [],
+            writeQueue: [],
+            isRunning:  false,
             isConnected: false,
             state: 'DISCONNECTED',
             reconnectTimer: null,
             backoffIndex: 0,
             generation: 0,
-            aborted: false,    // set by disconnect() to abort pending reconnects
+            aborted: false,
         };
 
         this.connections.set(key, connectionObj);
@@ -103,7 +80,6 @@ class ModbusManager extends EventEmitter {
             c.on('error', (err) => {
                 log.error(`[ModbusManager] SOCKET ERROR on ${key}: ${err.message || err}`);
                 if (connectionObj.isConnected) {
-                    log.warn(`[ModbusManager] ${key}: was connected — triggering disconnect handler`);
                     this._handleDisconnect(ip, port);
                 }
             });
@@ -130,18 +106,17 @@ class ModbusManager extends EventEmitter {
                 return connectionObj;
             }
 
-            // TCP Keepalive backstop
             try {
                 if (client._port && client._port._client && typeof client._port._client.setKeepAlive === 'function') {
                     client._port._client.setKeepAlive(true, 15000);
                 } else {
-                    log.warn(`[ModbusManager] connect(${key}): Could not set TCP KeepAlive - internal modbus-serial structure changed?`);
+                    log.warn(`[ModbusManager] connect(${key}): Could not set TCP KeepAlive`);
                 }
             } catch (e) {
                 log.warn(`[ModbusManager] connect(${key}): Error setting TCP KeepAlive - ${e.message}`);
             }
 
-            connectionObj.isConnected = true; // Legacy flag, mostly means 'TCP is up'
+            connectionObj.isConnected = true;
             this._logTransition(key, 'CONNECTING', 'PROBATION', `TCP connected in ${Date.now() - t0} ms`);
             connectionObj.state = 'PROBATION';
 
@@ -158,28 +133,91 @@ class ModbusManager extends EventEmitter {
     }
 
     /**
-     * Handles disconnection and schedules a reconnect attempt.
-     * Per-device jitter is added to the reconnect delay to avoid thundering herd.
-     * Emits 'statusChanged' when the device is marked disconnected.
+     * API METHOD: Forcefully closes the socket for a given IP & Port.
+     * Prevents auto-reconnection, flushes queues, and destroys the raw socket.
+     *
+     * @param {string} ip - IP address of the target device
+     * @param {number} port - Port of the target device
+     * @param {string} reason - Optional context message for logs
      */
-    _handleDisconnect(ip, port) {
+    async closeConnection(ip, port, reason = 'Manual socket close requested') {
         const key = this._getKey(ip, port);
         const connectionObj = this.connections.get(key);
 
         if (!connectionObj) {
-            log.warn(`[ModbusManager] _handleDisconnect(${key}): no connection object found — nothing to do`);
+            log.warn(`[ModbusManager] closeConnection(${key}): connection object not found`);
             return;
         }
 
+        log.info(`[ModbusManager] closeConnection(${key}): closing socket without retry (${reason})`);
+
+        // 1. Mark aborted and offline to disable reconnect loops
+        connectionObj.aborted = true;
+        connectionObj.isConnected = false;
+        connectionObj.state = 'DISCONNECTED';
+
+        // 2. Remove from active map immediately
+        this.connections.delete(key);
+
+        // 3. Clear any pending reconnect timer
         if (connectionObj.reconnectTimer) {
-            log.warn(`[ModbusManager] _handleDisconnect(${key}): reconnect timer already pending — skipping duplicate`);
+            clearTimeout(connectionObj.reconnectTimer);
+            connectionObj.reconnectTimer = null;
+        }
+
+        // 4. Reject queued operations
+        const pendingOps = [...connectionObj.writeQueue, ...connectionObj.readQueue];
+        connectionObj.writeQueue = [];
+        connectionObj.readQueue = [];
+        for (const item of pendingOps) {
+            item.reject(new Error(`Socket closed for ${ip}:${port} (${reason})`));
+        }
+
+        // 5. Wait briefly for running in-flight operation to yield
+        if (connectionObj.isRunning) {
+            await Promise.race([
+                new Promise(resolve => {
+                    const poll = setInterval(() => {
+                        if (!connectionObj.isRunning) { clearInterval(poll); resolve(); }
+                    }, 10);
+                }),
+                new Promise(resolve => setTimeout(resolve, 200)),
+            ]);
+        }
+
+        // 6. Force-destroy the raw TCP socket
+        try {
+            if (connectionObj.client) {
+                if (connectionObj.client._port && connectionObj.client._port._client) {
+                    connectionObj.client._port._client.destroy();
+                } else if (typeof connectionObj.client.close === 'function') {
+                    connectionObj.client.close();
+                }
+            }
+            log.info(`[ModbusManager] closeConnection(${key}): socket force-destroyed successfully`);
+        } catch (e) {
+            log.error(`[ModbusManager] closeConnection(${key}): error closing socket — ${e.message}`);
+        }
+
+        this.emit('statusChanged', this.getConnectionStatuses());
+    }
+
+    /**
+     * Alias for disconnect() pointing directly to closeConnection().
+     */
+    async disconnect(ip, port) {
+        return await this.closeConnection(ip, port, 'disconnect called');
+    }
+
+    _handleDisconnect(ip, port) {
+        const key = this._getKey(ip, port);
+        const connectionObj = this.connections.get(key);
+
+        if (!connectionObj || connectionObj.reconnectTimer) {
             return;
         }
 
         connectionObj.isConnected = false;
-        
-        // Strict single socket: Must fully destroy old socket before connecting a new one.
-        // The actual reconnect logic is separated into an async flow below.
         this._executeDisconnectAndReconnect(key, ip, port, connectionObj);
     }
 
@@ -189,53 +227,41 @@ class ModbusManager extends EventEmitter {
             connectionObj.state = 'DYING';
         }
 
-        log.warn(`[ModbusManager] _executeDisconnectAndReconnect(${key}): closing old socket`);
-        if (connectionObj.client && (connectionObj.client.isOpen || connectionObj.client.isOpen === undefined)) {
-            const closePromise = new Promise(resolve => {
-                const handler = () => { connectionObj.client.removeListener('close', handler); resolve(); };
-                connectionObj.client.once('close', handler);
-            });
-            try { connectionObj.client.close(); } catch (e) { log.warn(`[ModbusManager] error closing old socket — ${e.message}`); }
-
-            // Bounded wait for full close
-            await Promise.race([
-                closePromise,
-                new Promise(r => setTimeout(() => {
-                    log.warn(`[ModbusManager] _executeDisconnectAndReconnect ${key}: force-destroying hanging socket`);
-                    try { connectionObj.client._port._client.destroy(); } catch (_) {}
-                    r();
-                }, 1000))
-            ]);
+        // Force destroy socket on unexpected drop
+        if (connectionObj.client) {
+            try {
+                if (connectionObj.client._port && connectionObj.client._port._client) {
+                    connectionObj.client._port._client.destroy();
+                } else {
+                    connectionObj.client.close();
+                }
+            } catch (e) {
+                log.warn(`[ModbusManager] Error destroying socket during handleDisconnect — ${e.message}`);
+            }
         }
         
         if (connectionObj.aborted) {
-            log.info(`[ModbusManager] _executeDisconnectAndReconnect(${key}): aborted — stopping here`);
             return;
         }
 
         this._logTransition(key, 'DYING', 'BACKOFF', 'socket destroyed');
         connectionObj.state = 'BACKOFF';
         
-        // Notify UI immediately that this device is offline
         this.emit('statusChanged', this.getConnectionStatuses());
 
         const backoffLadder = [1000, 2000, 5000, 10000];
         const baseDelay = backoffLadder[Math.min(connectionObj.backoffIndex, backoffLadder.length - 1)];
-        const jitter = Math.floor(Math.random() * (baseDelay * 0.2)); // 20% jitter
-        const retryDelay = baseDelay + jitter;
+        const retryDelay = baseDelay + Math.floor(Math.random() * (baseDelay * 0.2));
         
-        // Only advance backoff AFTER using the current slot
         if (connectionObj.backoffIndex < backoffLadder.length - 1) {
             connectionObj.backoffIndex++;
         }
-
-        log.info(`[ModbusManager] _executeDisconnectAndReconnect(${key}): scheduling reconnect attempt in ${retryDelay} ms (base=${baseDelay})`);
 
         connectionObj.generation++;
         const currentGen = connectionObj.generation;
 
         connectionObj.reconnectTimer = setTimeout(() => {
-            if (connectionObj.generation !== currentGen) return; // Stale timer
+            if (connectionObj.generation !== currentGen) return;
             connectionObj.reconnectTimer = null;
             this._doReconnect(ip, port, connectionObj);
         }, retryDelay);
@@ -245,7 +271,6 @@ class ModbusManager extends EventEmitter {
         const key = this._getKey(ip, port);
         
         if (connectionObj.aborted || !this.connections.has(key)) {
-            log.info(`[ModbusManager] reconnect(${key}): aborted — skipping`);
             return;
         }
 
@@ -257,49 +282,40 @@ class ModbusManager extends EventEmitter {
             newClient.setTimeout(500);
 
             newClient.on('error', (err) => {
-                log.error(`[ModbusManager] SOCKET ERROR on ${key} (new client): ${err.message || err}`);
+                log.error(`[ModbusManager] SOCKET ERROR on ${key}: ${err.message || err}`);
                 if (connectionObj.isConnected) this._handleDisconnect(ip, port);
             });
             newClient.on('close', () => {
-                log.warn(`[ModbusManager] SOCKET CLOSED on ${key} (new client)`);
+                log.warn(`[ModbusManager] SOCKET CLOSED on ${key}`);
                 if (connectionObj.isConnected) this._handleDisconnect(ip, port);
             });
 
-            const t0 = Date.now();
             await newClient.connectTCP(ip, { port: parseInt(port) });
 
             if (connectionObj.aborted) {
-                log.warn(`[ModbusManager] reconnect(${key}): aborted during connectTCP — closing orphaned socket`);
                 try { newClient.close(); } catch (_) {}
                 return;
             }
 
-            // TCP Keepalive backstop
             try {
                 if (newClient._port && newClient._port._client && typeof newClient._port._client.setKeepAlive === 'function') {
                     newClient._port._client.setKeepAlive(true, 15000);
-                } else {
-                    log.warn(`[ModbusManager] reconnect(${key}): Could not set TCP KeepAlive - internal modbus-serial structure changed?`);
                 }
             } catch (e) {
-                log.warn(`[ModbusManager] reconnect(${key}): Error setting TCP KeepAlive - ${e.message}`);
+                log.warn(`[ModbusManager] Could not set TCP KeepAlive on reconnect for ${key}`);
             }
 
-            // Replace the old client
             connectionObj.client = newClient;
             connectionObj.isConnected = true;
 
-            this._logTransition(key, 'CONNECTING', 'PROBATION', `SUCCESS in ${Date.now() - t0} ms`);
+            this._logTransition(key, 'CONNECTING', 'PROBATION', 'Reconnected successfully');
             connectionObj.state = 'PROBATION';
-            
-            // We DO NOT reset backoffIndex here. Only entering 'LIVE' resets it.
 
             attachTidGuard(newClient, ip, port, this);
 
             this.emit('connected', { ip, port: parseInt(port) });
             this.emit('statusChanged', this.getConnectionStatuses());
             
-            // Trigger subclass hook (JerryDevice._probe)
             if (typeof this.onReconnected === 'function') {
                 this.onReconnected(ip, port, connectionObj).catch(err => {
                     log.error(`[ModbusManager] onReconnected hook failed for ${key}: ${err.message}`);
@@ -313,157 +329,22 @@ class ModbusManager extends EventEmitter {
         }
     }
 
-    /**
-     * Disconnects a specific device cleanly.
-     *
-     * Sets the aborted flag BEFORE removing from the map so any in-flight
-     * connectTCP (in a reconnect timer) will see it and close the new socket
-     * rather than leaving a zombie.
-     *
-     * Rejects all queued operations immediately, then waits up to 200 ms for
-     * any currently-executing operation to finish before force-closing the socket.
-     */
-    async disconnect(ip, port) {
-        const key = this._getKey(ip, port);
-        const connectionObj = this.connections.get(key);
-        if (!connectionObj) {
-            log.warn(`[ModbusManager] disconnect(${key}): no connection object found — already disconnected?`);
-            return;
-        }
-
-        log.info(`[ModbusManager] disconnect(${key}): initiating clean disconnect`);
-
-        // Signal all pending reconnect timers to abort
-        connectionObj.aborted = true;
-        connectionObj.isConnected = false;
-
-        // Remove from map so auto-reconnect stops and new enqueue() calls are rejected
-        this.connections.delete(key);
-
-        // Cancel any pending reconnect timer
-        if (connectionObj.reconnectTimer) {
-            log.info(`[ModbusManager] disconnect(${key}): cancelling pending reconnect timer`);
-            clearTimeout(connectionObj.reconnectTimer);
-            connectionObj.reconnectTimer = null;
-        }
-
-        // Reject all queued (not yet started) operations immediately
-        const pendingOps = [...connectionObj.writeQueue, ...connectionObj.readQueue];
-        connectionObj.writeQueue = [];
-        connectionObj.readQueue = [];
-        for (const item of pendingOps) {
-            item.reject(new Error(`Device at ${ip}:${port} was disconnected`));
-        }
-        if (pendingOps.length > 0) {
-            log.info(`[ModbusManager] disconnect(${key}): rejected ${pendingOps.length} queued operation(s)`);
-        }
-
-        /*
-         * Wait up to 200 ms for any currently-executing operation (_drain isRunning)
-         * to finish before force-closing the socket.  This prevents a closed-port
-         * error on the in-flight frame while still bounding the disconnect time.
-         */
-        if (connectionObj.isRunning) {
-            log.info(`[ModbusManager] disconnect(${key}): waiting up to 200 ms for in-flight operation to finish`);
-            await Promise.race([
-                new Promise(resolve => {
-                    const poll = setInterval(() => {
-                        if (!connectionObj.isRunning) { clearInterval(poll); resolve(); }
-                    }, 10);
-                }),
-                new Promise(resolve => setTimeout(resolve, 200)),
-            ]);
-        }
-
-        try {
-            await Promise.race([
-                new Promise(resolve => connectionObj.client.close(resolve)),
-                new Promise(resolve => setTimeout(resolve, 500))
-            ]);
-            if (connectionObj.client && connectionObj.client._port && connectionObj.client._port._client) {
-                connectionObj.client._port._client.destroy();
-            }
-            log.info(`[ModbusManager] disconnect(${key}): socket closed cleanly`);
-        } catch (e) {
-            log.error(`[ModbusManager] disconnect(${key}): error closing socket — ${e.message}`);
-        }
-
-        this.emit('statusChanged', this.getConnectionStatuses());
-    }
-
-    /**
-     * Helper to log state transitions to both console and file (via electron-log)
-     * and to syslog (if configured in main.js).
-     */
     _logTransition(key, from, to, detail) {
         log.warn(`[ModbusState] ${key} | ${from} -> ${to} | ${detail}`);
     }
 
-    /**
-     * Disconnects all devices completely. Sends graceful FIN, waits for close,
-     * and optionally destroys sockets if they hang.
-     */
     async shutdownAll(reason = 'shutdown') {
         log.info(`[ModbusManager] shutdownAll triggered: ${reason}`);
         const promises = [];
         for (const [key, obj] of this.connections.entries()) {
-            promises.push((async () => {
-                this._logTransition(key, obj.state || (obj.isConnected ? 'LIVE' : 'DISCONNECTED'), 'DRAINING', `shutdownAll: ${reason}`);
-                obj.aborted = true;
-                if (obj.reconnectTimer) {
-                    clearTimeout(obj.reconnectTimer);
-                    obj.reconnectTimer = null;
-                }
-
-                // Reject queues
-                const pendingOps = [...obj.writeQueue, ...obj.readQueue];
-                obj.writeQueue = [];
-                obj.readQueue = [];
-                for (const item of pendingOps) {
-                    item.reject(new Error(`Shutdown: ${reason}`));
-                }
-
-                // Wait for any running drain
-                if (obj.isRunning) {
-                    await Promise.race([
-                        new Promise(r => {
-                            const p = setInterval(() => { if (!obj.isRunning) { clearInterval(p); r(); } }, 10);
-                        }),
-                        new Promise(r => setTimeout(r, 200))
-                    ]);
-                }
-
-                // Close socket
-                if (obj.client && obj.client.isOpen) {
-                    const closePromise = new Promise(resolve => {
-                        const handler = () => { obj.client.removeListener('close', handler); resolve(); };
-                        obj.client.once('close', handler);
-                    });
-                    try { obj.client.close(); } catch (e) { log.warn(`[ModbusManager] shutdownAll ${key} close error: ${e.message}`); }
-                    
-                    // Race graceful close vs 1.5s timeout
-                    await Promise.race([
-                        closePromise,
-                        new Promise(r => setTimeout(() => {
-                            log.warn(`[ModbusManager] shutdownAll ${key}: force-destroying hanging socket`);
-                            try { obj.client._port._client.destroy(); } catch (_) {}
-                            r();
-                        }, 1500))
-                    ]);
-                }
-                
-                obj.state = 'DISCONNECTED';
-                this._logTransition(key, 'DRAINING', 'DISCONNECTED', 'socket closed/destroyed');
-            })());
+            const [ip, port] = key.split(':');
+            promises.push(this.closeConnection(ip, parseInt(port), `shutdownAll: ${reason}`));
         }
         await Promise.all(promises);
         this.connections.clear();
         log.info(`[ModbusManager] shutdownAll complete.`);
     }
 
-    /**
-     * Returns an array of current connection statuses.
-     */
     getConnectionStatuses() {
         const statuses = [];
         for (const [key, obj] of this.connections.entries()) {
@@ -486,15 +367,6 @@ class ModbusManager extends EventEmitter {
         return statuses;
     }
 
-    /**
-     * Internal queue runner.
-     *
-     * Drains writeQueue (user writes) before readQueue (polling reads) so that
-     * user-initiated writes always execute as soon as the current Modbus frame
-     * completes — they never wait behind a full poll block.
-     *
-     * Only one _drain() runs per device at a time (isRunning guard).
-     */
     async _drain(connectionObj, ip, port) {
         if (connectionObj.isRunning) return;
         connectionObj.isRunning = true;
@@ -502,57 +374,42 @@ class ModbusManager extends EventEmitter {
         const key = this._getKey(ip, port);
 
         while (connectionObj.writeQueue.length > 0 || connectionObj.readQueue.length > 0) {
-            // Always service writes before reads
             const item = connectionObj.writeQueue.shift() || connectionObj.readQueue.shift();
 
-            // Abort if the device was disconnected while we were waiting
             if (!connectionObj.isConnected) {
-                log.warn(`[ModbusManager] _drain(${key}): device disconnected — aborting queued operation`);
                 item.reject(new Error(`Device at ${ip}:${port} was disconnected`));
                 continue;
             }
 
-            // Double-check socket openness right before executing
             if (!connectionObj.client || !connectionObj.client.isOpen) {
-                log.error(`[ModbusManager] _drain(${key}): socket closed just before execution — triggering reconnect`);
                 this._handleDisconnect(ip, port);
                 item.reject(new Error('Port Not Open'));
                 continue;
             }
 
-            const t0 = Date.now();
             try {
                 const result = await item.op(connectionObj.client);
-                log.info(`[ModbusManager] _drain(${key}): operation completed in ${Date.now() - t0} ms`);
-                
-                // Liveness: success means we are alive
                 connectionObj.consecutiveTimeouts = 0;
                 connectionObj.lastResponseAt = Date.now();
                 
                 if (connectionObj.state === 'PROBATION') {
                     this._logTransition(key, 'PROBATION', 'LIVE', 'first successful round-trip');
                     connectionObj.state = 'LIVE';
-                    connectionObj.backoffIndex = 0; // Reset backoff only here
+                    connectionObj.backoffIndex = 0;
                     this.emit('live', { ip, port: parseInt(port) });
                     this.emit('statusChanged', this.getConnectionStatuses());
                 }
 
                 item.resolve(result);
             } catch (err) {
-                log.error(`[ModbusManager] _drain(${key}): operation FAILED after ${Date.now() - t0} ms — ${err.message}`);
-                
-                // Liveness: track consecutive timeouts
                 const msg = err.message ? err.message.toLowerCase() : '';
                 if (msg.includes('timed out') || msg.includes('port not open') || msg.includes('econn')) {
                     connectionObj.consecutiveTimeouts = (connectionObj.consecutiveTimeouts || 0) + 1;
-                    log.warn(`[ModbusManager] ${key}: timeout ${connectionObj.consecutiveTimeouts}/3`);
                     
                     if (connectionObj.consecutiveTimeouts >= 3 && connectionObj.state !== 'DYING') {
-                        log.error(`[ModbusManager] ${key}: DECLARED-DEAD after 3 consecutive timeouts. Force closing socket.`);
                         this._logTransition(key, connectionObj.state, 'DYING', 'declared dead via timeouts');
                         connectionObj.state = 'DYING';
                         
-                        // Reject all remaining in queue
                         const pendingOps = [...connectionObj.writeQueue, ...connectionObj.readQueue];
                         connectionObj.writeQueue = [];
                         connectionObj.readQueue = [];
@@ -560,12 +417,10 @@ class ModbusManager extends EventEmitter {
                             pItem.reject(new Error(`ConnectionDeclaredDead: 3 consecutive timeouts`));
                         }
 
-                        // Force destroy the socket since it won't respond to FIN cleanly
                         if (connectionObj.client && connectionObj.client._port && connectionObj.client._port._client) {
                             try { connectionObj.client._port._client.destroy(); } catch (_) {}
                         }
                         
-                        // Let the error or close handler pick it up, or trigger explicitly
                         this._handleDisconnect(ip, port);
                     }
                 }
@@ -577,38 +432,12 @@ class ModbusManager extends EventEmitter {
         connectionObj.isRunning = false;
     }
 
-    /**
-     * Enqueues a Modbus operation in the read queue (lower priority).
-     * Used by the polling loop.
-     *
-     * @param {string} ip
-     * @param {number} port
-     * @param {function} operation - Async function taking the ModbusRTU client.
-     */
     enqueue(ip, port, operation) {
         const key = this._getKey(ip, port);
         let connectionObj = this.connections.get(key);
 
-        if (!connectionObj) {
-            log.warn(`[ModbusManager] enqueue(${key}): no connection object — device not initialised`);
+        if (!connectionObj || !connectionObj.isConnected || (connectionObj.client && !connectionObj.client.isOpen)) {
             return Promise.reject(new Error(`Device at ${ip}:${port} is not connected`));
-        }
-
-        if (!connectionObj.isConnected || (connectionObj.client && !connectionObj.client.isOpen)) {
-            if (connectionObj.isConnected) {
-                log.warn(`[ModbusManager] enqueue(${key}): isConnected=true but socket is closed — triggering reconnect`);
-                this._handleDisconnect(ip, port);
-            } else {
-                log.warn(`[ModbusManager] enqueue(${key}): device not connected — rejecting operation`);
-            }
-            return Promise.reject(new Error(`Device at ${ip}:${port} is not connected or port is closed`));
-        }
-
-        const depth = connectionObj.readQueue.length + connectionObj.writeQueue.length + (connectionObj.isRunning ? 1 : 0);
-        if (depth > 0) {
-            log.warn(`[ModbusManager] enqueue(${key}): read queue depth=${connectionObj.readQueue.length} — operations backing up`);
-        } else {
-            log.info(`[ModbusManager] enqueue(${key}): queuing read operation`);
         }
 
         return new Promise((resolve, reject) => {
@@ -617,35 +446,13 @@ class ModbusManager extends EventEmitter {
         });
     }
 
-    /**
-     * Enqueues a Modbus operation in the write queue (higher priority).
-     * Used for user-initiated writes and calibration.
-     * The write will execute before any pending read operations.
-     *
-     * @param {string} ip
-     * @param {number} port
-     * @param {function} operation - Async function taking the ModbusRTU client.
-     */
     enqueueHighPriority(ip, port, operation) {
         const key = this._getKey(ip, port);
         let connectionObj = this.connections.get(key);
 
-        if (!connectionObj) {
-            log.warn(`[ModbusManager] enqueueHighPriority(${key}): no connection object — device not initialised`);
+        if (!connectionObj || !connectionObj.isConnected || (connectionObj.client && !connectionObj.client.isOpen)) {
             return Promise.reject(new Error(`Device at ${ip}:${port} is not connected`));
         }
-
-        if (!connectionObj.isConnected || (connectionObj.client && !connectionObj.client.isOpen)) {
-            if (connectionObj.isConnected) {
-                log.warn(`[ModbusManager] enqueueHighPriority(${key}): isConnected=true but socket is closed — triggering reconnect`);
-                this._handleDisconnect(ip, port);
-            } else {
-                log.warn(`[ModbusManager] enqueueHighPriority(${key}): device not connected — rejecting operation`);
-            }
-            return Promise.reject(new Error(`Device at ${ip}:${port} is not connected or port is closed`));
-        }
-
-        log.info(`[ModbusManager] enqueueHighPriority(${key}): queuing high-priority write operation`);
 
         return new Promise((resolve, reject) => {
             connectionObj.writeQueue.push({ op: operation, resolve, reject });
