@@ -6,7 +6,7 @@ const fs = require('fs');
 class JerryDevice extends ModbusManager {
     constructor() {
         super();
-        this.expectedVersion = "0.7.0";
+        this.expectedVersion = "0.8.0";
     }
 
     async connect(ip, port, unitId = 1) {
