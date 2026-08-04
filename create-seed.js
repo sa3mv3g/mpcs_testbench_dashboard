@@ -290,13 +290,13 @@ db.serialize(() => {
         { label: '0-10 VDC', type: 'analog-out', device_id: 3, reg_address: 40001, pos_x: 1300, pos_y: 190 },
         { label: '4-20 mA DC', type: 'analog-out', device_id: 4, reg_address: 40001, pos_x: 1400, pos_y: 190 },
         { label: '40-110 VAC 50HZ', type: 'analog-in', device_id: 1, reg_address: 30005, scale_address: 40105, offset_address: 40107, deadzone_address: 40109, pos_x: 1100, pos_y: 400 },
-        { label: '40-110 VAC 50HZ', type: 'analog-in', device_id: 1, reg_address: 30007, scale_address: 40111, offset_address: 40113, deadzone_address: 40115, pos_x: 1200, pos_y: 400 },
+        { label: '40-110 VAC 50HZ', type: 'analog-in', device_id: 1, reg_address: 30009, scale_address: 40117, offset_address: 40119, deadzone_address: 40121, pos_x: 1200, pos_y: 400 },
         { label: '0-5 AMP AC 50HZ', type: 'analog-in', device_id: 2, reg_address: 30005, scale_address: 40105, offset_address: 40107, deadzone_address: 40109, pos_x: 1300, pos_y: 400 },
-        { label: '0-5 AMP AC 50HZ', type: 'analog-in', device_id: 2, reg_address: 30007, scale_address: 40111, offset_address: 40113, deadzone_address: 40115, pos_x: 1400, pos_y: 400 },
+        { label: '0-5 AMP AC 50HZ', type: 'analog-in', device_id: 2, reg_address: 30009, scale_address: 40117, offset_address: 40119, deadzone_address: 40121, pos_x: 1400, pos_y: 400 },
         { label: '0-10 VDC', type: 'analog-in', device_id: 3, reg_address: 30005, scale_address: 40105, offset_address: 40107, deadzone_address: 40109, pos_x: 1100, pos_y: 610 },
-        { label: '0-10 VDC', type: 'analog-in', device_id: 3, reg_address: 30007, scale_address: 40111, offset_address: 40113, deadzone_address: 40115, pos_x: 1200, pos_y: 610 },
+        { label: '0-10 VDC', type: 'analog-in', device_id: 3, reg_address: 30009, scale_address: 40117, offset_address: 40119, deadzone_address: 40121, pos_x: 1200, pos_y: 610 },
         { label: '4-20 mA DC', type: 'analog-in', device_id: 4, reg_address: 30005, scale_address: 40105, offset_address: 40107, deadzone_address: 40109, pos_x: 1300, pos_y: 610 },
-        { label: '4-20 mA DC', type: 'analog-in', device_id: 4, reg_address: 30007, scale_address: 40111, offset_address: 40113, deadzone_address: 40115, pos_x: 1400, pos_y: 610 },
+        { label: '4-20 mA DC', type: 'analog-in', device_id: 4, reg_address: 30009, scale_address: 40117, offset_address: 40119, deadzone_address: 40121, pos_x: 1400, pos_y: 610 },
     ];
     // Fetch device registers to dynamically assign read_reg_id
     db.all(`

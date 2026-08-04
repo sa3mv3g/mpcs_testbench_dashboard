@@ -109,7 +109,7 @@ modbusManager.on('live', async ({ ip, port }) => {
             }
         }
 
-        if (dev.id === 2 || dev.id === 4) {
+        if (dev.id === 3 || dev.id === 4) {
             log.info(`[Main] Device ${dev.id} (${ip}:${port}) is LIVE. Writing configuration data...`);
             await modbusManager.enqueueHighPriority(ip, port, async (client) => {
                 client.setID(dev.id); // FIX: Ensure writes go to correct Unit ID
