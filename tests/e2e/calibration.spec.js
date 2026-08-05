@@ -43,4 +43,25 @@ test.describe('Calibration Dashboard E2E', () => {
         await expect(calPage.calcM).toHaveValue('2.0000');
         await expect(calPage.calcC).toHaveValue('1.0000');
     });
+
+    test('Selecting a signal should invoke IPC to read current values and populate the UI', async () => {
+        // We mock the IPC call for `calibration:readCurrent` to avoid needing a live Modbus device
+        await window.evaluate(() => {
+            window.api.calibrationReadCurrent = async ({ id }) => {
+                return { success: true, scale: 2.5000, offset: 1.2500, deadzone: 0.1000 };
+            };
+        });
+
+        // Trigger the signal selection
+        await window.evaluate(() => {
+            if (typeof window.selectForCal === 'function') {
+                window.selectForCal(999, 'TEST-SIG', 'CDAB');
+            }
+        });
+
+        // The values should eventually update to the mocked responses
+        await expect(window.locator('#cal-active-m')).toHaveText('2.5000', { timeout: 2000 });
+        await expect(window.locator('#cal-active-c')).toHaveText('1.2500', { timeout: 2000 });
+        await expect(window.locator('#cal-active-dz')).toHaveText('0.1000', { timeout: 2000 });
+    });
 });

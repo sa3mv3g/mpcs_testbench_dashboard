@@ -1062,6 +1062,42 @@ ipcMain.handle('calibration:perform', async (event, { id, scale, offset, deadzon
     }
 });
 
+ipcMain.handle('calibration:readCurrent', async (event, { id }) => {
+    log.info(`[IPC] calibration:readCurrent — id=${id}`);
+    try {
+        const signals = await getCachedSignals();
+        const sig = signals.find(s => s.id === id);
+        if (!sig) {
+            throw new Error(`Signal id=${id} not found in mapped signals`);
+        }
+
+        if (sig.cal_scale_reg == null || sig.cal_offset_reg == null || sig.cal_deadzone_reg == null) {
+            throw new Error(`Signal mapping for "${sig.label}" is missing calibration registers.`);
+        }
+
+        let scale = null, offset = null, deadzone = null;
+
+        await modbusManager.enqueueHighPriority(sig.ip, sig.port, async (client) => {
+            const rawScale = toProtocolAddress(sig.cal_scale_reg, 'holding');
+            const resScale = await client.readHoldingRegisters(rawScale, 2);
+            scale = registersToFloat(resScale.data, sig.encoding);
+
+            const rawOffset = toProtocolAddress(sig.cal_offset_reg, 'holding');
+            const resOffset = await client.readHoldingRegisters(rawOffset, 2);
+            offset = registersToFloat(resOffset.data, sig.encoding);
+
+            const rawDz = toProtocolAddress(sig.cal_deadzone_reg, 'holding');
+            const resDz = await client.readHoldingRegisters(rawDz, 2);
+            deadzone = registersToFloat(resDz.data, sig.encoding);
+        });
+
+        return { success: true, scale, offset, deadzone };
+    } catch (error) {
+        log.error(`[IPC] calibration:readCurrent — FAILED: ${error.message}`);
+        return { success: false, error: error.message };
+    }
+});
+
 ipcMain.handle('db:saveCalibrationHistory', async (event, history) => {
     return await db.saveCalibrationHistory(history);
 });

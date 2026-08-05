@@ -839,10 +839,26 @@ document.addEventListener("DOMContentLoaded", async () => {
 		}
 	};
 
-	window.selectForCal = (id, label, encoding) => {
+	window.selectForCal = async (id, label, encoding) => {
 		currentActiveSignal = { id, label, encoding };
 		document.getElementById("active-cal-target").textContent = `${label} (${encoding})`;
+		
+		document.getElementById("cal-active-m").textContent = "reading...";
+		document.getElementById("cal-active-c").textContent = "reading...";
+		document.getElementById("cal-active-dz").textContent = "reading...";
+
 		loadCalibrationHistoryForSignal(label);
+
+		const res = await window.api.calibrationReadCurrent({ id });
+		if (res && res.success) {
+			document.getElementById("cal-active-m").textContent = res.scale.toFixed(4);
+			document.getElementById("cal-active-c").textContent = res.offset.toFixed(4);
+			document.getElementById("cal-active-dz").textContent = res.deadzone.toFixed(4);
+		} else {
+			document.getElementById("cal-active-m").textContent = "--";
+			document.getElementById("cal-active-c").textContent = "--";
+			document.getElementById("cal-active-dz").textContent = "--";
+		}
 	};
 
 	document.getElementById("btn-save-signal").addEventListener("click", async () => {

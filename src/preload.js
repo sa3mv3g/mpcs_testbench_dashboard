@@ -49,6 +49,8 @@ contextBridge.exposeInMainWorld("api", {
 	// Calibration API
 	performCalibration: (params) =>
 		ipcRenderer.invoke("calibration:perform", params),
+	calibrationReadCurrent: (params) =>
+		ipcRenderer.invoke("calibration:readCurrent", params),
 	saveCalibrationHistory: (history) =>
 		ipcRenderer.invoke("db:saveCalibrationHistory", history),
 	getCalibrationHistory: (signal_label) =>
