@@ -189,7 +189,7 @@ async function scheduleTick() {
     if (!isPollingActive) return;
 
     // Skip conditions — reschedule immediately rather than returning
-    if (isSequenceActive || !isNetworkEnabled || activeDashboard !== 'manual-dashboard-v2') {
+    if (isSequenceActive || !isNetworkEnabled) {
         pollingTimer = setTimeout(scheduleTick, 500);
         return;
     }
@@ -229,6 +229,22 @@ async function scheduleTick() {
             }
 
             const unitId = dev.id;
+
+            // ---- HEARTBEAT LOGIC ----
+            // When not on the manual dashboard, just send a minimal read to keep the socket alive
+            if (activeDashboard !== 'manual-dashboard-v2') {
+                try {
+                    await modbusManager.enqueue(dev.ip, dev.port, async (client) => {
+                        client.setID(unitId);
+                        // Read Input Register 100 (Major Version) as a heartbeat
+                        await client.readInputRegisters(100, 1);
+                    });
+                } catch (err) {
+                    log.error(`[Heartbeat] ${key}: Failed - ${err.message}`);
+                }
+                return; // Exit this device's tick early
+            }
+            // -------------------------
 
             /* ── Coils (0–23): digital outputs + digital input mirrors ── */
             let pendingCorrections = [];
