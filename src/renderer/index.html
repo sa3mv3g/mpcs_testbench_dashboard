@@ -463,6 +463,10 @@
         </div>
         <div class="v2-section-divider"></div>
         <div class="v2-signal-group">
+          <div class="v2-widget">
+            <span class="v2-widget-label">Enable</span>
+            <webaudio-switch id="en_amp-1" class="v2-do-switch" data-dev="1" data-addr="32" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch>
+          </div>
           <div class="v2-widget v2-ao-widget">
             <span class="v2-widget-label">110VAC</span>
             <webaudio-knob id="ao-1-0" class="v2-ao-slider" data-dev="1" data-addr="0" min="0" max="10000" step="1" value="0" diameter="54" colors="#4af;#1a2a3a;#2a4a6a"></webaudio-knob>
@@ -476,7 +480,7 @@
         </div>
       </div>
 
-      <!-- Device 2 — 169.254.4.101 -->
+      <!-- Device 2 -->
       <div class="v2-device-row">
         <div class="v2-device-label">Controller 2</div>
         <div class="v2-signal-group">
@@ -499,14 +503,6 @@
         </div>
         <div class="v2-section-divider"></div>
         <div class="v2-signal-group">
-          <div class="v2-widget v2-ao-widget">
-            <span class="v2-widget-label">5A AC</span>
-            <webaudio-knob id="ao-2-0" class="v2-ao-slider" data-dev="2" data-addr="0" min="0" max="10000" step="1" value="0" diameter="54" colors="#4af;#1a2a3a;#2a4a6a"></webaudio-knob>
-            <webaudio-param id="ao-ro-2-0" class="v2-ao-param" link="ao-2-0" width="60" height="16" fontsize="10" colors="#ffaa00;#1a1a1a"></webaudio-param>
-          </div>
-        </div>
-        <div class="v2-section-divider"></div>
-        <div class="v2-signal-group">
           <div class="v2-widget"><span class="v2-widget-label">2.1 D0</span><webaudio-switch id="di-2-23" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch></div>
           <div class="v2-widget"><span class="v2-widget-label">2.1 D1</span><webaudio-switch id="di-2-17" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch></div>
           <div class="v2-widget"><span class="v2-widget-label">2.1 D2</span><webaudio-switch id="di-2-22" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch></div>
@@ -517,13 +513,25 @@
           <div class="v2-widget"><span class="v2-widget-label">2.1 D7</span><webaudio-switch id="di-2-18" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch></div>
         </div>
         <div class="v2-section-divider"></div>
+        <div class="v2-widget">
+            <span class="v2-widget-label">Enable</span>
+            <webaudio-switch id="en_amp-1" class="v2-do-switch" data-dev="1" data-addr="32" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch>
+        </div>
+        <div class="v2-signal-group">
+          <div class="v2-widget v2-ao-widget">
+            <span class="v2-widget-label">5A AC</span>
+            <webaudio-knob id="ao-2-0" class="v2-ao-slider" data-dev="2" data-addr="0" min="0" max="10000" step="1" value="0" diameter="54" colors="#4af;#1a2a3a;#2a4a6a"></webaudio-knob>
+            <webaudio-param id="ao-ro-2-0" class="v2-ao-param" link="ao-2-0" width="60" height="16" fontsize="10" colors="#ffaa00;#1a1a1a"></webaudio-param>
+          </div>
+        </div>
+        <div class="v2-section-divider"></div>
         <div class="v2-signal-group">
           <div class="v2-widget"><span class="v2-widget-label">5A AC↑</span> <webaudio-param id="ai-2-4"  class="v2-ai-param" width="64" height="18" fontsize="10" enable="0" colors="#00ff88;#1a1a1a"></webaudio-param></div>
           <div class="v2-widget"><span class="v2-widget-label">5A AC↑</span> <webaudio-param id="ai-2-6" class="v2-ai-param" width="64" height="18" fontsize="10" enable="0" colors="#00ff88;#1a1a1a"></webaudio-param></div>
         </div>
       </div>
 
-      <!-- Device 3 — 169.254.4.102 -->
+      <!-- Device 3 -->
       <div class="v2-device-row">
         <div class="v2-device-label">Controller 3</div>
         <div class="v2-signal-group">
@@ -570,7 +578,7 @@
         </div>
       </div>
 
-      <!-- Device 4 — 169.254.4.103 -->
+      <!-- Device 4 -->
       <div class="v2-device-row">
         <div class="v2-device-label">Controller 4</div>
         <div class="v2-signal-group">
@@ -593,14 +601,6 @@
         </div>
         <div class="v2-section-divider"></div>
         <div class="v2-signal-group">
-          <div class="v2-widget v2-ao-widget">
-            <span class="v2-widget-label">0-10V</span>
-            <webaudio-knob id="ao-4-0" class="v2-ao-slider" data-dev="4" data-addr="0" min="0" max="10000" step="1" value="0" diameter="54" colors="#4af;#1a2a3a;#2a4a6a"></webaudio-knob>
-            <webaudio-param id="ao-ro-4-0" class="v2-ao-param" link="ao-4-0" width="60" height="16" fontsize="10" colors="#ffaa00;#1a1a1a"></webaudio-param>
-          </div>
-        </div>
-        <div class="v2-section-divider"></div>
-        <div class="v2-signal-group">
           <div class="v2-widget"><span class="v2-widget-label">4.1 D0</span><webaudio-switch id="di-4-23" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch></div>
           <div class="v2-widget"><span class="v2-widget-label">4.1 D1</span><webaudio-switch id="di-4-17" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch></div>
           <div class="v2-widget"><span class="v2-widget-label">4.1 D2</span><webaudio-switch id="di-4-22" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch></div>
@@ -609,6 +609,14 @@
           <div class="v2-widget"><span class="v2-widget-label">4.1 D5</span><webaudio-switch id="di-4-20" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch></div>
           <div class="v2-widget"><span class="v2-widget-label">4.1 D6</span><webaudio-switch id="di-4-19" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch></div>
           <div class="v2-widget"><span class="v2-widget-label">4.1 D7</span><webaudio-switch id="di-4-18" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch></div>
+        </div>
+        <div class="v2-section-divider"></div>
+        <div class="v2-signal-group">
+          <div class="v2-widget v2-ao-widget">
+            <span class="v2-widget-label">0-10V</span>
+            <webaudio-knob id="ao-4-0" class="v2-ao-slider" data-dev="4" data-addr="0" min="0" max="10000" step="1" value="0" diameter="54" colors="#4af;#1a2a3a;#2a4a6a"></webaudio-knob>
+            <webaudio-param id="ao-ro-4-0" class="v2-ao-param" link="ao-4-0" width="60" height="16" fontsize="10" colors="#ffaa00;#1a1a1a"></webaudio-param>
+          </div>
         </div>
         <div class="v2-section-divider"></div>
         <div class="v2-signal-group">
