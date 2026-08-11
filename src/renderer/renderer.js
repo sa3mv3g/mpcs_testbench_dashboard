@@ -478,14 +478,15 @@ document.addEventListener("DOMContentLoaded", async () => {
 				await window.api.resetAllDesiredStates();
 
 				// Zero-out the UI elements immediately and set all feedback dots to PENDING.
-				document.querySelectorAll('.v2-do-switch').forEach(sw => {
+				for (const sw of document.querySelectorAll('.v2-do-switch')) {
+					await new Promise(resolve => setTimeout(resolve, 10));
 					sw.value = 0;
 					const feedbackDot = document.getElementById(sw.id.replace('do-', 'do-fb-'));
 					if (feedbackDot) {
 						feedbackDot.className = 'v2-feedback-dot pending';
 						feedbackDot.title = 'State: PENDING';
 					}
-				});
+				}
 				document.querySelectorAll('.v2-ao-slider').forEach(slider => {
 					if (typeof slider.setValue === 'function') slider.setValue(0, false);
 					else slider.value = 0;
