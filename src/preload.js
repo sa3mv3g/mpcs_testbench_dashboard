@@ -51,6 +51,8 @@ contextBridge.exposeInMainWorld("api", {
 		ipcRenderer.invoke("calibration:perform", params),
 	calibrationReadCurrent: (params) =>
 		ipcRenderer.invoke("calibration:readCurrent", params),
+	linearRegression: (points) =>
+		ipcRenderer.invoke("calibration:linearRegression", points),
 	saveCalibrationHistory: (history) =>
 		ipcRenderer.invoke("db:saveCalibrationHistory", history),
 	getCalibrationHistory: (signal_label) =>

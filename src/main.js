@@ -8,6 +8,7 @@ const db = require('./db');
 const { floatToRegisters, registersToFloat, toProtocolAddress } = require('./utils');
 const modbusManager = require('./jerry-device');
 const ModbusDiscovery = require('./discovery');
+const ss = require('simple-statistics');
 
 require('winston-syslog').Syslog;
 
@@ -349,8 +350,8 @@ async function scheduleTick() {
                         const t0 = Date.now();
                         const res = await client.readInputRegisters(4, 8);
                         log.info(`[Polling] ${key}: readInputRegisters(4,4) OK in ${Date.now() - t0} ms`);
-                        updates.push({ guiId: `ai-${dev.id}-4`,  processValue: registersToFloat([res.data[2], res.data[3]], 'CDAB') });
-                        updates.push({ guiId: `ai-${dev.id}-6`,  processValue: registersToFloat([res.data[6], res.data[7]], 'CDAB') });
+                        updates.push({ guiId: `ai-${dev.id}-4`,  processValue: registersToFloat([res.data[0], res.data[1]], 'CDAB') });
+                        updates.push({ guiId: `ai-${dev.id}-6`,  processValue: registersToFloat([res.data[4], res.data[5]], 'CDAB') });
                     });
                 } catch (e) {
                     log.error(`[Polling] ${key}: readInputRegisters FAILED — ${e.message}`);
@@ -1104,4 +1105,17 @@ ipcMain.handle('db:saveCalibrationHistory', async (event, history) => {
 
 ipcMain.handle('db:getCalibrationHistory', async (event, signal_label) => {
     return await db.getCalibrationHistory(signal_label);
+});
+
+ipcMain.handle('calibration:linearRegression', async (event, points) => {
+    log.info(`[IPC] calibration:linearRegression — calculating linear regression for ${points.length} points`);
+    try {
+        // simple-statistics.linearRegression expects data in format [[x1, y1], [x2, y2], ...]
+        const regressionData = points.map(p => [p.x, p.y]);
+        const result = ss.linearRegression(regressionData);
+        return { success: true, m: result.m, c: result.b };
+    } catch (error) {
+        log.error(`[IPC] calibration:linearRegression — FAILED: ${error.message}`);
+        return { success: false, error: error.message };
+    }
 });

@@ -1009,25 +1009,19 @@ document.addEventListener("DOMContentLoaded", async () => {
 		return { xs, ys };
 	};
 
-	document.getElementById("btn-cal-calculate").addEventListener("click", () => {
+	document.getElementById("btn-cal-calculate").addEventListener("click", async () => {
 		/* Use shared validator so invalid inputs are highlighted before calculating. */
 		const points = validateCalibrationPoints();
 		if (!points) return;
 		const { xs, ys } = points;
 
-		// Linear Regression y = mx + c
-		let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
-		const n = xs.length;
-		for(let i = 0; i < n; i++) {
-			sumX += xs[i]; sumY += ys[i];
-			sumXY += xs[i]*ys[i]; sumX2 += xs[i]*xs[i];
-		}
-		
-		const m = (n*sumXY - sumX*sumY) / (n*sumX2 - sumX*sumX);
-		const c = (sumY - m*sumX) / n;
+		// Linear Regression y = mx + c using simple-statistics
+		const { m, c } = await window.api.linearRegression(
+			xs.map((x, i) => [x, ys[i]])
+		);
 
-		document.getElementById("cal-calc-m").value = m.toFixed(4);
-		document.getElementById("cal-calc-c").value = c.toFixed(4);
+		document.getElementById("cal-calc-m").value = m.toFixed(5);
+		document.getElementById("cal-calc-c").value = c.toFixed(5);
 	});
 
 	document.getElementById("btn-cal-zero").addEventListener("click", async () => {
