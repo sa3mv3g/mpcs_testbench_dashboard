@@ -1,6 +1,6 @@
 {
 	"name": "mpcs_testbench_dashboard",
-	"version": "1.9.2",
+	"version": "1.10.0",
 	"description": "",
 	"main": "src/main.js",
 	"build": {
