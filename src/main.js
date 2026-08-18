@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, powerMonitor, dialog } = require('electron');
+const { app, BrowserWindow, Menu, ipcMain, powerMonitor, dialog, shell } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
@@ -398,15 +398,22 @@ async function scheduleTick() {
 }
 
 function createWindow() {
+    const iconPath = path.join(__dirname, '..', 'assets', 'icon.png');
     mainWindow = new BrowserWindow({
+        title: 'MPCS Testbench Dashboard',
         width: 1200,
         height: 800,
+        icon: iconPath,
+        autoHideMenuBar: true,
         webPreferences: {
             preload: path.join(__dirname, 'preload.js'),
             nodeIntegration: false,
             contextIsolation: true
         }
     });
+
+    Menu.setApplicationMenu(null);
+    mainWindow.setMenuBarVisibility(false);
 
     mainWindow.webContents.on('render-process-gone', async (event, details) => {
         log.error(`[Main] Render process gone! Reason: ${details.reason}. Performing safety shutdown of sockets.`);
@@ -526,6 +533,29 @@ powerMonitor.on('resume', async () => {
 });
 
 // --- High Level IPC Handlers ---
+
+ipcMain.handle('system:getAppVersion', () => {
+    return app.getVersion();
+});
+
+ipcMain.handle('system:openExternal', async (event, url) => {
+    log.info(`[IPC] system:openExternal — requested url: ${url}`);
+    try {
+        if (!url || typeof url !== 'string') {
+            return { success: false, error: 'Invalid URL' };
+        }
+        const parsed = new URL(url);
+        if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+            log.warn(`[IPC] system:openExternal — blocked non-HTTP protocol: ${parsed.protocol}`);
+            return { success: false, error: `Invalid protocol: ${parsed.protocol}` };
+        }
+        await shell.openExternal(url);
+        return { success: true };
+    } catch (err) {
+        log.error(`[IPC] system:openExternal — failed to open URL: ${err.message}`);
+        return { success: false, error: err.message };
+    }
+});
 
 ipcMain.handle('system:getNetworkInterfaces', () => {
     const interfaces = os.networkInterfaces();

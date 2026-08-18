@@ -35,6 +35,81 @@ window.showStatus = function(message, isError = false) {
 };
 
 document.addEventListener("DOMContentLoaded", async () => {
+	// Populate App Version
+	const getVersionFn = window.api?.getAppVersion || window.electronAPI?.getAppVersion;
+	if (getVersionFn) {
+		try {
+			const version = await getVersionFn();
+			const versionEl = document.getElementById("app-version");
+			if (versionEl && version) {
+				versionEl.textContent = `v${version}`;
+			}
+			const aboutVersionEl = document.getElementById("about-modal-version");
+			if (aboutVersionEl && version) {
+				aboutVersionEl.textContent = `v${version}`;
+			}
+		} catch (err) {
+			console.error("Failed to load app version:", err);
+		}
+	}
+
+	// --- External Links Delegate Handler ---
+	document.addEventListener("click", (e) => {
+		const link = e.target.closest("a.external-link, a[href^='http://'], a[href^='https://']");
+		if (link) {
+			e.preventDefault();
+			const url = link.getAttribute("href");
+			if (url) {
+				const openFn = (window.api && window.api.openExternal) || (window.electronAPI && window.electronAPI.openExternal);
+				if (openFn) {
+					openFn(url);
+				}
+			}
+		}
+	});
+
+	// --- About Modal Dialog Handling ---
+	const btnAboutDialog = document.getElementById("btn-about-dialog");
+	const modalAbout = document.getElementById("modal-about");
+	const btnCloseAboutModal = document.getElementById("btn-close-about-modal");
+
+	if (btnAboutDialog && modalAbout) {
+		btnAboutDialog.addEventListener("click", () => {
+			modalAbout.style.display = "flex";
+		});
+	}
+
+	if (btnCloseAboutModal && modalAbout) {
+		btnCloseAboutModal.addEventListener("click", () => {
+			modalAbout.style.display = "none";
+		});
+	}
+
+	if (modalAbout) {
+		modalAbout.addEventListener("click", (e) => {
+			if (e.target === modalAbout) {
+				modalAbout.style.display = "none";
+			}
+		});
+	}
+
+	// Global ESC key to close open modals
+	document.addEventListener("keydown", (e) => {
+		if (e.key === "Escape") {
+			if (modalAbout && modalAbout.style.display === "flex") {
+				modalAbout.style.display = "none";
+			}
+			const modalMeta = document.getElementById("modal-test-metadata");
+			if (modalMeta && modalMeta.style.display === "flex") {
+				modalMeta.style.display = "none";
+			}
+			const modalPost = document.getElementById("modal-post-recording");
+			if (modalPost && modalPost.style.display === "flex") {
+				modalPost.style.display = "none";
+			}
+		}
+	});
+
 	const controlsContainer = document.getElementById("controls-container");
 
 	// --- Global Network State ---

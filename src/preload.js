@@ -2,7 +2,9 @@ const { contextBridge, ipcRenderer } = require("electron");
 
 contextBridge.exposeInMainWorld("api", {
 	// System API
+	getAppVersion: () => ipcRenderer.invoke("system:getAppVersion"),
 	getNetworkInterfaces: () => ipcRenderer.invoke("system:getNetworkInterfaces"),
+	openExternal: (url) => ipcRenderer.invoke("system:openExternal", url),
 
 	// Modbus API
 	connectAllDevices: (interfaceIp) => ipcRenderer.invoke("modbus:connectAll", interfaceIp),
@@ -95,6 +97,8 @@ contextBridge.exposeInMainWorld("api", {
 
 // Expose electronAPI for Excel export and file integrations
 contextBridge.exposeInMainWorld("electronAPI", {
+	getAppVersion: () => ipcRenderer.invoke("system:getAppVersion"),
+	openExternal: (url) => ipcRenderer.invoke("system:openExternal", url),
 	exportExcel: (payload) => ipcRenderer.invoke("dashboard:saveExcel", payload),
 	saveDashboardDataAsExcel: (payload) => ipcRenderer.invoke("dashboard:saveExcel", payload),
 });

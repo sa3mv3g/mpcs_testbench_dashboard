@@ -1,7 +1,10 @@
 {
 	"name": "mpcs_testbench_dashboard",
+	"productName": "MPCS Testbench Dashboard",
 	"version": "1.10.0",
-	"description": "",
+	"description": "MPCS Testbench Dashboard",
+	"homepage": "http://www.aics.co.in",
+	"author": "Advance Instrumentation 'n' Control Systems",
 	"main": "src/main.js",
 	"build": {
 		"appId": "com.mpcs.testbench.dashboard",
@@ -43,7 +46,6 @@
 		"ci": "biome check ."
 	},
 	"keywords": [],
-	"author": "",
 	"license": "ISC",
 	"type": "commonjs",
 	"dependencies": {

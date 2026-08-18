@@ -4,6 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <title>MPCS Testbench Dashboard</title>
+  <link rel="icon" type="image/png" href="../../assets/icon.png">
   <style>
     /* Global explicit re-enable for ALL inputs so nothing stays locked */
     input, textarea, select {
@@ -16,8 +17,68 @@
       font-family: Arial, sans-serif;
       margin: 0;
       padding: 20px;
-      padding-bottom: 40px;
+      padding-bottom: 75px;
       background-color: #f4f4f9;
+    }
+
+    #app-footer {
+      position: fixed;
+      bottom: 35px;
+      left: 0;
+      width: 100%;
+      height: 26px;
+      line-height: 26px;
+      background: #24292e;
+      color: #cbd5e0;
+      font-size: 11px;
+      padding: 0 15px;
+      box-sizing: border-box;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-top: 1px solid #3a424a;
+      z-index: 2147483646;
+    }
+
+    .company-logo-header {
+      height: 26px;
+      width: auto;
+      max-height: 26px;
+      object-fit: contain;
+      vertical-align: middle;
+      image-rendering: -webkit-optimize-contrast;
+      filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1));
+    }
+
+    .company-logo-about {
+      height: 48px;
+      width: auto;
+      max-width: 220px;
+      max-height: 54px;
+      object-fit: contain;
+      vertical-align: middle;
+      image-rendering: -webkit-optimize-contrast;
+      filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.08));
+    }
+
+    .company-logo-footer {
+      height: 16px;
+      width: auto;
+      max-height: 16px;
+      object-fit: contain;
+      vertical-align: middle;
+      image-rendering: -webkit-optimize-contrast;
+    }
+
+    #app-footer a.external-link, .modal-content a.external-link {
+      color: #63b3ed;
+      text-decoration: underline;
+      cursor: pointer;
+      transition: color 0.2s;
+    }
+
+    #app-footer a.external-link:hover, .modal-content a.external-link:hover {
+      color: #90cdf4;
     }
 
     #bottom-status-bar {
@@ -482,11 +543,32 @@
       background-color: #ffc107 !important;
       font-weight: bold;
     }
+
+    .app-version {
+      font-size: 13px;
+      font-weight: normal;
+      color: #6c757d;
+      margin-left: 8px;
+    }
   </style>
 </head>
 
 <body>
-  <h4>MPCS Testbench Dashboard</h4>
+  <div class="app-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 1px solid #ddd; padding-bottom: 8px;">
+    <div style="display: flex; align-items: center; gap: 12px;">
+      <img src="../../assets/icon.png" alt="MPCS Testbench Icon" style="width: 32px; height: 32px; border-radius: 6px; vertical-align: middle; box-shadow: 0 2px 4px rgba(0,0,0,0.15);" />
+      <h4 style="margin: 0; color: #003366; font-size: 18px; display: flex; align-items: center; gap: 8px;">
+        MPCS Testbench Dashboard <span id="app-version" class="app-version"></span>
+      </h4>
+      <span style="color: #cbd5e0; font-size: 16px; font-weight: 300; user-select: none;">|</span>
+      <img src="../../assets/logo.png" alt="AICS Logo" class="company-logo-header" />
+    </div>
+    <div style="display: flex; align-items: center; gap: 10px;">
+      <button class="action-btn" id="btn-about-dialog" style="background-color: #4a5568; color: white; border: none; border-radius: 4px; padding: 6px 12px; font-size: 13px; display: inline-flex; align-items: center; gap: 6px; cursor: pointer;" title="About MPCS Testbench Dashboard">
+        <span>ℹ️</span> About
+      </button>
+    </div>
+  </div>
   
   <div style="margin-bottom: 20px; padding: 10px; background-color: #e2e8f0; border-radius: 5px; display: flex; align-items: center; gap: 15px; flex-wrap: wrap;">
     <select id="network-interface-select" style="padding: 5px; border-radius: 4px; border: 1px solid #ccc;">
@@ -1187,6 +1269,41 @@
       </div>
     </div>
   </div>
+
+  <!-- About Modal Dialog -->
+  <div id="modal-about" class="modal-overlay">
+    <div class="modal-content" style="max-width: 440px; text-align: center; padding: 28px 24px; position: relative;">
+      <img src="../../assets/icon.png" alt="MPCS Testbench Dashboard Icon" style="width: 96px; height: 96px; border-radius: 20px; box-shadow: 0 4px 16px rgba(0,0,0,0.15); margin-bottom: 12px;" />
+      <h2 style="margin: 0 0 4px 0; color: #003366; font-size: 20px;">MPCS Testbench Dashboard</h2>
+      <div id="about-modal-version" style="font-size: 13px; font-weight: bold; color: #4a5568; margin-bottom: 14px;">v1.10.0</div>
+      
+      <div style="border-top: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0; padding: 16px 0; margin: 14px 0; font-size: 13px; line-height: 1.6; color: #333;">
+        <div style="margin-bottom: 10px;">
+          <img src="../../assets/logo.png" alt="AICS Logo" class="company-logo-about" />
+        </div>
+        <div style="font-weight: bold; color: #1a202c; font-size: 14px;">Advance Instrumentation 'n' Control Systems</div>
+        <div style="margin-top: 6px;">
+          Website: <a href="http://www.aics.co.in" id="link-about-website" class="external-link" style="color: #0066cc; font-weight: 500;">www.aics.co.in</a>
+        </div>
+      </div>
+
+      <div style="font-size: 12px; color: #718096; margin-bottom: 20px;">
+        Dashboard to control and test MPCS and record all signals
+      </div>
+
+      <div style="display: flex; justify-content: center;">
+        <button type="button" class="action-btn" id="btn-close-about-modal" style="background: #003366; color: #fff; border: none; border-radius: 4px; padding: 8px 28px; font-weight: bold; min-width: 100px; cursor: pointer;">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <footer id="app-footer">
+    <div style="display: flex; align-items: center; gap: 8px;">
+      <img src="../../assets/logo.png" alt="AICS Logo" class="company-logo-footer" />
+      <span>Advance Instrumentation 'n' Control Systems</span>
+    </div>
+    <span><a href="http://www.aics.co.in" id="link-footer-website" class="external-link">www.aics.co.in</a></span>
+  </footer>
 
   <div id="bottom-status-bar">Ready</div>
 
