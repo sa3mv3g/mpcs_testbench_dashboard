@@ -206,7 +206,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 					el.value = processValue ? 1 : 0;
 				} else if (guiId.startsWith('ai-')) {
 					// webaudio-param used as read-only numeric display
-					el.value = typeof processValue === 'number' ? processValue.toFixed(3) : "0.000";
+					el.value = typeof processValue === 'number' ? processValue.toFixed(1) : "0.0";
 				}
 			});
 		});
