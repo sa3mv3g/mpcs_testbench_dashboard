@@ -17,8 +17,20 @@ contextBridge.exposeInMainWorld("api", {
 	addMappedSignal: (signal) => ipcRenderer.invoke("db:addMappedSignal", signal),
 	updateMappedSignal: (signal) => ipcRenderer.invoke("db:updateMappedSignal", signal),
 	deleteMappedSignal: (id) => ipcRenderer.invoke("db:deleteMappedSignal", id),
-	saveManualSnapshot: (data) =>
-		ipcRenderer.invoke("db:saveManualSnapshot", data),
+	getTestMetadata: () =>
+		ipcRenderer.invoke("db:getTestMetadata"),
+	saveTestMetadata: (metadata) =>
+		ipcRenderer.invoke("db:saveTestMetadata", metadata),
+	startRecordingSession: (metadata) =>
+		ipcRenderer.invoke("recording:start", metadata),
+	stopRecordingSession: () =>
+		ipcRenderer.invoke("recording:stop"),
+	getRecordingSession: (sessionId) =>
+		ipcRenderer.invoke("recording:getSession", sessionId),
+	saveDashboardDataAsExcel: (params) =>
+		ipcRenderer.invoke("dashboard:saveExcel", params),
+	exportExcel: (payload) =>
+		ipcRenderer.invoke("dashboard:saveExcel", payload),
 	getLayout: () => ipcRenderer.invoke("db:getLayout"),
 	clearLayout: () => ipcRenderer.invoke("db:clearLayout"),
 	saveLayoutPosition: (params) => ipcRenderer.invoke("db:saveLayoutPosition", params),
@@ -72,6 +84,17 @@ contextBridge.exposeInMainWorld("api", {
 	onNetworkUpdate: (callback) =>
 		ipcRenderer.on("network-update", (event, data) => callback(data)),
 
+	onRecordingTick: (callback) =>
+		ipcRenderer.on("recording:tick", (event, data) => callback(data)),
+	removeRecordingTickListener: () =>
+		ipcRenderer.removeAllListeners("recording:tick"),
+
 	// Send events to Main Process (e.g. active dashboard changes)
 	setActiveDashboard: (tabName) => ipcRenderer.send("app:setActiveDashboard", tabName),
+});
+
+// Expose electronAPI for Excel export and file integrations
+contextBridge.exposeInMainWorld("electronAPI", {
+	exportExcel: (payload) => ipcRenderer.invoke("dashboard:saveExcel", payload),
+	saveDashboardDataAsExcel: (payload) => ipcRenderer.invoke("dashboard:saveExcel", payload),
 });

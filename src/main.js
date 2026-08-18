@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, powerMonitor } = require('electron');
+const { app, BrowserWindow, ipcMain, powerMonitor, dialog } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
@@ -6,6 +6,7 @@ const log = require('electron-log');
 const winston = require('winston');
 const db = require('./db');
 const { floatToRegisters, registersToFloat, toProtocolAddress } = require('./utils');
+const { getDefaultSignalLabel, formatLocalDate, formatDashboardAsExcel } = require('./renderer/dashboard-exporter');
 const modbusManager = require('./jerry-device');
 const ModbusDiscovery = require('./discovery');
 const ss = require('simple-statistics');
@@ -78,12 +79,18 @@ let pollingTimer = null;   // setTimeout handle for the self-scheduling polling 
 let isPollingActive = false; // true while the self-scheduling loop is running
 let activeDashboard = '';
 let outputStateCache = {}; // Replaces desiredStateCache
+let latestIndicatorState = {}; // Real-time cache for 1 Hz recording snapshots
+let activeRecordingSession = null; // Holds active 1 Hz recording session state
 let isShuttingDown = false; // Guards shutdown sequences
 
 async function performGracefulShutdown(reason) {
     if (isShuttingDown) return;
     isShuttingDown = true;
     log.info(`[Main] Performing graceful shutdown (${reason})...`);
+    if (activeRecordingSession) {
+        clearInterval(activeRecordingSession.timer);
+        activeRecordingSession = null;
+    }
     stopPollingLoop();
     await modbusManager.shutdownAll(reason);
     log.info(`[Main] Graceful shutdown complete.`);
@@ -361,6 +368,15 @@ async function scheduleTick() {
 
         await Promise.all(promises);
         log.info(`[Polling] tick complete — ${updates.length} update(s) in ${Date.now() - tickStart} ms`);
+
+        // Cache updates for 1 Hz recording snapshots
+        updates.forEach(u => {
+            latestIndicatorState[u.guiId] = {
+                processValue: u.processValue,
+                confirmationState: u.confirmationState,
+                updatedAt: Date.now()
+            };
+        });
 
         if (mainWindow && !mainWindow.isDestroyed() && mainWindow.webContents && updates.length > 0) {
             mainWindow.webContents.send('state-update', updates);
@@ -841,11 +857,6 @@ ipcMain.handle("db:deleteMappedSignal", async (event, id) => {
     return await db.deleteMappedSignal(id);
 });
 
-ipcMain.handle("db:saveManualSnapshot", async (event, data) => {
-    log.info("Saving manual snapshot");
-    return { success: true };
-});
-
 ipcMain.handle("db:getLayout", async (event) => {
     return await db.getLayout();
 });
@@ -1118,4 +1129,326 @@ ipcMain.handle('calibration:linearRegression', async (event, points) => {
         log.error(`[IPC] calibration:linearRegression — FAILED: ${error.message}`);
         return { success: false, error: error.message };
     }
+});
+
+// --- 1 Hz Snapshot Capture Helper ---
+async function captureAllIndicatorsSnapshot() {
+    const devices = await db.getDevices();
+    const timestamp = new Date().toISOString();
+    const localTime = formatLocalDate(timestamp);
+
+    const digitalOutputs = [];
+    const digitalInputs = [];
+    const analogOutputs = [];
+    const analogInputs = [];
+    const controls = [];
+    const labels = {};
+
+    // Enable switch (Controller 1)
+    const dev1 = devices.find(d => d.id === 1);
+    const key1 = dev1 && dev1.ip && dev1.port ? `${dev1.ip}:${dev1.port}` : null;
+    const conn1 = key1 ? modbusManager.connections.get(key1) : null;
+    const isConn1 = !!(conn1 && conn1.isConnected && conn1.client && conn1.client.isOpen);
+    const enState = latestIndicatorState['en_amp-1'] || outputStateCache['en_amp-1'];
+    const enVal = isConn1 ? (enState && (enState.processValue != null ? enState.processValue : enState.setpoint) != null ? (enState.processValue != null ? enState.processValue : enState.setpoint) : 0) : '--';
+    const enLabel = getDefaultSignalLabel('en_amp-1');
+    const enHuman = enVal === '--' ? '--' : (enVal ? 'ON' : 'OFF');
+    controls.push({
+        guiId: 'en_amp-1',
+        label: enLabel,
+        value: enVal,
+        state: enHuman
+    });
+    labels[enLabel] = enHuman;
+
+    // 128 MPCS Digital Inputs (I-00 to I-127, 16 per controller)
+    for (let devId = 1; devId <= 8; devId++) {
+        const dev = devices.find(d => d.id === devId);
+        const key = dev && dev.ip && dev.port ? `${dev.ip}:${dev.port}` : null;
+        const conn = key ? modbusManager.connections.get(key) : null;
+        const isConnected = !!(conn && conn.isConnected && conn.client && conn.client.isOpen);
+
+        for (let i = 0; i < 16; i++) {
+            const guiId = `do-${devId}-${i}`;
+            const state = latestIndicatorState[guiId] || outputStateCache[guiId];
+            const label = getDefaultSignalLabel(guiId);
+            const val = isConnected ? (state && (state.processValue != null ? state.processValue : state.setpoint) != null ? (state.processValue != null ? state.processValue : state.setpoint) : 0) : '--';
+            const humanState = val === '--' ? '--' : (val ? 'ON' : 'OFF');
+            const confState = isConnected ? (state && state.confirmationState ? state.confirmationState : 'SYNCED') : 'OFFLINE';
+
+            digitalInputs.push({
+                guiId,
+                label,
+                value: val,
+                state: humanState,
+                confirmationState: confState
+            });
+            labels[label] = humanState;
+        }
+    }
+
+    // 64 MPCS Digital Outputs (O-00 to O-63, 8 per controller)
+    const diAddresses = [23, 17, 22, 16, 21, 20, 19, 18];
+    for (let devId = 1; devId <= 8; devId++) {
+        const dev = devices.find(d => d.id === devId);
+        const key = dev && dev.ip && dev.port ? `${dev.ip}:${dev.port}` : null;
+        const conn = key ? modbusManager.connections.get(key) : null;
+        const isConnected = !!(conn && conn.isConnected && conn.client && conn.client.isOpen);
+
+        for (const addr of diAddresses) {
+            const guiId = `di-${devId}-${addr}`;
+            const state = latestIndicatorState[guiId];
+            const label = getDefaultSignalLabel(guiId);
+            const val = isConnected ? (state && state.processValue != null ? state.processValue : 0) : '--';
+            const humanState = val === '--' ? '--' : (val ? 'HIGH' : 'LOW');
+
+            digitalOutputs.push({
+                guiId,
+                label,
+                value: val,
+                state: humanState
+            });
+            labels[label] = humanState;
+        }
+    }
+
+    // 4 Analog Outputs (Controllers 1-4)
+    for (let devId = 1; devId <= 4; devId++) {
+        const dev = devices.find(d => d.id === devId);
+        const key = dev && dev.ip && dev.port ? `${dev.ip}:${dev.port}` : null;
+        const conn = key ? modbusManager.connections.get(key) : null;
+        const isConnected = !!(conn && conn.isConnected && conn.client && conn.client.isOpen);
+
+        const guiId = `ao-${devId}-0`;
+        const state = latestIndicatorState[guiId] || outputStateCache[guiId];
+        const label = getDefaultSignalLabel(guiId);
+        const val = isConnected ? (state && (state.processValue != null ? state.processValue : state.setpoint) != null ? (state.processValue != null ? state.processValue : state.setpoint) : 0) : '--';
+        const percentage = val === '--' ? '--' : (val / 100).toFixed(1) + '%';
+        const formatted = val === '--' ? '--' : `${val} (${percentage})`;
+        const confState = isConnected ? (state && state.confirmationState ? state.confirmationState : 'SYNCED') : 'OFFLINE';
+
+        analogOutputs.push({
+            guiId,
+            label,
+            value: val,
+            percentage,
+            formatted,
+            confirmationState: confState
+        });
+        labels[label] = percentage;
+    }
+
+    // 8 Analog Inputs (Controllers 1-4)
+    for (let devId = 1; devId <= 4; devId++) {
+        const dev = devices.find(d => d.id === devId);
+        const key = dev && dev.ip && dev.port ? `${dev.ip}:${dev.port}` : null;
+        const conn = key ? modbusManager.connections.get(key) : null;
+        const isConnected = !!(conn && conn.isConnected && conn.client && conn.client.isOpen);
+
+        const stateAi1 = latestIndicatorState[`ai-${devId}-4`];
+        const stateAi2 = latestIndicatorState[`ai-${devId}-6`];
+        const label1 = getDefaultSignalLabel(`ai-${devId}-4`);
+        const label2 = getDefaultSignalLabel(`ai-${devId}-6`);
+
+        const val1 = isConnected ? (stateAi1 && stateAi1.processValue != null ? (typeof stateAi1.processValue === 'number' ? Number(stateAi1.processValue.toFixed(2)) : stateAi1.processValue) : 0.0) : '--';
+        const val2 = isConnected ? (stateAi2 && stateAi2.processValue != null ? (typeof stateAi2.processValue === 'number' ? Number(stateAi2.processValue.toFixed(2)) : stateAi2.processValue) : 0.0) : '--';
+
+        analogInputs.push({
+            guiId: `ai-${devId}-4`,
+            label: label1,
+            value: val1,
+            formatted: val1 === '--' ? '--' : (typeof val1 === 'number' ? val1.toFixed(2) : String(val1))
+        });
+        labels[label1] = val1 === '--' ? '--' : (typeof val1 === 'number' ? val1.toFixed(2) : String(val1));
+
+        analogInputs.push({
+            guiId: `ai-${devId}-6`,
+            label: label2,
+            value: val2,
+            formatted: val2 === '--' ? '--' : (typeof val2 === 'number' ? val2.toFixed(2) : String(val2))
+        });
+        labels[label2] = val2 === '--' ? '--' : (typeof val2 === 'number' ? val2.toFixed(2) : String(val2));
+    }
+
+    return {
+        timestamp,
+        localTime,
+        digitalOutputs,
+        digitalInputs,
+        analogOutputs,
+        analogInputs,
+        controls,
+        labels,
+        signals: {
+            digitalOutputs,
+            digitalInputs,
+            analogOutputs,
+            analogInputs,
+            controls
+        }
+    };
+}
+
+// --- Manual Test Metadata IPC ---
+ipcMain.handle('db:getTestMetadata', async () => {
+    return await db.getTestMetadata();
+});
+
+ipcMain.handle('db:saveTestMetadata', async (event, metadata) => {
+    return await db.saveTestMetadata(metadata);
+});
+
+// --- Manual 1 Hz Recording Session IPC ---
+ipcMain.handle('recording:start', async (event, metadata) => {
+    if (activeRecordingSession) {
+        log.warn('[Recording] Session already active, stopping previous session');
+        clearInterval(activeRecordingSession.timer);
+        activeRecordingSession = null;
+    }
+
+    await db.saveTestMetadata(metadata);
+    const res = await db.createRecordingSession(metadata);
+    if (!res || !res.success) {
+        return { success: false, error: res ? res.error : 'Failed to create recording session' };
+    }
+
+    const sessionId = res.sessionId;
+    const startTime = Date.now();
+    let sampleIndex = 0;
+
+    // Take initial 0s sample
+    try {
+        const initialSnapshot = await captureAllIndicatorsSnapshot();
+        await db.addRecordingSample({
+            sessionId,
+            sampleIndex: sampleIndex,
+            timestamp: new Date().toISOString(),
+            data: initialSnapshot
+        });
+    } catch (e) {
+        log.error('[Recording] Failed to record initial sample:', e);
+    }
+
+    const timer = setInterval(async () => {
+        sampleIndex++;
+        try {
+            const sampleData = await captureAllIndicatorsSnapshot();
+            await db.addRecordingSample({
+                sessionId,
+                sampleIndex,
+                timestamp: new Date().toISOString(),
+                data: sampleData
+            });
+
+            if (mainWindow && !mainWindow.isDestroyed() && mainWindow.webContents) {
+                const elapsedSeconds = Math.floor((Date.now() - startTime) / 1000);
+                mainWindow.webContents.send('recording:tick', {
+                    sessionId,
+                    sampleCount: sampleIndex + 1,
+                    elapsedSeconds
+                });
+            }
+        } catch (err) {
+            log.error('[Recording] Error recording tick sample:', err);
+        }
+    }, 1000);
+
+    activeRecordingSession = {
+        sessionId,
+        startTime,
+        timer,
+        getSampleIndex: () => sampleIndex,
+        metadata
+    };
+
+    log.info(`[Recording] Started 1 Hz recording session #${sessionId}`);
+    return { success: true, sessionId };
+});
+
+ipcMain.handle('recording:stop', async () => {
+    if (!activeRecordingSession) {
+        return { success: false, error: 'No active recording session' };
+    }
+
+    clearInterval(activeRecordingSession.timer);
+    const { sessionId, getSampleIndex } = activeRecordingSession;
+    const totalSamples = getSampleIndex() + 1;
+    activeRecordingSession = null;
+
+    await db.finishRecordingSession({ sessionId, totalSamples });
+    const fullSession = await db.getRecordingSession(sessionId);
+    log.info(`[Recording] Finished recording session #${sessionId} with ${totalSamples} samples.`);
+    return { success: true, session: fullSession };
+});
+
+ipcMain.handle('recording:getSession', async (event, sessionId) => {
+    return await db.getRecordingSession(sessionId);
+});
+
+// --- Manual Dashboard Export File Handlers ---
+async function handleSaveExcel(payload = {}) {
+    try {
+        const { defaultFilename, metadata, sessionInfo, samples, snapshot, buffer } = payload;
+        const meta = metadata || (sessionInfo ? {
+            mpcs_serial_number: sessionInfo.mpcs_serial_number,
+            loco_number: sessionInfo.loco_number,
+            tested_by: sessionInfo.tested_by,
+            tester_id: sessionInfo.tester_id
+        } : (snapshot && snapshot.metadata ? snapshot.metadata : {}));
+
+        const now = new Date();
+        const timestamp = now.getFullYear().toString() +
+            String(now.getMonth() + 1).padStart(2, '0') +
+            String(now.getDate()).padStart(2, '0') + '_' +
+            String(now.getHours()).padStart(2, '0') +
+            String(now.getMinutes()).padStart(2, '0') +
+            String(now.getSeconds()).padStart(2, '0');
+
+        const mpcs = (meta && meta.mpcs_serial_number ? meta.mpcs_serial_number : 'MPCS').replace(/[^a-zA-Z0-9_-]/g, '_');
+        const loco = (meta && meta.loco_number ? meta.loco_number : 'LOCO').replace(/[^a-zA-Z0-9_-]/g, '_');
+        const defaultName = defaultFilename || `MPCS_${mpcs}_LOCO_${loco}_${timestamp}.xlsx`;
+
+        const savePath = path.join(app.getPath('documents') || app.getPath('downloads') || os.homedir(), defaultName);
+
+        const { canceled, filePath } = await dialog.showSaveDialog(mainWindow, {
+            title: 'Save Manual Dashboard Report as Excel Workbook (.xlsx)',
+            defaultPath: savePath,
+            filters: [
+                { name: 'Excel Workbook (*.xlsx)', extensions: ['xlsx'] },
+                { name: 'All Files (*.*)', extensions: ['*'] }
+            ]
+        });
+
+        if (canceled || !filePath) {
+            return { success: false, canceled: true };
+        }
+
+        let writeBuf;
+        if (buffer) {
+            writeBuf = Buffer.isBuffer(buffer) ? buffer : Buffer.from(buffer);
+        } else {
+            const wb = await formatDashboardAsExcel({
+                metadata: meta,
+                sessionInfo,
+                samples,
+                snapshot
+            });
+            writeBuf = await wb.xlsx.writeBuffer();
+        }
+
+        await fs.promises.writeFile(filePath, Buffer.from(writeBuf));
+        log.info(`[IPC] dashboard:saveExcel — Saved to ${filePath}`);
+        return { success: true, filePath, fileName: path.basename(filePath) };
+    } catch (err) {
+        log.error('[IPC] dashboard:saveExcel — Error:', err);
+        return { success: false, error: err.message };
+    }
+}
+
+ipcMain.handle('dashboard:saveExcel', async (event, payload) => {
+    return await handleSaveExcel(payload);
+});
+
+ipcMain.handle('export-excel', async (event, payload) => {
+    return await handleSaveExcel(payload);
 });

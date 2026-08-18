@@ -69,8 +69,38 @@ function initDatabase(dbPath) {
                     address INTEGER,
                     description TEXT,
                     FOREIGN KEY(device_id) REFERENCES device_registry(id) ON DELETE CASCADE
+                )`);
+
+                db.run(`CREATE TABLE IF NOT EXISTS manual_test_metadata (
+                    id INTEGER PRIMARY KEY CHECK (id = 1),
+                    mpcs_serial_number TEXT,
+                    loco_number TEXT,
+                    tested_by TEXT,
+                    tester_id TEXT,
+                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                )`);
+
+                db.run(`CREATE TABLE IF NOT EXISTS manual_recording_sessions (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    mpcs_serial_number TEXT,
+                    loco_number TEXT,
+                    tested_by TEXT,
+                    tester_id TEXT,
+                    start_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    end_time DATETIME,
+                    total_samples INTEGER DEFAULT 0,
+                    status TEXT DEFAULT 'RECORDING'
+                )`);
+
+                db.run(`CREATE TABLE IF NOT EXISTS manual_recording_samples (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    session_id INTEGER,
+                    sample_index INTEGER,
+                    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    data_json TEXT,
+                    FOREIGN KEY(session_id) REFERENCES manual_recording_sessions(id) ON DELETE CASCADE
                 )`, (err) => {
-                    if (err) log.error("Error creating device_registers", err);
+                    if (err) log.error("Error creating tables", err);
                     resolve();
                 });
             });
@@ -436,6 +466,135 @@ function resetAllDesiredStates() {
     });
 }
 
+// --- Manual Test Metadata Operations ---
+function getTestMetadata() {
+    return new Promise((resolve) => {
+        if (!db) return resolve({ mpcs_serial_number: '', loco_number: '', tested_by: '', tester_id: '' });
+        db.get("SELECT * FROM manual_test_metadata WHERE id = 1", (err, row) => {
+            if (err || !row) {
+                resolve({ mpcs_serial_number: '', loco_number: '', tested_by: '', tester_id: '' });
+            } else {
+                resolve({
+                    mpcs_serial_number: row.mpcs_serial_number || '',
+                    loco_number: row.loco_number || '',
+                    tested_by: row.tested_by || '',
+                    tester_id: row.tester_id || ''
+                });
+            }
+        });
+    });
+}
+
+function saveTestMetadata(metadata) {
+    return new Promise((resolve) => {
+        if (!db) return resolve({ success: false, error: 'Database not initialized' });
+        const { mpcs_serial_number, loco_number, tested_by, tester_id } = metadata || {};
+        db.run(
+            `INSERT INTO manual_test_metadata (id, mpcs_serial_number, loco_number, tested_by, tester_id, updated_at)
+             VALUES (1, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+             ON CONFLICT(id) DO UPDATE SET 
+                mpcs_serial_number=excluded.mpcs_serial_number,
+                loco_number=excluded.loco_number,
+                tested_by=excluded.tested_by,
+                tester_id=excluded.tester_id,
+                updated_at=CURRENT_TIMESTAMP`,
+            [mpcs_serial_number || '', loco_number || '', tested_by || '', tester_id || ''],
+            function (err) {
+                if (err) {
+                    log.error("Error saving test metadata", err);
+                    resolve({ success: false, error: err.message });
+                } else {
+                    resolve({ success: true });
+                }
+            }
+        );
+    });
+}
+
+// --- Manual Recording Sessions & Samples Operations ---
+function createRecordingSession(metadata) {
+    return new Promise((resolve) => {
+        if (!db) return resolve({ success: false, error: 'Database not initialized' });
+        const { mpcs_serial_number, loco_number, tested_by, tester_id } = metadata || {};
+        db.run(
+            `INSERT INTO manual_recording_sessions (mpcs_serial_number, loco_number, tested_by, tester_id, start_time, status)
+             VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP, 'RECORDING')`,
+            [mpcs_serial_number || '', loco_number || '', tested_by || '', tester_id || ''],
+            function (err) {
+                if (err) {
+                    log.error("Error creating recording session", err);
+                    resolve({ success: false, error: err.message });
+                } else {
+                    resolve({ success: true, sessionId: this.lastID });
+                }
+            }
+        );
+    });
+}
+
+function addRecordingSample({ sessionId, sampleIndex, timestamp, data }) {
+    return new Promise((resolve) => {
+        if (!db) return resolve({ success: false, error: 'Database not initialized' });
+        const dataJson = typeof data === 'string' ? data : JSON.stringify(data);
+        db.run(
+            `INSERT INTO manual_recording_samples (session_id, sample_index, timestamp, data_json)
+             VALUES (?, ?, ?, ?)`,
+            [sessionId, sampleIndex, timestamp || new Date().toISOString(), dataJson],
+            function (err) {
+                if (err) {
+                    log.error("Error adding recording sample", err);
+                    resolve({ success: false, error: err.message });
+                } else {
+                    resolve({ success: true, sampleId: this.lastID });
+                }
+            }
+        );
+    });
+}
+
+function finishRecordingSession({ sessionId, totalSamples }) {
+    return new Promise((resolve) => {
+        if (!db) return resolve({ success: false, error: 'Database not initialized' });
+        db.run(
+            `UPDATE manual_recording_sessions 
+             SET end_time = CURRENT_TIMESTAMP, total_samples = ?, status = 'COMPLETED'
+             WHERE id = ?`,
+            [totalSamples || 0, sessionId],
+            function (err) {
+                if (err) {
+                    log.error("Error finishing recording session", err);
+                    resolve({ success: false, error: err.message });
+                } else {
+                    resolve({ success: true });
+                }
+            }
+        );
+    });
+}
+
+function getRecordingSession(sessionId) {
+    return new Promise((resolve) => {
+        if (!db) return resolve(null);
+        db.get("SELECT * FROM manual_recording_sessions WHERE id = ?", [sessionId], (err, session) => {
+            if (err || !session) return resolve(null);
+            db.all("SELECT * FROM manual_recording_samples WHERE session_id = ? ORDER BY sample_index ASC", [sessionId], (err2, samples) => {
+                if (err2) return resolve({ ...session, samples: [] });
+                const parsedSamples = samples.map(s => {
+                    let parsedData = s.data_json;
+                    try { parsedData = JSON.parse(s.data_json); } catch (e) {}
+                    return {
+                        id: s.id,
+                        sample_index: s.sample_index,
+                        timestamp: s.timestamp,
+                        data: parsedData
+                    };
+                });
+                resolve({ ...session, samples: parsedSamples });
+            });
+        });
+    });
+}
+
 module.exports = {
     initDatabase,
     closeDatabase,
@@ -458,5 +617,11 @@ module.exports = {
     deleteDeviceRegister,
     getDesiredStates,
     setDesiredState,
-    resetAllDesiredStates
+    resetAllDesiredStates,
+    getTestMetadata,
+    saveTestMetadata,
+    createRecordingSession,
+    addRecordingSample,
+    finishRecordingSession,
+    getRecordingSession
 };

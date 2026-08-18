@@ -133,11 +133,12 @@ function calculateLinearRegression(xs, ys) {
 
 // --- Validation Helpers ---
 // Validate Modbus Protocol Address based on docs/addressing_scheme.md
-// Allow up to 49999 to permit 1-based Data Model addresses
+// Protocol addresses are 0-9998
 function validateModbusAddress(address) {
-    const num = parseInt(address, 10);
-    if (isNaN(num)) return false;
-    if (num < 0 || num > 49999) return false;
+    if (address === null || address === undefined || typeof address === 'boolean') return false;
+    const num = Number(address);
+    if (isNaN(num) || !Number.isInteger(num)) return false;
+    if (num < 0 || num > 9998) return false;
     return true;
 }
 

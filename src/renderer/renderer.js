@@ -466,10 +466,202 @@ document.addEventListener("DOMContentLoaded", async () => {
 	
 	document.getElementById("btn-refresh-layout").addEventListener("click", renderManualDashboard);
 
-	document.getElementById("btn-snapshot").addEventListener("click", async () => {
-		const res = await window.api.saveManualSnapshot({});
-		if (res.success) window.showStatus("Snapshot saved!");
+	// --- Test Provenance Metadata Modal Handling ---
+	const modalMetadata = document.getElementById("modal-test-metadata");
+	const inputMpcsSerial = document.getElementById("input-mpcs-serial");
+	const inputLocoNumber = document.getElementById("input-loco-number");
+	const inputTestedBy = document.getElementById("input-tested-by");
+	const inputTesterId = document.getElementById("input-tester-id");
+	const btnModalCancel = document.getElementById("btn-modal-cancel");
+	const btnModalProceed = document.getElementById("btn-modal-proceed");
+
+	let onMetadataConfirmedCallback = null;
+
+	const openMetadataModal = async (callback) => {
+		onMetadataConfirmedCallback = callback;
+		if (window.api && window.api.getTestMetadata) {
+			const meta = await window.api.getTestMetadata();
+			if (meta) {
+				inputMpcsSerial.value = meta.mpcs_serial_number || "";
+				inputLocoNumber.value = meta.loco_number || "";
+				inputTestedBy.value = meta.tested_by || "";
+				inputTesterId.value = meta.tester_id || "";
+			}
+		}
+		modalMetadata.style.display = "flex";
+		inputMpcsSerial.focus();
+	};
+
+	const closeMetadataModal = () => {
+		modalMetadata.style.display = "none";
+		onMetadataConfirmedCallback = null;
+	};
+
+	btnModalCancel.addEventListener("click", closeMetadataModal);
+
+	btnModalProceed.addEventListener("click", async () => {
+		const mpcs_serial_number = inputMpcsSerial.value.trim();
+		const loco_number = inputLocoNumber.value.trim();
+		const tested_by = inputTestedBy.value.trim();
+		const tester_id = inputTesterId.value.trim();
+
+		if (!mpcs_serial_number || !loco_number || !tested_by || !tester_id) {
+			alert("Please fill in all 4 test metadata fields before proceeding.");
+			return;
+		}
+
+		const metadata = { mpcs_serial_number, loco_number, tested_by, tester_id };
+		if (window.api && window.api.saveTestMetadata) {
+			await window.api.saveTestMetadata(metadata);
+		}
+
+		modalMetadata.style.display = "none";
+		if (typeof onMetadataConfirmedCallback === "function") {
+			const cb = onMetadataConfirmedCallback;
+			onMetadataConfirmedCallback = null;
+			cb(metadata);
+		}
 	});
+
+	// --- 1 Hz Recording Session Controls ---
+	const btnStartRecord = document.getElementById("btn-start-record");
+	const btnStopRecord = document.getElementById("btn-stop-record");
+	const recordingBanner = document.getElementById("recording-live-banner");
+	const recordingTimerEl = document.getElementById("recording-timer");
+	const recordingSampleCountEl = document.getElementById("recording-sample-count");
+
+	const modalPostRec = document.getElementById("modal-post-recording");
+	const postRecSummaryText = document.getElementById("post-rec-summary-text");
+	const postRecMpcs = document.getElementById("post-rec-mpcs");
+	const postRecLoco = document.getElementById("post-rec-loco");
+	const postRecTester = document.getElementById("post-rec-tester");
+	const postRecSamples = document.getElementById("post-rec-samples");
+	const btnExportSessionExcel = document.getElementById("btn-export-session-excel");
+	const btnCloseExportModal = document.getElementById("btn-close-export-modal");
+
+	let currentExportSession = null;
+
+	if (btnStartRecord) {
+		btnStartRecord.addEventListener("click", () => {
+			openMetadataModal(async (metadata) => {
+				const res = await window.api.startRecordingSession(metadata);
+				if (res && res.success) {
+					btnStartRecord.style.display = "none";
+					btnStopRecord.style.display = "inline-block";
+					recordingBanner.style.display = "inline-flex";
+					recordingTimerEl.textContent = "00:00:00";
+					recordingSampleCountEl.textContent = "(1 sample)";
+					window.showStatus("1 Hz recording session started — logging to SQLite database");
+				} else {
+					window.showStatus(res && res.error ? `Error: ${res.error}` : "Failed to start recording", true);
+				}
+			});
+		});
+	}
+
+	if (window.api && window.api.onRecordingTick) {
+		window.api.onRecordingTick(({ sampleCount, elapsedSeconds }) => {
+			if (recordingTimerEl && window.DashboardExporter) {
+				recordingTimerEl.textContent = window.DashboardExporter.formatDuration(elapsedSeconds);
+			}
+			if (recordingSampleCountEl) {
+				recordingSampleCountEl.textContent = `(${sampleCount} sample${sampleCount === 1 ? '' : 's'})`;
+			}
+		});
+	}
+
+	if (btnStopRecord) {
+		btnStopRecord.addEventListener("click", async () => {
+			const res = await window.api.stopRecordingSession();
+			if (res && res.success && res.session) {
+				btnStopRecord.style.display = "none";
+				recordingBanner.style.display = "none";
+				btnStartRecord.style.display = "inline-block";
+
+				currentExportSession = res.session;
+				const sampleCount = (res.session.samples && res.session.samples.length) || res.session.total_samples || 0;
+				const duration = window.DashboardExporter ? window.DashboardExporter.formatDuration(sampleCount) : `${sampleCount}s`;
+
+				postRecSummaryText.textContent = `${sampleCount} samples recorded (${duration})`;
+				postRecMpcs.textContent = res.session.mpcs_serial_number || "N/A";
+				postRecLoco.textContent = res.session.loco_number || "N/A";
+				postRecTester.textContent = `${res.session.tested_by || 'N/A'} (${res.session.tester_id || 'N/A'})`;
+				postRecSamples.textContent = `${sampleCount} samples @ 1 Hz`;
+
+				modalPostRec.style.display = "flex";
+				window.showStatus(`Recording stopped. Total ${sampleCount} samples recorded.`);
+			} else {
+				window.showStatus(res && res.error ? `Error: ${res.error}` : "Failed to stop recording", true);
+			}
+		});
+	}
+
+	if (btnCloseExportModal) {
+		btnCloseExportModal.addEventListener("click", () => {
+			modalPostRec.style.display = "none";
+		});
+	}
+
+	if (btnExportSessionExcel) {
+		btnExportSessionExcel.addEventListener("click", async () => {
+			if (!currentExportSession) return;
+			const exportFn = (window.electronAPI && window.electronAPI.exportExcel) ||
+				(window.api && window.api.saveDashboardDataAsExcel) ||
+				(window.api && window.api.exportExcel);
+
+			if (!exportFn) {
+				window.showStatus("Excel export API is unavailable", true);
+				return;
+			}
+
+			const res = await exportFn({
+				metadata: currentExportSession,
+				sessionInfo: currentExportSession,
+				samples: currentExportSession.samples
+			});
+
+			if (res && res.success) {
+				window.showStatus(`Excel report saved successfully to ${res.fileName}`);
+			} else if (res && res.canceled) {
+				window.showStatus("Save cancelled");
+			} else {
+				window.showStatus(res && res.error ? `Error: ${res.error}` : "Failed to save Excel workbook", true);
+			}
+		});
+	}
+
+	// --- Instantaneous Snapshot Export Controls ---
+	const btnSaveExcel = document.getElementById("btn-save-excel");
+	if (btnSaveExcel) {
+		btnSaveExcel.addEventListener("click", () => {
+			openMetadataModal(async (metadata) => {
+				const devices = await window.api.getDevices();
+				const snapshot = window.DashboardExporter.extractManualDashboardData(document, devices, metadata);
+
+				const exportFn = (window.electronAPI && window.electronAPI.exportExcel) ||
+					(window.api && window.api.saveDashboardDataAsExcel) ||
+					(window.api && window.api.exportExcel);
+
+				if (!exportFn) {
+					window.showStatus("Excel export API is unavailable", true);
+					return;
+				}
+
+				const res = await exportFn({
+					metadata,
+					snapshot
+				});
+
+				if (res && res.success) {
+					window.showStatus(`Snapshot Excel workbook saved to ${res.fileName}`);
+				} else if (res && res.canceled) {
+					window.showStatus("Save cancelled");
+				} else {
+					window.showStatus(res && res.error ? `Error: ${res.error}` : "Failed to save Excel workbook", true);
+				}
+			});
+		});
+	}
 
 	const btnResetDesired = document.getElementById("btn-reset-desired");
 	if (btnResetDesired) {
