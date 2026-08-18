@@ -9,6 +9,7 @@
 	"build": {
 		"appId": "com.mpcs.testbench.dashboard",
 		"productName": "MPCS Testbench Dashboard",
+		"icon": "assets/icon.ico",
 		"directories": {
 			"output": "dist"
 		},
@@ -16,16 +17,21 @@
 			"assets/seed.db"
 		],
 		"win": {
-			"target": "nsis"
+			"target": "nsis",
+			"icon": "assets/icon.ico"
 		},
 		"nsis": {
 			"oneClick": false,
 			"allowToChangeInstallationDirectory": true,
-			"include": "installer.nsh"
+			"include": "installer.nsh",
+			"installerIcon": "assets/icon.ico",
+			"uninstallerIcon": "assets/icon.ico",
+			"installerHeaderIcon": "assets/icon.ico"
 		},
 		"linux": {
 			"target": "AppImage",
-			"category": "Utility"
+			"category": "Utility",
+			"icon": "assets/icon.png"
 		}
 	},
 	"scripts": {
@@ -34,8 +40,9 @@
 		"start:prod": "electron .",
 		"postinstall": "npm_config_build_from_source=true electron-rebuild -f -w sqlite3",
 		"rebuild": "electron-rebuild -f -w sqlite3",
+		"prepack": "node generate-icon.js",
 		"pack": "electron-builder --dir",
-		"predist": "node create-seed.js",
+		"predist": "node generate-icon.js && node create-seed.js",
 		"dist": "electron-builder",
 		"test": "jest",
 		"e2e": "playwright test",

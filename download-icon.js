@@ -1,13 +1,19 @@
-const https = require('https');
-const fs = require('fs');
-const path = require('path');
+const fs = require("fs");
+const path = require("path");
 
-const dir = path.join(__dirname, 'build');
-if (!fs.existsSync(dir)){
-    fs.mkdirSync(dir);
+const dir = path.join(__dirname, "build");
+if (!fs.existsSync(dir)) {
+	fs.mkdirSync(dir, { recursive: true });
 }
 
-const file = fs.createWriteStream(path.join(dir, 'icon.ico'));
-https.get("https://raw.githubusercontent.com/electron/electron/main/default_app/icon.ico", function(response) {
-  response.pipe(file);
-});
+const src = path.join(__dirname, "assets", "icon.ico");
+const dest = path.join(dir, "icon.ico");
+
+if (fs.existsSync(src)) {
+	fs.copyFileSync(src, dest);
+	console.log(`Copied ${src} to ${dest}`);
+} else {
+	console.warn(
+		`Source icon not found at ${src}. Run node generate-icon.js first.`,
+	);
+}

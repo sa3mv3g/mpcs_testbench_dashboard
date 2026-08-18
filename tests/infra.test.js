@@ -7,12 +7,18 @@ describe("Basic Infrastructure & Metadata Test", () => {
 		expect(true).toBe(true);
 	});
 
-	it("package.json should have valid version, productName, author, and homepage", () => {
+	it("package.json should have valid version, productName, author, homepage, and icon configuration", () => {
 		expect(packageJson.version).toBeDefined();
 		expect(packageJson.version).toMatch(/^\d+\.\d+\.\d+/);
 		expect(packageJson.productName).toBe("MPCS Testbench Dashboard");
-		expect(packageJson.author).toBe("Advance Instrumentation 'n' Control Systems");
+		expect(packageJson.author).toBe(
+			"Advance Instrumentation 'n' Control Systems",
+		);
 		expect(packageJson.homepage).toBe("http://www.aics.co.in");
+		expect(packageJson.build).toBeDefined();
+		expect(packageJson.build.icon).toBe("assets/icon.ico");
+		expect(packageJson.build.win.icon).toBe("assets/icon.ico");
+		expect(packageJson.build.nsis.installerIcon).toBe("assets/icon.ico");
 	});
 
 	it("assets/icon.png should exist and have a valid PNG header", () => {
@@ -21,8 +27,22 @@ describe("Basic Infrastructure & Metadata Test", () => {
 
 		const buffer = fs.readFileSync(iconPath);
 		// PNG signature: 89 50 4E 47 0D 0A 1A 0A
-		const pngSignature = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+		const pngSignature = Buffer.from([
+			0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a,
+		]);
 		expect(buffer.subarray(0, 8)).toEqual(pngSignature);
+	});
+
+	it("assets/icon.ico should exist and have a valid multi-resolution ICO header", () => {
+		const icoPath = path.join(__dirname, "..", "assets", "icon.ico");
+		expect(fs.existsSync(icoPath)).toBe(true);
+
+		const buffer = fs.readFileSync(icoPath);
+		// ICO signature: 00 00 01 00
+		expect(buffer.readUInt16LE(0)).toBe(0); // reserved
+		expect(buffer.readUInt16LE(2)).toBe(1); // type 1 for ICO
+		const imageCount = buffer.readUInt16LE(4);
+		expect(imageCount).toBeGreaterThanOrEqual(4); // contains multiple resolutions (16, 24, 32, 48, 64, 128, 256)
 	});
 
 	it("assets/logo.png should exist and have a valid PNG header", () => {
@@ -30,12 +50,20 @@ describe("Basic Infrastructure & Metadata Test", () => {
 		expect(fs.existsSync(logoPath)).toBe(true);
 
 		const buffer = fs.readFileSync(logoPath);
-		const pngSignature = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+		const pngSignature = Buffer.from([
+			0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a,
+		]);
 		expect(buffer.subarray(0, 8)).toEqual(pngSignature);
 	});
 
 	it("src/renderer/index.html should include title, icon, company logo, about modal, and footer", () => {
-		const htmlPath = path.join(__dirname, "..", "src", "renderer", "index.html");
+		const htmlPath = path.join(
+			__dirname,
+			"..",
+			"src",
+			"renderer",
+			"index.html",
+		);
 		expect(fs.existsSync(htmlPath)).toBe(true);
 		const html = fs.readFileSync(htmlPath, "utf-8");
 
@@ -45,18 +73,20 @@ describe("Basic Infrastructure & Metadata Test", () => {
 		expect(html).toContain('id="app-footer"');
 		expect(html).toContain("Advance Instrumentation 'n' Control Systems");
 		expect(html).toContain("www.aics.co.in");
-		expect(html).toContain('assets/logo.png');
-		expect(html).toContain('company-logo-header');
-		expect(html).toContain('company-logo-about');
-		expect(html).toContain('company-logo-footer');
+		expect(html).toContain("assets/logo.png");
+		expect(html).toContain("company-logo-header");
+		expect(html).toContain("company-logo-about");
+		expect(html).toContain("company-logo-footer");
 	});
 
-	it("src/main.js should disable default application menu bar", () => {
+	it("src/main.js should disable default application menu bar and set appUserModelId and window icon", () => {
 		const mainPath = path.join(__dirname, "..", "src", "main.js");
 		expect(fs.existsSync(mainPath)).toBe(true);
 		const mainContent = fs.readFileSync(mainPath, "utf-8");
 
 		expect(mainContent).toContain("autoHideMenuBar: true");
 		expect(mainContent).toContain("Menu.setApplicationMenu(null)");
+		expect(mainContent).toContain("app.setAppUserModelId");
+		expect(mainContent).toContain("icon.ico");
 	});
 });
