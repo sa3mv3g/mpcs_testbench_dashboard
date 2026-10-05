@@ -304,13 +304,14 @@ document.addEventListener("DOMContentLoaded", async () => {
 			const prevVal = val ? 0 : 1;
 			const guiId  = e.target.id;
 
-			// Save desired state
-			await window.api.setDesiredState(guiId, val);
-
 			const ip = await getDeviceIp(dev);
 			if (!ip) {
 				window.showStatus(`Cannot write: Device ${dev} is not configured or offline`, true);
-				e.target.value = prevVal; // Revert visually
+				if (typeof e.target.setValue === 'function') {
+					e.target.setValue(prevVal, false);
+				} else {
+					e.target.value = prevVal;
+				}
 				return;
 			}
 
@@ -319,33 +320,68 @@ document.addEventListener("DOMContentLoaded", async () => {
 				fc: 'writeCoil', address: addr, value: !!val,
 				unitId: dev
 			});
+
+			if (!res || !res.success) {
+				const errMsg = res && res.error ? res.error : `Device ${dev} is offline or write failed`;
+				window.showStatus(`Cannot write: ${errMsg}`, true);
+				if (typeof e.target.setValue === 'function') {
+					e.target.setValue(prevVal, false);
+				} else {
+					e.target.value = prevVal;
+				}
+				return;
+			}
+
+			// Save desired state ONLY after successful write
+			await window.api.setDesiredState(guiId, val);
 		});
 	});
 
 	/* Analog output sliders (webaudio-slider) — writeRegister on change */
 	document.querySelectorAll('.v2-ao-slider').forEach(slider => {
+		slider.dataset.lastVal = slider.value || 0;
 		slider.addEventListener('change', async (e) => {
 			/* webaudio-slider fires 'change' continuously while dragging and
 			 * on release. We write on every change for live feel. */
 			const dev    = parseInt(e.target.dataset.dev,  10);
 			const addr   = parseInt(e.target.dataset.addr, 10);
 			const rawVal = Math.round(e.target.value);
+			const prevVal = parseFloat(e.target.dataset.lastVal != null ? e.target.dataset.lastVal : 0);
 			const guiId  = e.target.id;
-
-			// Save desired state
-			await window.api.setDesiredState(guiId, rawVal);
 
 			const ip = await getDeviceIp(dev);
 			if (!ip) {
 				window.showStatus(`Cannot write: Device ${dev} is not configured or offline`, true);
+				if (typeof e.target.setValue === 'function') {
+					e.target.setValue(prevVal, false);
+				} else {
+					e.target.value = prevVal;
+				}
+				e.target.dispatchEvent(new Event('input'));
 				return;
 			}
 
-			await window.api.directWrite({
+			const res = await window.api.directWrite({
 				ip: ip, port: 502,
 				fc: 'writeRegister', address: addr, value: rawVal,
 				unitId: dev
 			});
+
+			if (!res || !res.success) {
+				const errMsg = res && res.error ? res.error : `Device ${dev} is offline or write failed`;
+				window.showStatus(`Cannot write: ${errMsg}`, true);
+				if (typeof e.target.setValue === 'function') {
+					e.target.setValue(prevVal, false);
+				} else {
+					e.target.value = prevVal;
+				}
+				e.target.dispatchEvent(new Event('input'));
+				return;
+			}
+
+			slider.dataset.lastVal = rawVal;
+			// Save desired state ONLY after successful write
+			await window.api.setDesiredState(guiId, rawVal);
 		});
 	});
 
@@ -392,6 +428,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 				else el.value = val ? 1 : 0;
 			} else if (guiId.startsWith('ao-')) {
 				// webaudio-slider: set .value directly
+				el.dataset.lastVal = val;
 				if (typeof el.setValue === 'function') el.setValue(val, false);
 				else el.value = val;
 				el.dispatchEvent(new Event('input'));
@@ -747,7 +784,8 @@ document.addEventListener("DOMContentLoaded", async () => {
 				// Zero-out the UI elements immediately and set all feedback dots to PENDING.
 				for (const sw of document.querySelectorAll('.v2-do-switch')) {
 					await new Promise(resolve => setTimeout(resolve, 10));
-					sw.value = 0;
+					if (typeof sw.setValue === 'function') sw.setValue(0, false);
+					else sw.value = 0;
 					const feedbackDot = document.getElementById(sw.id.replace('do-', 'do-fb-'));
 					if (feedbackDot) {
 						feedbackDot.className = 'v2-feedback-dot pending';
@@ -755,6 +793,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 					}
 				}
 				document.querySelectorAll('.v2-ao-slider').forEach(slider => {
+					slider.dataset.lastVal = 0;
 					if (typeof slider.setValue === 'function') slider.setValue(0, false);
 					else slider.value = 0;
 					slider.dispatchEvent(new Event('input'));

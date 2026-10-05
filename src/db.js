@@ -437,12 +437,13 @@ ALL_OUTPUT_GUI_IDS.push('ao-1-0', 'ao-1-3', 'ao-1-6', 'ao-1-9');
 
 function resetAllDesiredStates() {
     return new Promise((resolve, reject) => {
-        const stmt = db.prepare(
-            `INSERT INTO manual_desired_state (guiId, value) VALUES (?, ?)
-             ON CONFLICT(guiId) DO UPDATE SET value=excluded.value`
-        );
+        if (!db) return resolve({ success: false, error: 'Database not initialized' });
         db.serialize(() => {
             db.run('BEGIN TRANSACTION');
+            const stmt = db.prepare(
+                `INSERT INTO manual_desired_state (guiId, value) VALUES (?, ?)
+                 ON CONFLICT(guiId) DO UPDATE SET value=excluded.value`
+            );
             for (const guiId of ALL_OUTPUT_GUI_IDS) {
                 stmt.run(guiId, 0);
             }
