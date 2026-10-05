@@ -622,33 +622,105 @@
       <!-- Device 1 -->
       <div class="v2-device-row">
         <div class="v2-signal-group">
-          <div class="v2-widget"><span class="v2-widget-label">1.1-A <b>(I-00)</b></span><webaudio-switch id="do-1-0"  class="v2-do-switch" data-dev="1" data-addr="0"  width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">1.1-B <b>(I-01)</b></span><webaudio-switch id="do-1-1"  class="v2-do-switch" data-dev="1" data-addr="1"  width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">1.1-C <b>(I-02)</b></span><webaudio-switch id="do-1-2"  class="v2-do-switch" data-dev="1" data-addr="2"  width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">1.1-D <b>(I-03)</b></span><webaudio-switch id="do-1-3"  class="v2-do-switch" data-dev="1" data-addr="3"  width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">1.1-E <b>(I-04)</b></span><webaudio-switch id="do-1-4"  class="v2-do-switch" data-dev="1" data-addr="4"  width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">1.1-F <b>(I-05)</b></span><webaudio-switch id="do-1-5"  class="v2-do-switch" data-dev="1" data-addr="5"  width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">1.1-G <b>(I-06)</b></span><webaudio-switch id="do-1-6"  class="v2-do-switch" data-dev="1" data-addr="6"  width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">1.1-H <b>(I-07)</b></span><webaudio-switch id="do-1-7"  class="v2-do-switch" data-dev="1" data-addr="7"  width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">1.2-A <b>(I-08)</b></span><webaudio-switch id="do-1-8"  class="v2-do-switch" data-dev="1" data-addr="8"  width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">1.2-B <b>(I-09)</b></span><webaudio-switch id="do-1-9"  class="v2-do-switch" data-dev="1" data-addr="9"  width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">1.2-C <b>(I-10)</b></span><webaudio-switch id="do-1-10" class="v2-do-switch" data-dev="1" data-addr="10" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">1.2-D <b>(I-11)</b></span><webaudio-switch id="do-1-11" class="v2-do-switch" data-dev="1" data-addr="11" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">1.2-E <b>(I-12)</b></span><webaudio-switch id="do-1-12" class="v2-do-switch" data-dev="1" data-addr="12" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">1.2-F <b>(I-13)</b></span><webaudio-switch id="do-1-13" class="v2-do-switch" data-dev="1" data-addr="13" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">1.2-G <b>(I-14)</b></span><webaudio-switch id="do-1-14" class="v2-do-switch" data-dev="1" data-addr="14" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">1.2-H <b>(I-15)</b></span><webaudio-switch id="do-1-15" class="v2-do-switch" data-dev="1" data-addr="15" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch></div>
+          <div class="v2-widget" title="Pin: 1.1-A | Ferrule: 021">
+            <span class="v2-widget-label">(I-00)<br><b>BP1DJ / BLDJ</b></span>
+            <webaudio-switch id="do-1-0" class="v2-do-switch" data-dev="1" data-addr="0" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: 1.1-B | Ferrule: 024">
+            <span class="v2-widget-label">(I-01)<br><b>BP2DJ / BLRDJ</b></span>
+            <webaudio-switch id="do-1-1" class="v2-do-switch" data-dev="1" data-addr="1" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: 1.1-C | Ferrule: 025">
+            <span class="v2-widget-label">(I-02)<br><b>QVTM1</b></span>
+            <webaudio-switch id="do-1-2" class="v2-do-switch" data-dev="1" data-addr="2" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: 1.1-D | Ferrule: 026">
+            <span class="v2-widget-label">(I-03)<br><b>QVTM2</b></span>
+            <webaudio-switch id="do-1-3" class="v2-do-switch" data-dev="1" data-addr="3" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: 1.1-E | Ferrule: 027">
+            <span class="v2-widget-label">(I-04)<br><b>QVRH</b></span>
+            <webaudio-switch id="do-1-4" class="v2-do-switch" data-dev="1" data-addr="4" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: 1.1-F | Ferrule: 030">
+            <span class="v2-widget-label">(I-05)<br><b>ZPT1_2</b></span>
+            <webaudio-switch id="do-1-5" class="v2-do-switch" data-dev="1" data-addr="5" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: 1.1-G | Ferrule: 029">
+            <span class="v2-widget-label">(I-06)<br><b>ZPT2_1</b></span>
+            <webaudio-switch id="do-1-6" class="v2-do-switch" data-dev="1" data-addr="6" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: 1.1-H | Ferrule: 036">
+            <span class="v2-widget-label">(I-07)<br><b>HVMT1_1</b></span>
+            <webaudio-switch id="do-1-7" class="v2-do-switch" data-dev="1" data-addr="7" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: 1.2-A | Ferrule: 037">
+            <span class="v2-widget-label">(I-08)<br><b>HVMT1_2</b></span>
+            <webaudio-switch id="do-1-8" class="v2-do-switch" data-dev="1" data-addr="8" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: 1.2-B | Ferrule: 038">
+            <span class="v2-widget-label">(I-09)<br><b>HVMT2_1</b></span>
+            <webaudio-switch id="do-1-9" class="v2-do-switch" data-dev="1" data-addr="9" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: 1.2-C | Ferrule: 039">
+            <span class="v2-widget-label">(I-10)<br><b>HVMT2_2</b></span>
+            <webaudio-switch id="do-1-10" class="v2-do-switch" data-dev="1" data-addr="10" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: 1.2-D | Ferrule: 040">
+            <span class="v2-widget-label">(I-11)<br><b>HVRH_1</b></span>
+            <webaudio-switch id="do-1-11" class="v2-do-switch" data-dev="1" data-addr="11" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: 1.2-E | Ferrule: 041">
+            <span class="v2-widget-label">(I-12)<br><b>HVRH_2</b></span>
+            <webaudio-switch id="do-1-12" class="v2-do-switch" data-dev="1" data-addr="12" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: 1.2-F | Ferrule: 042">
+            <span class="v2-widget-label">(I-13)<br><b>QVSI1 / HVSI1</b></span>
+            <webaudio-switch id="do-1-13" class="v2-do-switch" data-dev="1" data-addr="13" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: 1.2-G | Ferrule: 043">
+            <span class="v2-widget-label">(I-14)<br><b>QVSI2 / HVSI2</b></span>
+            <webaudio-switch id="do-1-14" class="v2-do-switch" data-dev="1" data-addr="14" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: 1.2-H | Ferrule: 070">
+            <span class="v2-widget-label">(I-15)<br><b>BLVMT</b></span>
+            <webaudio-switch id="do-1-15" class="v2-do-switch" data-dev="1" data-addr="15" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch>
+          </div>
         </div>
         <div class="v2-section-divider"></div>
         <div class="v2-signal-group">
-          <div class="v2-widget"><span class="v2-widget-label">1.4-1 <b>(O-0)</b></span><webaudio-switch id="di-1-23" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">1.4-2 <b>(O-1)</b></span><webaudio-switch id="di-1-17" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">1.4-3 <b>(O-2)</b></span><webaudio-switch id="di-1-22" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">1.4-4 <b>(O-3)</b></span><webaudio-switch id="di-1-16" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">1.4-5 <b>(O-4)</b></span><webaudio-switch id="di-1-21" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">1.4-6 <b>(O-5)</b></span><webaudio-switch id="di-1-20" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">1.4-7 <b>(O-6)</b></span><webaudio-switch id="di-1-19" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">1.4-8 <b>(O-7)</b></span><webaudio-switch id="di-1-18" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch></div>
+          <div class="v2-widget" title="Pin: A | Ferrule: 044">
+            <span class="v2-widget-label">(O-00)<br><b>DJ</b></span>
+            <webaudio-switch id="di-1-23" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: B | Ferrule: 035">
+            <span class="v2-widget-label">(O-01)<br><b>C118 BLSI</b></span>
+            <webaudio-switch id="di-1-17" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: C | Ferrule: 055">
+            <span class="v2-widget-label">(O-02)<br><b>VEPT1</b></span>
+            <webaudio-switch id="di-1-22" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: D | Ferrule: 056">
+            <span class="v2-widget-label">(O-03)<br><b>VEPT2</b></span>
+            <webaudio-switch id="di-1-16" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: E | Ferrule: 044">
+            <span class="v2-widget-label">(O-04)<br><b>DJ</b></span>
+            <webaudio-switch id="di-1-21" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: F | Ferrule: 083">
+            <span class="v2-widget-label">(O-05)<br><b>C107</b></span>
+            <webaudio-switch id="di-1-20" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: G | Ferrule: 084">
+            <span class="v2-widget-label">(O-06)<br><b>C106</b></span>
+            <webaudio-switch id="di-1-19" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: H | Ferrule: 085">
+            <span class="v2-widget-label">(O-07)<br><b>C105</b></span>
+            <webaudio-switch id="di-1-18" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch>
+          </div>
         </div>
         <div class="v2-section-divider"></div>
         <div class="v2-signal-group">
@@ -672,33 +744,105 @@
       <!-- Device 2 -->
       <div class="v2-device-row">
         <div class="v2-signal-group">
-          <div class="v2-widget"><span class="v2-widget-label">2.1-A <b>(I-16)</b></span><webaudio-switch id="do-2-0"  class="v2-do-switch" data-dev="2" data-addr="0"  width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">2.1-B <b>(I-17)</b></span><webaudio-switch id="do-2-1"  class="v2-do-switch" data-dev="2" data-addr="1"  width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">2.1-C <b>(I-18)</b></span><webaudio-switch id="do-2-2"  class="v2-do-switch" data-dev="2" data-addr="2"  width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">2.1-D <b>(I-19)</b></span><webaudio-switch id="do-2-3"  class="v2-do-switch" data-dev="2" data-addr="3"  width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">2.1-E <b>(I-20)</b></span><webaudio-switch id="do-2-4"  class="v2-do-switch" data-dev="2" data-addr="4"  width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">2.1-F <b>(I-21)</b></span><webaudio-switch id="do-2-5"  class="v2-do-switch" data-dev="2" data-addr="5"  width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">2.1-G <b>(I-22)</b></span><webaudio-switch id="do-2-6"  class="v2-do-switch" data-dev="2" data-addr="6"  width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">2.1-H <b>(I-23)</b></span><webaudio-switch id="do-2-7"  class="v2-do-switch" data-dev="2" data-addr="7"  width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">2.2-A <b>(I-24)</b></span><webaudio-switch id="do-2-8"  class="v2-do-switch" data-dev="2" data-addr="8"  width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">2.2-B <b>(I-25)</b></span><webaudio-switch id="do-2-9"  class="v2-do-switch" data-dev="2" data-addr="9"  width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">2.2-C <b>(I-26)</b></span><webaudio-switch id="do-2-10" class="v2-do-switch" data-dev="2" data-addr="10" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">2.2-D <b>(I-27)</b></span><webaudio-switch id="do-2-11" class="v2-do-switch" data-dev="2" data-addr="11" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">2.2-E <b>(I-28)</b></span><webaudio-switch id="do-2-12" class="v2-do-switch" data-dev="2" data-addr="12" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">2.2-F <b>(I-29)</b></span><webaudio-switch id="do-2-13" class="v2-do-switch" data-dev="2" data-addr="13" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">2.2-G <b>(I-30)</b></span><webaudio-switch id="do-2-14" class="v2-do-switch" data-dev="2" data-addr="14" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">2.2-H <b>(I-31)</b></span><webaudio-switch id="do-2-15" class="v2-do-switch" data-dev="2" data-addr="15" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch></div>
+          <div class="v2-widget" title="Pin: 2.1-A | Ferrule: 072">
+            <span class="v2-widget-label">(I-16)<br><b>ASMGR (BN)</b></span>
+            <webaudio-switch id="do-2-0" class="v2-do-switch" data-dev="2" data-addr="0" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: 2.1-B | Ferrule: 074">
+            <span class="v2-widget-label">(I-17)<br><b>BLCP/ BLCPD</b></span>
+            <webaudio-switch id="do-2-1" class="v2-do-switch" data-dev="2" data-addr="1" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: 2.1-C | Ferrule: 075">
+            <span class="v2-widget-label">(I-18)<br><b>C101_3FB</b></span>
+            <webaudio-switch id="do-2-2" class="v2-do-switch" data-dev="2" data-addr="2" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: 2.1-D | Ferrule: 076">
+            <span class="v2-widget-label">(I-19)<br><b>GR-0</b></span>
+            <webaudio-switch id="do-2-3" class="v2-do-switch" data-dev="2" data-addr="3" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: 2.1-E | Ferrule: 077">
+            <span class="v2-widget-label">(I-20)<br><b>GR-0_31</b></span>
+            <webaudio-switch id="do-2-4" class="v2-do-switch" data-dev="2" data-addr="4" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: 2.1-F | Ferrule: 078">
+            <span class="v2-widget-label">(I-21)<br><b>QPH/HPH</b></span>
+            <webaudio-switch id="do-2-5" class="v2-do-switch" data-dev="2" data-addr="5" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: 2.1-G | Ferrule: 079">
+            <span class="v2-widget-label">(I-22)<br><b>QVSL1/ HVSL1</b></span>
+            <webaudio-switch id="do-2-6" class="v2-do-switch" data-dev="2" data-addr="6" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: 2.1-H | Ferrule: 061">
+            <span class="v2-widget-label">(I-23)<br><b>C105_FB</b></span>
+            <webaudio-switch id="do-2-7" class="v2-do-switch" data-dev="2" data-addr="7" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: 2.2-A | Ferrule: 082">
+            <span class="v2-widget-label">(I-24)<br><b>ASMGR (ON)</b></span>
+            <webaudio-switch id="do-2-8" class="v2-do-switch" data-dev="2" data-addr="8" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: 2.2-B | Ferrule: 080">
+            <span class="v2-widget-label">(I-25)<br><b>QVSL2/ HVSL2</b></span>
+            <webaudio-switch id="do-2-9" class="v2-do-switch" data-dev="2" data-addr="9" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: 2.2-C | Ferrule: 093">
+            <span class="v2-widget-label">(I-26)<br><b>MP + (R,B)</b></span>
+            <webaudio-switch id="do-2-10" class="v2-do-switch" data-dev="2" data-addr="10" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: 2.2-D | Ferrule: 091">
+            <span class="v2-widget-label">(I-27)<br><b>MPJ (FOR)</b></span>
+            <webaudio-switch id="do-2-11" class="v2-do-switch" data-dev="2" data-addr="11" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: 2.2-E | Ferrule: 095">
+            <span class="v2-widget-label">(I-28)<br><b>J1, J2 (FOR)</b></span>
+            <webaudio-switch id="do-2-12" class="v2-do-switch" data-dev="2" data-addr="12" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: 2.2-F | Ferrule: 096">
+            <span class="v2-widget-label">(I-29)<br><b>MP-(R,B)</b></span>
+            <webaudio-switch id="do-2-13" class="v2-do-switch" data-dev="2" data-addr="13" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: 2.2-G | Ferrule: 097">
+            <span class="v2-widget-label">(I-30)<br><b>MP (+,N,-) R</b></span>
+            <webaudio-switch id="do-2-14" class="v2-do-switch" data-dev="2" data-addr="14" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: 2.2-H | Ferrule: 100">
+            <span class="v2-widget-label">(I-31)<br><b>CTF (RUN)</b></span>
+            <webaudio-switch id="do-2-15" class="v2-do-switch" data-dev="2" data-addr="15" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch>
+          </div>
         </div>
         <div class="v2-section-divider"></div>
         <div class="v2-signal-group">
-          <div class="v2-widget"><span class="v2-widget-label">2.4-1 <b>(O-8)</b></span><webaudio-switch id="di-2-23" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">2.4-2 <b>(O-9)</b></span><webaudio-switch id="di-2-17" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">2.4-3 <b>(O-10)</b></span><webaudio-switch id="di-2-22" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">2.4-4 <b>(O-11)</b></span><webaudio-switch id="di-2-16" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">2.4-5 <b>(O-12)</b></span><webaudio-switch id="di-2-21" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">2.4-6 <b>(O-13)</b></span><webaudio-switch id="di-2-20" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">2.4-7 <b>(O-14)</b></span><webaudio-switch id="di-2-19" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">2.4-8 <b>(O-15)</b></span><webaudio-switch id="di-2-18" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch></div>
+          <div class="v2-widget" title="Pin: J | Ferrule: 086">
+            <span class="v2-widget-label">(O-08)<br><b>C101, C103</b></span>
+            <webaudio-switch id="di-2-23" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: K | Ferrule: 087">
+            <span class="v2-widget-label">(O-09)<br><b>VEUL</b></span>
+            <webaudio-switch id="di-2-17" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: L | Ferrule: 108">
+            <span class="v2-widget-label">(O-10)<br><b>J1, J2(FOR)</b></span>
+            <webaudio-switch id="di-2-22" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: M | Ferrule: 109">
+            <span class="v2-widget-label">(O-11)<br><b>J1, J2 (REV)</b></span>
+            <webaudio-switch id="di-2-16" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: N | Ferrule: 111">
+            <span class="v2-widget-label">(O-12)<br><b>CTF (RUN)</b></span>
+            <webaudio-switch id="di-2-21" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: P | Ferrule: 112">
+            <span class="v2-widget-label">(O-13)<br><b>CTF (BRK)</b></span>
+            <webaudio-switch id="di-2-20" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: R | Ferrule: 110">
+            <span class="v2-widget-label">(O-14)<br><b>VE (UP)</b></span>
+            <webaudio-switch id="di-2-19" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: S | Ferrule: 114">
+            <span class="v2-widget-label">(O-15)<br><b>C 145</b></span>
+            <webaudio-switch id="di-2-18" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch>
+          </div>
         </div>
         <div class="v2-section-divider"></div>
         <div class="v2-signal-group">
@@ -718,33 +862,105 @@
       <!-- Device 3 -->
       <div class="v2-device-row">
         <div class="v2-signal-group">
-          <div class="v2-widget"><span class="v2-widget-label">3.1-A <b>(I-32)</b></span><webaudio-switch id="do-3-0"  class="v2-do-switch" data-dev="3" data-addr="0"  width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">3.1-B <b>(I-33)</b></span><webaudio-switch id="do-3-1"  class="v2-do-switch" data-dev="3" data-addr="1"  width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">3.1-C <b>(I-34)</b></span><webaudio-switch id="do-3-2"  class="v2-do-switch" data-dev="3" data-addr="2"  width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">3.1-D <b>(I-35)</b></span><webaudio-switch id="do-3-3"  class="v2-do-switch" data-dev="3" data-addr="3"  width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">3.1-E <b>(I-36)</b></span><webaudio-switch id="do-3-4"  class="v2-do-switch" data-dev="3" data-addr="4"  width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">3.1-F <b>(I-37)</b></span><webaudio-switch id="do-3-5"  class="v2-do-switch" data-dev="3" data-addr="5"  width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">3.1-G <b>(I-38)</b></span><webaudio-switch id="do-3-6"  class="v2-do-switch" data-dev="3" data-addr="6"  width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">3.1-H <b>(I-39)</b></span><webaudio-switch id="do-3-7"  class="v2-do-switch" data-dev="3" data-addr="7"  width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">3.2-A <b>(I-40)</b></span><webaudio-switch id="do-3-8"  class="v2-do-switch" data-dev="3" data-addr="8"  width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">3.2-B <b>(I-41)</b></span><webaudio-switch id="do-3-9"  class="v2-do-switch" data-dev="3" data-addr="9"  width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">3.2-C <b>(I-42)</b></span><webaudio-switch id="do-3-10" class="v2-do-switch" data-dev="3" data-addr="10" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">3.2-D <b>(I-43)</b></span><webaudio-switch id="do-3-11" class="v2-do-switch" data-dev="3" data-addr="11" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">3.2-E <b>(I-44)</b></span><webaudio-switch id="do-3-12" class="v2-do-switch" data-dev="3" data-addr="12" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">3.2-F <b>(I-45)</b></span><webaudio-switch id="do-3-13" class="v2-do-switch" data-dev="3" data-addr="13" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">3.2-G <b>(I-46)</b></span><webaudio-switch id="do-3-14" class="v2-do-switch" data-dev="3" data-addr="14" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">3.2-H <b>(I-47)</b></span><webaudio-switch id="do-3-15" class="v2-do-switch" data-dev="3" data-addr="15" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch></div>
+          <div class="v2-widget" title="Pin: 3.1-A | Ferrule: 092">
+            <span class="v2-widget-label">(I-32)<br><b>MPJ (REV)</b></span>
+            <webaudio-switch id="do-3-0" class="v2-do-switch" data-dev="3" data-addr="0" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: 3.1-B | Ferrule: 212">
+            <span class="v2-widget-label">(I-33)<br><b>CTF (BRK)</b></span>
+            <webaudio-switch id="do-3-1" class="v2-do-switch" data-dev="3" data-addr="1" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: 3.1-C | Ferrule: 213">
+            <span class="v2-widget-label">(I-34)<br><b>MP (+,N,-) B</b></span>
+            <webaudio-switch id="do-3-2" class="v2-do-switch" data-dev="3" data-addr="2" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: 3.1-D | Ferrule: 105">
+            <span class="v2-widget-label">(I-35)<br><b>DJ_FB</b></span>
+            <webaudio-switch id="do-3-3" class="v2-do-switch" data-dev="3" data-addr="3" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: 3.1-E | Ferrule: 107">
+            <span class="v2-widget-label">(I-36)<br><b>J1, J2 (REV)</b></span>
+            <webaudio-switch id="do-3-4" class="v2-do-switch" data-dev="3" data-addr="4" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: 3.1-F | Ferrule: 121">
+            <span class="v2-widget-label">(I-37)<br><b>ZQWC</b></span>
+            <webaudio-switch id="do-3-5" class="v2-do-switch" data-dev="3" data-addr="5" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: 3.1-G | Ferrule: 123">
+            <span class="v2-widget-label">(I-38)<br><b>MPS (1-4)</b></span>
+            <webaudio-switch id="do-3-6" class="v2-do-switch" data-dev="3" data-addr="6" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: 3.1-H | Ferrule: 124">
+            <span class="v2-widget-label">(I-39)<br><b>MPS (2-4)</b></span>
+            <webaudio-switch id="do-3-7" class="v2-do-switch" data-dev="3" data-addr="7" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: 3.2-A | Ferrule: 125">
+            <span class="v2-widget-label">(I-40)<br><b>MPS (3-4)</b></span>
+            <webaudio-switch id="do-3-8" class="v2-do-switch" data-dev="3" data-addr="8" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: 3.2-B | Ferrule: 126">
+            <span class="v2-widget-label">(I-41)<br><b>MPS4</b></span>
+            <webaudio-switch id="do-3-9" class="v2-do-switch" data-dev="3" data-addr="9" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: 3.2-C | Ferrule: 150">
+            <span class="v2-widget-label">(I-42)<br><b>PVEF</b></span>
+            <webaudio-switch id="do-3-10" class="v2-do-switch" data-dev="3" data-addr="10" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: 3.2-D | Ferrule: 151">
+            <span class="v2-widget-label">(I-43)<br><b>PSA</b></span>
+            <webaudio-switch id="do-3-11" class="v2-do-switch" data-dev="3" data-addr="11" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: 3.2-E | Ferrule: 230">
+            <span class="v2-widget-label">(I-44)<br><b>BPQD</b></span>
+            <webaudio-switch id="do-3-12" class="v2-do-switch" data-dev="3" data-addr="12" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: 3.2-F | Ferrule: 155">
+            <span class="v2-widget-label">(I-45)<br><b>RGEB</b></span>
+            <webaudio-switch id="do-3-13" class="v2-do-switch" data-dev="3" data-addr="13" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: 3.2-G | Ferrule: 156">
+            <span class="v2-widget-label">(I-46)<br><b>SWC</b></span>
+            <webaudio-switch id="do-3-14" class="v2-do-switch" data-dev="3" data-addr="14" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: 3.2-H | Ferrule: 162">
+            <span class="v2-widget-label">(I-47)<br><b>QF & QE</b></span>
+            <webaudio-switch id="do-3-15" class="v2-do-switch" data-dev="3" data-addr="15" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch>
+          </div>
         </div>
         <div class="v2-section-divider"></div>
         <div class="v2-signal-group">
-          <div class="v2-widget"><span class="v2-widget-label">3.4-1 <b>(O-16)</b></span><webaudio-switch id="di-3-23" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">3.4-2 <b>(O-17)</b></span><webaudio-switch id="di-3-17" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">3.4-3 <b>(O-18)</b></span><webaudio-switch id="di-3-22" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">3.4-4 <b>(O-19)</b></span><webaudio-switch id="di-3-16" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">3.4-5 <b>(O-20)</b></span><webaudio-switch id="di-3-21" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">3.4-6 <b>(O-21)</b></span><webaudio-switch id="di-3-20" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">3.4-7 <b>(O-22)</b></span><webaudio-switch id="di-3-19" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">3.4-8 <b>(O-23)</b></span><webaudio-switch id="di-3-18" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch></div>
+          <div class="v2-widget" title="Pin: A | Ferrule: 113">
+            <span class="v2-widget-label">(O-16)<br><b>VE (DN)</b></span>
+            <webaudio-switch id="di-3-23" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: B | Ferrule: 115">
+            <span class="v2-widget-label">(O-17)<br><b>EVPHGH</b></span>
+            <webaudio-switch id="di-3-17" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: C | Ferrule: 129">
+            <span class="v2-widget-label">(O-18)<br><b>SX 1</b></span>
+            <webaudio-switch id="di-3-22" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: D | Ferrule: 130">
+            <span class="v2-widget-label">(O-19)<br><b>SX2</b></span>
+            <webaudio-switch id="di-3-16" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: E | Ferrule: 131">
+            <span class="v2-widget-label">(O-20)<br><b>SX31</b></span>
+            <webaudio-switch id="di-3-21" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: F | Ferrule: 132">
+            <span class="v2-widget-label">(O-21)<br><b>SX32</b></span>
+            <webaudio-switch id="di-3-20" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: G | Ferrule: 166">
+            <span class="v2-widget-label">(O-22)<br><b>IP</b></span>
+            <webaudio-switch id="di-3-19" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: H | Ferrule: 165">
+            <span class="v2-widget-label">(O-23)<br><b>VESA2</b></span>
+            <webaudio-switch id="di-3-18" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch>
+          </div>
         </div>
         <div class="v2-section-divider"></div>
         <div class="v2-signal-group">
@@ -764,33 +980,105 @@
       <!-- Device 4 -->
       <div class="v2-device-row">
         <div class="v2-signal-group">
-          <div class="v2-widget"><span class="v2-widget-label">4.1-A <b>(I-48)</b></span><webaudio-switch id="do-4-0"  class="v2-do-switch" data-dev="4" data-addr="0"  width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">4.1-B <b>(I-49)</b></span><webaudio-switch id="do-4-1"  class="v2-do-switch" data-dev="4" data-addr="1"  width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">4.1-C <b>(I-50)</b></span><webaudio-switch id="do-4-2"  class="v2-do-switch" data-dev="4" data-addr="2"  width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">4.1-D <b>(I-51)</b></span><webaudio-switch id="do-4-3"  class="v2-do-switch" data-dev="4" data-addr="3"  width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">4.1-E <b>(I-52)</b></span><webaudio-switch id="do-4-4"  class="v2-do-switch" data-dev="4" data-addr="4"  width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">4.1-F <b>(I-53)</b></span><webaudio-switch id="do-4-5"  class="v2-do-switch" data-dev="4" data-addr="5"  width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">4.1-G <b>(I-54)</b></span><webaudio-switch id="do-4-6"  class="v2-do-switch" data-dev="4" data-addr="6"  width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">4.1-H <b>(I-55)</b></span><webaudio-switch id="do-4-7"  class="v2-do-switch" data-dev="4" data-addr="7"  width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">4.2-A <b>(I-56)</b></span><webaudio-switch id="do-4-8"  class="v2-do-switch" data-dev="4" data-addr="8"  width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">4.2-B <b>(I-57)</b></span><webaudio-switch id="do-4-9"  class="v2-do-switch" data-dev="4" data-addr="9"  width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">4.2-C <b>(I-58)</b></span><webaudio-switch id="do-4-10" class="v2-do-switch" data-dev="4" data-addr="10" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">4.2-D <b>(I-59)</b></span><webaudio-switch id="do-4-11" class="v2-do-switch" data-dev="4" data-addr="11" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">4.2-E <b>(I-60)</b></span><webaudio-switch id="do-4-12" class="v2-do-switch" data-dev="4" data-addr="12" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">4.2-F <b>(I-61)</b></span><webaudio-switch id="do-4-13" class="v2-do-switch" data-dev="4" data-addr="13" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">4.2-G <b>(I-62)</b></span><webaudio-switch id="do-4-14" class="v2-do-switch" data-dev="4" data-addr="14" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">4.2-H <b>(I-63)</b></span><webaudio-switch id="do-4-15" class="v2-do-switch" data-dev="4" data-addr="15" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch></div>
+          <div class="v2-widget" title="Pin: 4.1-A | Ferrule: 142">
+            <span class="v2-widget-label">(I-48)<br><b>BL</b></span>
+            <webaudio-switch id="do-4-0" class="v2-do-switch" data-dev="4" data-addr="0" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: 4.1-B | Ferrule: 045">
+            <span class="v2-widget-label">(I-49)<br><b>QOA/ QSIT</b></span>
+            <webaudio-switch id="do-4-1" class="v2-do-switch" data-dev="4" data-addr="1" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: 4.1-C | Ferrule: 046">
+            <span class="v2-widget-label">(I-50)<br><b>QOP1</b></span>
+            <webaudio-switch id="do-4-2" class="v2-do-switch" data-dev="4" data-addr="2" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: 4.1-D | Ferrule: 047">
+            <span class="v2-widget-label">(I-51)<br><b>QOP2</b></span>
+            <webaudio-switch id="do-4-3" class="v2-do-switch" data-dev="4" data-addr="3" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: 4.1-E | Ferrule: 048">
+            <span class="v2-widget-label">(I-52)<br><b>QRSI1</b></span>
+            <webaudio-switch id="do-4-4" class="v2-do-switch" data-dev="4" data-addr="4" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: 4.1-F | Ferrule: 049">
+            <span class="v2-widget-label">(I-53)<br><b>QRSI2</b></span>
+            <webaudio-switch id="do-4-5" class="v2-do-switch" data-dev="4" data-addr="5" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: 4.1-G | Ferrule: 050">
+            <span class="v2-widget-label">(I-54)<br><b>QLM</b></span>
+            <webaudio-switch id="do-4-6" class="v2-do-switch" data-dev="4" data-addr="6" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: 4.1-H | Ferrule: 122">
+            <span class="v2-widget-label">(I-55)<br><b>BV</b></span>
+            <webaudio-switch id="do-4-7" class="v2-do-switch" data-dev="4" data-addr="7" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: 4.2-A | Ferrule: 062">
+            <span class="v2-widget-label">(I-56)<br><b>C106_FB</b></span>
+            <webaudio-switch id="do-4-8" class="v2-do-switch" data-dev="4" data-addr="8" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: 4.2-B | Ferrule: 128">
+            <span class="v2-widget-label">(I-57)<br><b>ZSMGR</b></span>
+            <webaudio-switch id="do-4-9" class="v2-do-switch" data-dev="4" data-addr="9" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: 4.2-C | Ferrule: 120">
+            <span class="v2-widget-label">(I-58)<br><b>ZSMS</b></span>
+            <webaudio-switch id="do-4-10" class="v2-do-switch" data-dev="4" data-addr="10" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: 4.2-D | Ferrule: 170">
+            <span class="v2-widget-label">(I-59)<br><b>RSI</b></span>
+            <webaudio-switch id="do-4-11" class="v2-do-switch" data-dev="4" data-addr="11" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: 4.2-E | Ferrule: 058">
+            <span class="v2-widget-label">(I-60)<br><b>HMCS</b></span>
+            <webaudio-switch id="do-4-12" class="v2-do-switch" data-dev="4" data-addr="12" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: 4.2-F | Ferrule: 028">
+            <span class="v2-widget-label">(I-61)<br><b>L1 TO L6_FB</b></span>
+            <webaudio-switch id="do-4-13" class="v2-do-switch" data-dev="4" data-addr="13" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: 4.2-G | Ferrule: 153">
+            <span class="v2-widget-label">(I-62)<br><b>HMCS & QD</b></span>
+            <webaudio-switch id="do-4-14" class="v2-do-switch" data-dev="4" data-addr="14" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: 4.2-H | Ferrule: 018">
+            <span class="v2-widget-label">(I-63)<br><b>C118N/C/QCON</b></span>
+            <webaudio-switch id="do-4-15" class="v2-do-switch" data-dev="4" data-addr="15" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch>
+          </div>
         </div>
         <div class="v2-section-divider"></div>
         <div class="v2-signal-group">
-          <div class="v2-widget"><span class="v2-widget-label">4.4-1 <b>(O-24)</b></span><webaudio-switch id="di-4-23" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">4.4-2 <b>(O-25)</b></span><webaudio-switch id="di-4-17" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">4.4-3 <b>(O-26)</b></span><webaudio-switch id="di-4-22" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">4.4-4 <b>(O-27)</b></span><webaudio-switch id="di-4-16" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">4.4-5 <b>(O-28)</b></span><webaudio-switch id="di-4-21" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">4.4-6 <b>(O-29)</b></span><webaudio-switch id="di-4-20" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">4.4-7 <b>(O-30)</b></span><webaudio-switch id="di-4-19" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">4.4-8 <b>(O-31)</b></span><webaudio-switch id="di-4-18" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch></div>
+          <div class="v2-widget" title="Pin: J | Ferrule: 164">
+            <span class="v2-widget-label">(O-24)<br><b>VEF</b></span>
+            <webaudio-switch id="di-4-23" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: K | Ferrule: 163">
+            <span class="v2-widget-label">(O-25)<br><b>VESA1</b></span>
+            <webaudio-switch id="di-4-17" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: L | Ferrule: 143">
+            <span class="v2-widget-label">(O-26)<br><b>L1, L2, L3</b></span>
+            <webaudio-switch id="di-4-22" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: M | Ferrule: 133">
+            <span class="v2-widget-label">(O-27)<br><b>L4, L5, L6</b></span>
+            <webaudio-switch id="di-4-16" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: N | Ferrule: 171">
+            <span class="v2-widget-label">(O-28)<br><b>LSDJ (R)</b></span>
+            <webaudio-switch id="di-4-21" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: P | Ferrule: 172">
+            <span class="v2-widget-label">(O-29)<br><b>LSCHBA (G)</b></span>
+            <webaudio-switch id="di-4-20" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: R | Ferrule: 173">
+            <span class="v2-widget-label">(O-30)<br><b>LSGR (G)</b></span>
+            <webaudio-switch id="di-4-19" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: S | Ferrule: 174">
+            <span class="v2-widget-label">(O-31)<br><b>LSB (Y)</b></span>
+            <webaudio-switch id="di-4-18" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch>
+          </div>
         </div>
         <div class="v2-section-divider"></div>
         <div class="v2-signal-group">
@@ -810,132 +1098,420 @@
       <!-- Device 5 — 169.254.4.104 -->
       <div class="v2-device-row">
         <div class="v2-signal-group">
-          <div class="v2-widget"><span class="v2-widget-label">5.1-A <b>(I-64)</b></span><webaudio-switch id="do-5-0"  class="v2-do-switch" data-dev="5" data-addr="0"  width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">5.1-B <b>(I-65)</b></span><webaudio-switch id="do-5-1"  class="v2-do-switch" data-dev="5" data-addr="1"  width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">5.1-C <b>(I-66)</b></span><webaudio-switch id="do-5-2"  class="v2-do-switch" data-dev="5" data-addr="2"  width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">5.1-D <b>(I-67)</b></span><webaudio-switch id="do-5-3"  class="v2-do-switch" data-dev="5" data-addr="3"  width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">5.1-E <b>(I-68)</b></span><webaudio-switch id="do-5-4"  class="v2-do-switch" data-dev="5" data-addr="4"  width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">5.1-F <b>(I-69)</b></span><webaudio-switch id="do-5-5"  class="v2-do-switch" data-dev="5" data-addr="5"  width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">5.1-G <b>(I-70)</b></span><webaudio-switch id="do-5-6"  class="v2-do-switch" data-dev="5" data-addr="6"  width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">5.1-H <b>(I-71)</b></span><webaudio-switch id="do-5-7"  class="v2-do-switch" data-dev="5" data-addr="7"  width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">5.2-A <b>(I-72)</b></span><webaudio-switch id="do-5-8"  class="v2-do-switch" data-dev="5" data-addr="8"  width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">5.2-B <b>(I-73)</b></span><webaudio-switch id="do-5-9"  class="v2-do-switch" data-dev="5" data-addr="9"  width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">5.2-C <b>(I-74)</b></span><webaudio-switch id="do-5-10" class="v2-do-switch" data-dev="5" data-addr="10" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">5.2-D <b>(I-75)</b></span><webaudio-switch id="do-5-11" class="v2-do-switch" data-dev="5" data-addr="11" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">5.2-E <b>(I-76)</b></span><webaudio-switch id="do-5-12" class="v2-do-switch" data-dev="5" data-addr="12" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">5.2-F <b>(I-77)</b></span><webaudio-switch id="do-5-13" class="v2-do-switch" data-dev="5" data-addr="13" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">5.2-G <b>(I-78)</b></span><webaudio-switch id="do-5-14" class="v2-do-switch" data-dev="5" data-addr="14" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">5.2-H <b>(I-79)</b></span><webaudio-switch id="do-5-15" class="v2-do-switch" data-dev="5" data-addr="15" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch></div>
+          <div class="v2-widget" title="Pin: 5.1-A | Ferrule: 019">
+            <span class="v2-widget-label">(I-64)<br><b>QLA_FB/SI <br>INT FAULT</b></span>
+            <webaudio-switch id="do-5-0" class="v2-do-switch" data-dev="5" data-addr="0" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: 5.1-B | Ferrule: 052">
+            <span class="v2-widget-label">(I-65)<br><b>QPDJ_FB</b></span>
+            <webaudio-switch id="do-5-1" class="v2-do-switch" data-dev="5" data-addr="1" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: 5.1-C | Ferrule: 060">
+            <span class="v2-widget-label">(I-66)<br><b>C107_FB</b></span>
+            <webaudio-switch id="do-5-2" class="v2-do-switch" data-dev="5" data-addr="2" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: 5.1-D | Ferrule: 068">
+            <span class="v2-widget-label">(I-67)<br><b>SI EXT FAULT</b></span>
+            <webaudio-switch id="do-5-3" class="v2-do-switch" data-dev="5" data-addr="3" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: 5.1-E | Ferrule: 059">
+            <span class="v2-widget-label">(I-68)<br><b>C 145 N/O</b></span>
+            <webaudio-switch id="do-5-4" class="v2-do-switch" data-dev="5" data-addr="4" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: 5.1-F">
+            <span class="v2-widget-label">(I-69)<br><b>LSGRP_O</b></span>
+            <webaudio-switch id="do-5-5" class="v2-do-switch" data-dev="5" data-addr="5" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: 5.1-G | Ferrule: 200">
+            <span class="v2-widget-label">(I-70)<br><b>HQ51</b></span>
+            <webaudio-switch id="do-5-6" class="v2-do-switch" data-dev="5" data-addr="6" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: 5.1-H | Ferrule: 973">
+            <span class="v2-widget-label">(I-71)<br><b>CHBA</b></span>
+            <webaudio-switch id="do-5-7" class="v2-do-switch" data-dev="5" data-addr="7" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: 5.2-A | Ferrule: 149">
+            <span class="v2-widget-label">(I-72)<br><b>BL1</b></span>
+            <webaudio-switch id="do-5-8" class="v2-do-switch" data-dev="5" data-addr="8" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: 5.2-B | Ferrule: 157">
+            <span class="v2-widget-label">(I-73)<br><b>SWITI/ DBR</b></span>
+            <webaudio-switch id="do-5-9" class="v2-do-switch" data-dev="5" data-addr="9" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: 5.2-C">
+            <span class="v2-widget-label">(I-74)<br><b>LSGRP_5</b></span>
+            <webaudio-switch id="do-5-10" class="v2-do-switch" data-dev="5" data-addr="10" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: 5.2-D | Ferrule: 219">
+            <span class="v2-widget-label">(I-75)<br><b>RGAF (ACP)</b></span>
+            <webaudio-switch id="do-5-11" class="v2-do-switch" data-dev="5" data-addr="11" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: 5.2-E | Ferrule: 216">
+            <span class="v2-widget-label">(I-76)<br><b>P2</b></span>
+            <webaudio-switch id="do-5-12" class="v2-do-switch" data-dev="5" data-addr="12" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: 5.2-F | Ferrule: 217">
+            <span class="v2-widget-label">(I-77)<br><b>BPT</b></span>
+            <webaudio-switch id="do-5-13" class="v2-do-switch" data-dev="5" data-addr="13" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: 5.2-G | Ferrule: 218">
+            <span class="v2-widget-label">(I-78)<br><b>RGPA/P1 (ACP)</b></span>
+            <webaudio-switch id="do-5-14" class="v2-do-switch" data-dev="5" data-addr="14" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: 5.2-H | Ferrule: 203">
+            <span class="v2-widget-label">(I-79)<br><b>BPSW1/2/ACK (ACP)</b></span>
+            <webaudio-switch id="do-5-15" class="v2-do-switch" data-dev="5" data-addr="15" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch>
+          </div>
         </div>
         <div class="v2-section-divider"></div>
         <div class="v2-signal-group">
-          <div class="v2-widget"><span class="v2-widget-label">5.4-1 <b>(O-32)</b></span><webaudio-switch id="di-5-23" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">5.4-2 <b>(O-33)</b></span><webaudio-switch id="di-5-17" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">5.4-3 <b>(O-34)</b></span><webaudio-switch id="di-5-22" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">5.4-4 <b>(O-35)</b></span><webaudio-switch id="di-5-16" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">5.4-5 <b>(O-36)</b></span><webaudio-switch id="di-5-21" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">5.4-6 <b>(O-37)</b></span><webaudio-switch id="di-5-20" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">5.4-7 <b>(O-38)</b></span><webaudio-switch id="di-5-19" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">5.4-8 <b>(O-39)</b></span><webaudio-switch id="di-5-18" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch></div>
+          <div class="v2-widget" title="Pin: A | Ferrule: 175">
+            <span class="v2-widget-label">(O-32)<br><b>LSP (R)</b></span>
+            <webaudio-switch id="di-5-23" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: B | Ferrule: 176">
+            <span class="v2-widget-label">(O-33)<br><b>LSRSI (Y)</b></span>
+            <webaudio-switch id="di-5-17" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: C | Ferrule: 144">
+            <span class="v2-widget-label">(O-34)<br><b>SX 41</b></span>
+            <webaudio-switch id="di-5-22" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: D | Ferrule: 145">
+            <span class="v2-widget-label">(O-35)<br><b>SX 42</b></span>
+            <webaudio-switch id="di-5-16" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: E | Ferrule: 235">
+            <span class="v2-widget-label">(O-36)<br><b>LSGROUP (R)</b></span>
+            <webaudio-switch id="di-5-21" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: F | Ferrule: 210">
+            <span class="v2-widget-label">(O-37)<br><b>LSOL (Y)</b></span>
+            <webaudio-switch id="di-5-20" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: G | Ferrule: 179">
+            <span class="v2-widget-label">(O-38)<br><b>LPAR (R)</b></span>
+            <webaudio-switch id="di-5-19" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: H | Ferrule: 177">
+            <span class="v2-widget-label">(O-39)<br><b>SON (ALARM)</b></span>
+            <webaudio-switch id="di-5-18" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch>
+          </div>
         </div>
       </div>
 
       <!-- Device 6 — 169.254.4.105 -->
       <div class="v2-device-row">
         <div class="v2-signal-group">
-          <div class="v2-widget"><span class="v2-widget-label">6.1-A <b>(I-80)</b></span><webaudio-switch id="do-6-0"  class="v2-do-switch" data-dev="6" data-addr="0"  width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">6.1-B <b>(I-81)</b></span><webaudio-switch id="do-6-1"  class="v2-do-switch" data-dev="6" data-addr="1"  width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">6.1-C <b>(I-82)</b></span><webaudio-switch id="do-6-2"  class="v2-do-switch" data-dev="6" data-addr="2"  width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">6.1-D <b>(I-83)</b></span><webaudio-switch id="do-6-3"  class="v2-do-switch" data-dev="6" data-addr="3"  width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">6.1-E <b>(I-84)</b></span><webaudio-switch id="do-6-4"  class="v2-do-switch" data-dev="6" data-addr="4"  width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">6.1-F <b>(I-85)</b></span><webaudio-switch id="do-6-5"  class="v2-do-switch" data-dev="6" data-addr="5"  width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">6.1-G <b>(I-86)</b></span><webaudio-switch id="do-6-6"  class="v2-do-switch" data-dev="6" data-addr="6"  width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">6.1-H <b>(I-87)</b></span><webaudio-switch id="do-6-7"  class="v2-do-switch" data-dev="6" data-addr="7"  width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">6.2-A <b>(I-88)</b></span><webaudio-switch id="do-6-8"  class="v2-do-switch" data-dev="6" data-addr="8"  width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">6.2-B <b>(I-89)</b></span><webaudio-switch id="do-6-9"  class="v2-do-switch" data-dev="6" data-addr="9"  width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">6.2-C <b>(I-90)</b></span><webaudio-switch id="do-6-10" class="v2-do-switch" data-dev="6" data-addr="10" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">6.2-D <b>(I-91)</b></span><webaudio-switch id="do-6-11" class="v2-do-switch" data-dev="6" data-addr="11" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">6.2-E <b>(I-92)</b></span><webaudio-switch id="do-6-12" class="v2-do-switch" data-dev="6" data-addr="12" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">6.2-F <b>(I-93)</b></span><webaudio-switch id="do-6-13" class="v2-do-switch" data-dev="6" data-addr="13" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">6.2-G <b>(I-94)</b></span><webaudio-switch id="do-6-14" class="v2-do-switch" data-dev="6" data-addr="14" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">6.2-H <b>(I-95)</b></span><webaudio-switch id="do-6-15" class="v2-do-switch" data-dev="6" data-addr="15" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch></div>
+          <div class="v2-widget" title="Pin: 6.1-A">
+            <span class="v2-widget-label">(I-80)<br><b>LOCO SEL 1</b></span>
+            <webaudio-switch id="do-6-0" class="v2-do-switch" data-dev="6" data-addr="0" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: 6.1-B">
+            <span class="v2-widget-label">(I-81)<br><b>LOCO SEL 2</b></span>
+            <webaudio-switch id="do-6-1" class="v2-do-switch" data-dev="6" data-addr="1" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: 6.1-C">
+            <span class="v2-widget-label">(I-82)<br><b>LOCO SEL 3</b></span>
+            <webaudio-switch id="do-6-2" class="v2-do-switch" data-dev="6" data-addr="2" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: 6.1-D">
+            <span class="v2-widget-label">(I-83)<br><b>LOCO SEL 4</b></span>
+            <webaudio-switch id="do-6-3" class="v2-do-switch" data-dev="6" data-addr="3" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: 6.1-E">
+            <span class="v2-widget-label">(I-84)<br><b>Q51_FB</b></span>
+            <webaudio-switch id="do-6-4" class="v2-do-switch" data-dev="6" data-addr="4" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: 6.1-F">
+            <span class="v2-widget-label">(I-85)<br><b>ES_DJ</b></span>
+            <webaudio-switch id="do-6-5" class="v2-do-switch" data-dev="6" data-addr="5" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: 6.1-G">
+            <span class="v2-widget-label">(I-86)<br><b>VCD_ACK</b></span>
+            <webaudio-switch id="do-6-6" class="v2-do-switch" data-dev="6" data-addr="6" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: 6.1-H">
+            <span class="v2-widget-label">(I-87)<br><b>VCD_BP</b></span>
+            <webaudio-switch id="do-6-7" class="v2-do-switch" data-dev="6" data-addr="7" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: 6.2-A">
+            <span class="v2-widget-label">(I-88)<br><b>VCD_RST</b></span>
+            <webaudio-switch id="do-6-8" class="v2-do-switch" data-dev="6" data-addr="8" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: 6.2-B">
+            <span class="v2-widget-label">(I-89)<br><b>CCPT</b></span>
+            <webaudio-switch id="do-6-9" class="v2-do-switch" data-dev="6" data-addr="9" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: 6.2-C">
+            <span class="v2-widget-label">(I-90)<br><b>LSGR_R1</b></span>
+            <webaudio-switch id="do-6-10" class="v2-do-switch" data-dev="6" data-addr="10" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: 6.2-D">
+            <span class="v2-widget-label">(I-91)<br><b>LSGR_R2</b></span>
+            <webaudio-switch id="do-6-11" class="v2-do-switch" data-dev="6" data-addr="11" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: 6.2-E">
+            <span class="v2-widget-label">(I-92)<br><b>Q49_FB</b></span>
+            <webaudio-switch id="do-6-12" class="v2-do-switch" data-dev="6" data-addr="12" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: 6.2-F">
+            <span class="v2-widget-label">(I-93)<br><b>BL_MU</b></span>
+            <webaudio-switch id="do-6-13" class="v2-do-switch" data-dev="6" data-addr="13" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: 6.2-G">
+            <span class="v2-widget-label">(I-94)<br><b>HMCS-2_1</b></span>
+            <webaudio-switch id="do-6-14" class="v2-do-switch" data-dev="6" data-addr="14" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: 6.2-H">
+            <span class="v2-widget-label">(I-95)<br><b>HMCS-2_1,4</b></span>
+            <webaudio-switch id="do-6-15" class="v2-do-switch" data-dev="6" data-addr="15" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch>
+          </div>
         </div>
         <div class="v2-section-divider"></div>
         <div class="v2-signal-group">
-          <div class="v2-widget"><span class="v2-widget-label">6.4-1 <b>(O-40)</b></span><webaudio-switch id="di-6-23" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">6.4-2 <b>(O-41)</b></span><webaudio-switch id="di-6-17" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">6.4-3 <b>(O-42)</b></span><webaudio-switch id="di-6-22" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">6.4-4 <b>(O-43)</b></span><webaudio-switch id="di-6-16" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">6.4-5 <b>(O-44)</b></span><webaudio-switch id="di-6-21" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">6.4-6 <b>(O-45)</b></span><webaudio-switch id="di-6-20" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">6.4-7 <b>(O-46)</b></span><webaudio-switch id="di-6-19" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">6.4-8 <b>(O-47)</b></span><webaudio-switch id="di-6-18" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch></div>
+          <div class="v2-widget" title="Pin: J">
+            <span class="v2-widget-label">(O-40)<br><b>Q49/MU</b></span>
+            <webaudio-switch id="di-6-23" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: K | Ferrule: 231">
+            <span class="v2-widget-label">(O-41)<br><b>B1, B2 (CPA)</b></span>
+            <webaudio-switch id="di-6-17" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: L | Ferrule: 234">
+            <span class="v2-widget-label">(O-42)<br><b>LSDBR (Y)</b></span>
+            <webaudio-switch id="di-6-22" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: M | Ferrule: 232">
+            <span class="v2-widget-label">(O-43)<br><b>LSFL</b></span>
+            <webaudio-switch id="di-6-16" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: N | Ferrule: 236">
+            <span class="v2-widget-label">(O-44)<br><b>QFL</b></span>
+            <webaudio-switch id="di-6-21" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: P">
+            <span class="v2-widget-label">(O-45)<br><b>FL_LP</b></span>
+            <webaudio-switch id="di-6-20" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: R">
+            <span class="v2-widget-label">(O-46)<br><b>C102</b></span>
+            <webaudio-switch id="di-6-19" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: S">
+            <span class="v2-widget-label">(O-47)<br><b>C108</b></span>
+            <webaudio-switch id="di-6-18" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch>
+          </div>
         </div>
       </div>
 
       <!-- Device 7 — 169.254.4.106 -->
       <div class="v2-device-row">
         <div class="v2-signal-group">
-          <div class="v2-widget"><span class="v2-widget-label">7.1-A <b>(I-96)</b></span><webaudio-switch id="do-7-0"  class="v2-do-switch" data-dev="7" data-addr="0"  width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">7.1-B <b>(I-97)</b></span><webaudio-switch id="do-7-1"  class="v2-do-switch" data-dev="7" data-addr="1"  width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">7.1-C <b>(I-98)</b></span><webaudio-switch id="do-7-2"  class="v2-do-switch" data-dev="7" data-addr="2"  width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">7.1-D <b>(I-99)</b></span><webaudio-switch id="do-7-3"  class="v2-do-switch" data-dev="7" data-addr="3"  width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">7.1-E <b>(I-100)</b></span><webaudio-switch id="do-7-4"  class="v2-do-switch" data-dev="7" data-addr="4"  width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">7.1-F <b>(I-101)</b></span><webaudio-switch id="do-7-5"  class="v2-do-switch" data-dev="7" data-addr="5"  width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">7.1-G <b>(I-102)</b></span><webaudio-switch id="do-7-6"  class="v2-do-switch" data-dev="7" data-addr="6"  width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">7.1-H <b>(I-103)</b></span><webaudio-switch id="do-7-7"  class="v2-do-switch" data-dev="7" data-addr="7"  width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">7.2-A <b>(I-104)</b></span><webaudio-switch id="do-7-8"  class="v2-do-switch" data-dev="7" data-addr="8"  width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">7.2-B <b>(I-105)</b></span><webaudio-switch id="do-7-9"  class="v2-do-switch" data-dev="7" data-addr="9"  width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">7.2-C <b>(I-106)</b></span><webaudio-switch id="do-7-10" class="v2-do-switch" data-dev="7" data-addr="10" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">7.2-D <b>(I-107)</b></span><webaudio-switch id="do-7-11" class="v2-do-switch" data-dev="7" data-addr="11" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">7.2-E <b>(I-108)</b></span><webaudio-switch id="do-7-12" class="v2-do-switch" data-dev="7" data-addr="12" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">7.2-F <b>(I-109)</b></span><webaudio-switch id="do-7-13" class="v2-do-switch" data-dev="7" data-addr="13" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">7.2-G <b>(I-110)</b></span><webaudio-switch id="do-7-14" class="v2-do-switch" data-dev="7" data-addr="14" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">7.2-H <b>(I-111)</b></span><webaudio-switch id="do-7-15" class="v2-do-switch" data-dev="7" data-addr="15" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch></div>
+          <div class="v2-widget" title="Pin: 7.1-A">
+            <span class="v2-widget-label">(I-96)<br><b>BL2</b></span>
+            <webaudio-switch id="do-7-0" class="v2-do-switch" data-dev="7" data-addr="0" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: 7.1-B">
+            <span class="v2-widget-label">(I-97)<br><b>QOA/QSIT</b></span>
+            <webaudio-switch id="do-7-1" class="v2-do-switch" data-dev="7" data-addr="1" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: 7.1-C">
+            <span class="v2-widget-label">(I-98)<br><b>QOP1</b></span>
+            <webaudio-switch id="do-7-2" class="v2-do-switch" data-dev="7" data-addr="2" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: 7.1-D">
+            <span class="v2-widget-label">(I-99)<br><b>QOP2</b></span>
+            <webaudio-switch id="do-7-3" class="v2-do-switch" data-dev="7" data-addr="3" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: 7.1-E">
+            <span class="v2-widget-label">(I-100)<br><b>QRSI1</b></span>
+            <webaudio-switch id="do-7-4" class="v2-do-switch" data-dev="7" data-addr="4" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: 7.1-F">
+            <span class="v2-widget-label">(I-101)<br><b>QRSI2</b></span>
+            <webaudio-switch id="do-7-5" class="v2-do-switch" data-dev="7" data-addr="5" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: 7.1-G">
+            <span class="v2-widget-label">(I-102)<br><b>QLM</b></span>
+            <webaudio-switch id="do-7-6" class="v2-do-switch" data-dev="7" data-addr="6" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: 7.1-H">
+            <span class="v2-widget-label">(I-103)<br><b>QVSI1/HVSI1</b></span>
+            <webaudio-switch id="do-7-7" class="v2-do-switch" data-dev="7" data-addr="7" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: 7.2-A">
+            <span class="v2-widget-label">(I-104)<br><b>QVSI2/HVSI2</b></span>
+            <webaudio-switch id="do-7-8" class="v2-do-switch" data-dev="7" data-addr="8" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: 7.2-B">
+            <span class="v2-widget-label">(I-105)<br><b>QPH/HPH</b></span>
+            <webaudio-switch id="do-7-9" class="v2-do-switch" data-dev="7" data-addr="9" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: 7.2-C">
+            <span class="v2-widget-label">(I-106)<br><b>QVSL1/HVSL1</b></span>
+            <webaudio-switch id="do-7-10" class="v2-do-switch" data-dev="7" data-addr="10" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: 7.2-D">
+            <span class="v2-widget-label">(I-107)<br><b>QVSL2/HVSL2</b></span>
+            <webaudio-switch id="do-7-11" class="v2-do-switch" data-dev="7" data-addr="11" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: 7.2-E">
+            <span class="v2-widget-label">(I-108)<br><b>DJ_NO1</b></span>
+            <webaudio-switch id="do-7-12" class="v2-do-switch" data-dev="7" data-addr="12" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: 7.2-F">
+            <span class="v2-widget-label">(I-109)<br><b>BLVMT</b></span>
+            <webaudio-switch id="do-7-13" class="v2-do-switch" data-dev="7" data-addr="13" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: 7.2-G">
+            <span class="v2-widget-label">(I-110)<br><b>BLCPD</b></span>
+            <webaudio-switch id="do-7-14" class="v2-do-switch" data-dev="7" data-addr="14" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: 7.2-H">
+            <span class="v2-widget-label">(I-111)<br><b>QCON/C118 N/C</b></span>
+            <webaudio-switch id="do-7-15" class="v2-do-switch" data-dev="7" data-addr="15" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch>
+          </div>
         </div>
         <div class="v2-section-divider"></div>
         <div class="v2-signal-group">
-          <div class="v2-widget"><span class="v2-widget-label">7.4-1 <b>(O-48)</b></span><webaudio-switch id="di-7-23" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">7.4-2 <b>(O-49)</b></span><webaudio-switch id="di-7-17" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">7.4-3 <b>(O-50)</b></span><webaudio-switch id="di-7-22" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">7.4-4 <b>(O-51)</b></span><webaudio-switch id="di-7-16" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">7.4-5 <b>(O-52)</b></span><webaudio-switch id="di-7-21" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">7.4-6 <b>(O-53)</b></span><webaudio-switch id="di-7-20" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">7.4-7 <b>(O-54)</b></span><webaudio-switch id="di-7-19" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">7.4-8 <b>(O-55)</b></span><webaudio-switch id="di-7-18" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch></div>
+          <div class="v2-widget" title="Pin: A | Ferrule: 044">
+            <span class="v2-widget-label">(O-48)<br><b>DJ</b></span>
+            <webaudio-switch id="di-7-23" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: B | Ferrule: 035">
+            <span class="v2-widget-label">(O-49)<br><b>C118/BLSI</b></span>
+            <webaudio-switch id="di-7-17" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: C | Ferrule: 055">
+            <span class="v2-widget-label">(O-50)<br><b>VEPT 1</b></span>
+            <webaudio-switch id="di-7-22" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: D | Ferrule: 056">
+            <span class="v2-widget-label">(O-51)<br><b>VEPT 2</b></span>
+            <webaudio-switch id="di-7-16" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: E | Ferrule: 044">
+            <span class="v2-widget-label">(O-52)<br><b>DJ</b></span>
+            <webaudio-switch id="di-7-21" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: F | Ferrule: 083">
+            <span class="v2-widget-label">(O-53)<br><b>C 107</b></span>
+            <webaudio-switch id="di-7-20" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: G | Ferrule: 084">
+            <span class="v2-widget-label">(O-54)<br><b>C 106</b></span>
+            <webaudio-switch id="di-7-19" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: H | Ferrule: 085">
+            <span class="v2-widget-label">(O-55)<br><b>C 105</b></span>
+            <webaudio-switch id="di-7-18" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch>
+          </div>
         </div>
       </div>
 
       <!-- Device 8 — 169.254.4.107 -->
       <div class="v2-device-row">
         <div class="v2-signal-group">
-          <div class="v2-widget"><span class="v2-widget-label">8.1-A <b>(I-112)</b></span><webaudio-switch id="do-8-0"  class="v2-do-switch" data-dev="8" data-addr="0"  width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">8.1-B <b>(I-113)</b></span><webaudio-switch id="do-8-1"  class="v2-do-switch" data-dev="8" data-addr="1"  width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">8.1-C <b>(I-114)</b></span><webaudio-switch id="do-8-2"  class="v2-do-switch" data-dev="8" data-addr="2"  width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">8.1-D <b>(I-115)</b></span><webaudio-switch id="do-8-3"  class="v2-do-switch" data-dev="8" data-addr="3"  width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">8.1-E <b>(I-116)</b></span><webaudio-switch id="do-8-4"  class="v2-do-switch" data-dev="8" data-addr="4"  width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">8.1-F <b>(I-117)</b></span><webaudio-switch id="do-8-5"  class="v2-do-switch" data-dev="8" data-addr="5"  width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">8.1-G <b>(I-118)</b></span><webaudio-switch id="do-8-6"  class="v2-do-switch" data-dev="8" data-addr="6"  width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">8.1-H <b>(I-119)</b></span><webaudio-switch id="do-8-7"  class="v2-do-switch" data-dev="8" data-addr="7"  width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">8.2-A <b>(I-120)</b></span><webaudio-switch id="do-8-8"  class="v2-do-switch" data-dev="8" data-addr="8"  width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">8.2-B <b>(I-121)</b></span><webaudio-switch id="do-8-9"  class="v2-do-switch" data-dev="8" data-addr="9"  width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">8.2-C <b>(I-122)</b></span><webaudio-switch id="do-8-10" class="v2-do-switch" data-dev="8" data-addr="10" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">8.2-D <b>(I-123)</b></span><webaudio-switch id="do-8-11" class="v2-do-switch" data-dev="8" data-addr="11" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">8.2-E <b>(I-124)</b></span><webaudio-switch id="do-8-12" class="v2-do-switch" data-dev="8" data-addr="12" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">8.2-F <b>(I-125)</b></span><webaudio-switch id="do-8-13" class="v2-do-switch" data-dev="8" data-addr="13" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">8.2-G <b>(I-126)</b></span><webaudio-switch id="do-8-14" class="v2-do-switch" data-dev="8" data-addr="14" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">8.2-H <b>(I-127)</b></span><webaudio-switch id="do-8-15" class="v2-do-switch" data-dev="8" data-addr="15" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch></div>
+          <div class="v2-widget" title="Pin: 8.1-A">
+            <span class="v2-widget-label">(I-112)<br><b>L2_FB</b></span>
+            <webaudio-switch id="do-8-0" class="v2-do-switch" data-dev="8" data-addr="0" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: 8.1-B">
+            <span class="v2-widget-label">(I-113)<br><b>L3_FB</b></span>
+            <webaudio-switch id="do-8-1" class="v2-do-switch" data-dev="8" data-addr="1" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: 8.1-C">
+            <span class="v2-widget-label">(I-114)<br><b>L4_FB</b></span>
+            <webaudio-switch id="do-8-2" class="v2-do-switch" data-dev="8" data-addr="2" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: 8.1-D">
+            <span class="v2-widget-label">(I-115)<br><b>L5_FB</b></span>
+            <webaudio-switch id="do-8-3" class="v2-do-switch" data-dev="8" data-addr="3" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: 8.1-E">
+            <span class="v2-widget-label">(I-116)<br><b>L6_FB</b></span>
+            <webaudio-switch id="do-8-4" class="v2-do-switch" data-dev="8" data-addr="4" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: 8.1-F">
+            <span class="v2-widget-label">(I-117)<br><b>HCP_I-1</b></span>
+            <webaudio-switch id="do-8-5" class="v2-do-switch" data-dev="8" data-addr="5" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: 8.1-G">
+            <span class="v2-widget-label">(I-118)<br><b>HCP_I-2</b></span>
+            <webaudio-switch id="do-8-6" class="v2-do-switch" data-dev="8" data-addr="6" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: 8.1-H">
+            <span class="v2-widget-label">(I-119)<br><b>HCP_I-3</b></span>
+            <webaudio-switch id="do-8-7" class="v2-do-switch" data-dev="8" data-addr="7" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: 8.2-A">
+            <span class="v2-widget-label">(I-120)<br><b>DJ_NO2</b></span>
+            <webaudio-switch id="do-8-8" class="v2-do-switch" data-dev="8" data-addr="8" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: 8.2-B">
+            <span class="v2-widget-label">(I-121)<br><b>DJ_NC</b></span>
+            <webaudio-switch id="do-8-9" class="v2-do-switch" data-dev="8" data-addr="9" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: 8.2-C">
+            <span class="v2-widget-label">(I-122)<br><b>C102_FB</b></span>
+            <webaudio-switch id="do-8-10" class="v2-do-switch" data-dev="8" data-addr="10" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: 8.2-D">
+            <span class="v2-widget-label">(I-123)<br><b>C103_FB</b></span>
+            <webaudio-switch id="do-8-11" class="v2-do-switch" data-dev="8" data-addr="11" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: 8.2-E">
+            <span class="v2-widget-label">(I-124)<br><b>C108_FB</b></span>
+            <webaudio-switch id="do-8-12" class="v2-do-switch" data-dev="8" data-addr="12" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: 8.2-F">
+            <span class="v2-widget-label">(I-125)<br><b>LOCO SEL 5</b></span>
+            <webaudio-switch id="do-8-13" class="v2-do-switch" data-dev="8" data-addr="13" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: 8.2-G">
+            <span class="v2-widget-label">(I-126)<br><b>NU</b></span>
+            <webaudio-switch id="do-8-14" class="v2-do-switch" data-dev="8" data-addr="14" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: 8.2-H">
+            <span class="v2-widget-label">(I-127)<br><b>NU</b></span>
+            <webaudio-switch id="do-8-15" class="v2-do-switch" data-dev="8" data-addr="15" width="64" height="64" type="toggle" colors="#444;#1a1a1a;#0f0"></webaudio-switch>
+          </div>
         </div>
         <div class="v2-section-divider"></div>
         <div class="v2-signal-group">
-          <div class="v2-widget"><span class="v2-widget-label">8.4-1 <b>(O-56)</b></span><webaudio-switch id="di-8-23" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">8.4-2 <b>(O-57)</b></span><webaudio-switch id="di-8-17" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">8.4-3 <b>(O-58)</b></span><webaudio-switch id="di-8-22" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">8.4-4 <b>(O-59)</b></span><webaudio-switch id="di-8-16" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">8.4-5 <b>(O-60)</b></span><webaudio-switch id="di-8-21" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">8.4-6 <b>(O-61)</b></span><webaudio-switch id="di-8-20" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">8.4-7 <b>(O-62)</b></span><webaudio-switch id="di-8-19" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch></div>
-          <div class="v2-widget"><span class="v2-widget-label">8.4-8 <b>(O-63)</b></span><webaudio-switch id="di-8-18" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch></div>
+          <div class="v2-widget" title="Pin: J | Ferrule: 086">
+            <span class="v2-widget-label">(O-56)<br><b>C101, C 103</b></span>
+            <webaudio-switch id="di-8-23" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: K | Ferrule: 113">
+            <span class="v2-widget-label">(O-57)<br><b>VE (DN)</b></span>
+            <webaudio-switch id="di-8-17" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: L | Ferrule: 108">
+            <span class="v2-widget-label">(O-58)<br><b>J1, J2 (FOR)</b></span>
+            <webaudio-switch id="di-8-22" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: M | Ferrule: 109">
+            <span class="v2-widget-label">(O-59)<br><b>J1, J2 (REV)</b></span>
+            <webaudio-switch id="di-8-16" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: N | Ferrule: 111">
+            <span class="v2-widget-label">(O-60)<br><b>CTF (RUN)</b></span>
+            <webaudio-switch id="di-8-21" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: P | Ferrule: 143">
+            <span class="v2-widget-label">(O-61)<br><b>L1, L2, L3</b></span>
+            <webaudio-switch id="di-8-20" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: R | Ferrule: 110">
+            <span class="v2-widget-label">(O-62)<br><b>VE_UP</b></span>
+            <webaudio-switch id="di-8-19" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch>
+          </div>
+          <div class="v2-widget" title="Pin: S | Ferrule: 133">
+            <span class="v2-widget-label">(O-63)<br><b>L4, L5, L6</b></span>
+            <webaudio-switch id="di-8-18" class="v2-di-led" width="54" height="54" type="toggle" enable="0" colors="#555;#222;#0f0"></webaudio-switch>
+          </div>
         </div>
       </div>
 
