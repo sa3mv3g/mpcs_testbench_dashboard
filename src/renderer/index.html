@@ -5,6 +5,7 @@
   <meta charset="UTF-8">
   <title>MPCS Testbench Dashboard</title>
   <link rel="icon" type="image/png" href="../../assets/icon.png">
+  <script src="signal-labels.js"></script>
   <style>
     /* Global explicit re-enable for ALL inputs so nothing stays locked */
     input, textarea, select {
@@ -550,6 +551,38 @@
       color: #6c757d;
       margin-left: 8px;
     }
+
+    .v2-label-toggle-group {
+      display: inline-flex;
+      align-items: center;
+      background-color: #e2e8f0;
+      border: 1px solid #cbd5e0;
+      border-radius: 4px;
+      padding: 2px;
+      user-select: none;
+    }
+
+    .btn-label-toggle {
+      border: none;
+      background: transparent;
+      padding: 4px 12px;
+      font-size: 12px;
+      font-weight: bold;
+      cursor: pointer;
+      border-radius: 3px;
+      color: #4a5568;
+      transition: background-color 0.15s ease, color 0.15s ease;
+    }
+
+    .btn-label-toggle.active {
+      background: #003366 !important;
+      color: #ffffff !important;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+    }
+
+    .btn-label-toggle:hover:not(.active) {
+      background-color: #cbd5e0;
+    }
   </style>
 </head>
 
@@ -616,6 +649,13 @@
       
       <button class="action-btn" id="btn-save-excel" style="background-color: #107c41; color: #fff; font-weight: bold; border: 1px solid #0d5f32; border-radius: 4px;" title="Save current snapshot as Excel (.xlsx) workbook">📊 Save Snapshot as Excel</button>
       <button class="action-btn" id="btn-reset-desired" style="background-color: #ffc107; color: #333; font-weight: bold; border: 1px solid #ccc; border-radius: 4px;">Reset All to Default (0/Off)</button>
+      <div style="height: 24px; width: 1px; background-color: #ccc; margin: 0 4px;"></div>
+
+      <div class="v2-label-toggle-group btn-group" role="group">
+        <span style="font-size: 12px; font-weight: bold; color: #4a5568; margin: 0 6px;">Labels:</span>
+        <button type="button" class="btn-label-toggle" id="btn-label-v2" title="Switch to MPCS V2 Signal Labels">V2</button>
+        <button type="button" class="btn-label-toggle active" id="btn-label-v3" title="Switch to MPCS V3 Signal Labels">V3</button>
+      </div>
     </div>
     <div id="manual-dashboard-v2-content">
 
