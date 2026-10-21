@@ -809,6 +809,62 @@ document.addEventListener("DOMContentLoaded", async () => {
 		});
 	}
 
+	// --- Manual Dashboard V2 / V3 Signal Label Version Toggle ---
+	function applySignalLabelVersion(version) {
+		const activeVersion = String(version).toLowerCase() === "v2" ? "v2" : "v3";
+		try {
+			localStorage.setItem("manual_dashboard_label_version", activeVersion);
+		} catch (e) {
+			console.warn("Failed to save manual_dashboard_label_version to localStorage:", e);
+		}
+
+		const btnV2 = document.getElementById("btn-label-v2");
+		const btnV3 = document.getElementById("btn-label-v3");
+		if (btnV2 && btnV3) {
+			if (activeVersion === "v2") {
+				btnV2.classList.add("active");
+				btnV3.classList.remove("active");
+			} else {
+				btnV3.classList.add("active");
+				btnV2.classList.remove("active");
+			}
+		}
+
+		const resolver = window.resolveSignalLabel || (typeof resolveSignalLabel === "function" ? resolveSignalLabel : null);
+		if (resolver) {
+			const labels = document.querySelectorAll(".v2-widget-label");
+			labels.forEach((el) => {
+				let sigId = el.getAttribute("data-signal");
+				if (!sigId) {
+					const match = el.textContent.match(/\(([IO]-\d+)\)/);
+					if (match) {
+						sigId = match[1];
+						el.setAttribute("data-signal", sigId);
+					}
+				}
+				if (sigId) {
+					el.innerHTML = resolver(sigId, activeVersion);
+				}
+			});
+		}
+	}
+
+	window.applySignalLabelVersion = applySignalLabelVersion;
+
+	const btnLabelV2 = document.getElementById("btn-label-v2");
+	if (btnLabelV2) {
+		btnLabelV2.addEventListener("click", () => {
+			applySignalLabelVersion("v2");
+		});
+	}
+
+	const btnLabelV3 = document.getElementById("btn-label-v3");
+	if (btnLabelV3) {
+		btnLabelV3.addEventListener("click", () => {
+			applySignalLabelVersion("v3");
+		});
+	}
+
 	// --- Sequence Logic ---
 	document.getElementById("btn-start-seq").addEventListener("click", async () => {
 		document.getElementById("seq-status").textContent = "Running...";
@@ -1404,6 +1460,14 @@ document.addEventListener("DOMContentLoaded", async () => {
 	};
 
 	// Init Dashboard
+	let initialLabelVersion = "v3";
+	try {
+		initialLabelVersion = localStorage.getItem("manual_dashboard_label_version") || "v3";
+	} catch (e) {
+		initialLabelVersion = "v3";
+	}
+	applySignalLabelVersion(initialLabelVersion);
+
 	loadMappedSignalsForCal();
 	document.getElementById("tab-manual-v2").click();
 });
