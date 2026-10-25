@@ -26,6 +26,9 @@ const {
 const modbusManager = require("./jerry-device");
 const ModbusDiscovery = require("./discovery");
 const ss = require("simple-statistics");
+const { SequenceRegistry } = require("./sequence-engine/registry");
+const { SequenceRunner } = require("./sequence-engine/runner");
+const { generateSequenceCertificateWorkbook } = require("./sequence-engine/exporter");
 
 // Set Application User Model ID for Windows taskbar grouping and icon display
 if (app.setAppUserModelId) {
@@ -113,6 +116,62 @@ let outputStateCache = {}; // Replaces desiredStateCache
 let latestIndicatorState = {}; // Real-time cache for 1 Hz recording snapshots
 let activeRecordingSession = null; // Holds active 1 Hz recording session state
 let isShuttingDown = false; // Guards shutdown sequences
+
+// Sequence Engine Initialization
+const sequenceRegistry = new SequenceRegistry(path.join(__dirname, "sequences"));
+sequenceRegistry.loadAll();
+
+const sequenceRunner = new SequenceRunner({
+	directWrite: async ({ ip, port, fc, address, value, unitId, encoding }) => {
+		try {
+			await modbusManager.enqueueHighPriority(ip, port, async (client) => {
+				if (unitId) client.setID(unitId);
+				if (fc === "writeCoil") {
+					await client.writeCoil(address, !!value);
+				} else if (fc === "writeRegister") {
+					await client.writeRegister(address, parseInt(value));
+				} else if (fc === "writeRegisters") {
+					const regs = floatToRegisters(parseFloat(value), encoding || "CDAB");
+					await client.writeRegisters(address, regs);
+				} else {
+					throw new Error(`Unknown fc: "${fc}"`);
+				}
+			});
+			return { success: true };
+		} catch (err) {
+			log.error(`[SequenceRunner DirectWrite] ${err.message}`);
+			return { success: false, error: err.message };
+		}
+	},
+	getDeviceIp: async (devId) => {
+		try {
+			const devices = await db.getDevices();
+			const dev = devices.find((d) => d.id === devId || d.display_name === `Device ${devId}`);
+			return dev ? dev.ip : null;
+		} catch (e) {
+			return null;
+		}
+	},
+	latestIndicatorState,
+	emitToRenderer: (channel, data) => {
+		if (mainWindow && !mainWindow.isDestroyed() && mainWindow.webContents) {
+			mainWindow.webContents.send(channel, data);
+		}
+	},
+	onSequenceStateChange: (isActive) => {
+		isSequenceActive = isActive;
+		log.info(`[Main] isSequenceActive updated to: ${isActive}`);
+	},
+	resetAllDesiredStates: async () => {
+		await db.resetAllDesiredStates();
+		for (const guiId of Object.keys(outputStateCache)) {
+			outputStateCache[guiId] = {
+				setpoint: 0,
+				confirmationState: "SYNCED",
+			};
+		}
+	},
+});
 
 async function performGracefulShutdown(reason) {
 	if (isShuttingDown) return;
@@ -238,7 +297,7 @@ async function scheduleTick() {
 	if (!isPollingActive) return;
 
 	// Skip conditions — reschedule immediately rather than returning
-	if (isSequenceActive || !isNetworkEnabled) {
+	if (!isNetworkEnabled) {
 		pollingTimer = setTimeout(scheduleTick, 500);
 		return;
 	}
@@ -335,15 +394,17 @@ async function scheduleTick() {
 										(state.pendingUntil && Date.now() > state.pendingUntil)
 									) {
 										state.confirmationState = "MISMATCH";
-										log.warn(
-											`[Polling] MISMATCH on ${guiId}: PV=${processValue} but Setpoint=${state.setpoint}. Re-enforcing.`,
-										);
-										pendingCorrections.push({
-											type: "coil",
-											address: i,
-											value: !!state.setpoint,
-											guiId,
-										});
+										if (!isSequenceActive) {
+											log.warn(
+												`[Polling] MISMATCH on ${guiId}: PV=${processValue} but Setpoint=${state.setpoint}. Re-enforcing.`,
+											);
+											pendingCorrections.push({
+												type: "coil",
+												address: i,
+												value: !!state.setpoint,
+												guiId,
+											});
+										}
 									}
 								}
 								outputStateCache[guiId] = state;
@@ -394,15 +455,17 @@ async function scheduleTick() {
 										(state.pendingUntil && Date.now() > state.pendingUntil)
 									) {
 										state.confirmationState = "MISMATCH";
-										log.warn(
-											`[Polling] MISMATCH on ${guiId}: PV=${processValue} but Setpoint=${state.setpoint}. Re-enforcing.`,
-										);
-										pendingCorrections.push({
-											type: "register",
-											address: 0,
-											value: parseInt(state.setpoint),
-											guiId,
-										});
+										if (!isSequenceActive) {
+											log.warn(
+												`[Polling] MISMATCH on ${guiId}: PV=${processValue} but Setpoint=${state.setpoint}. Re-enforcing.`,
+											);
+											pendingCorrections.push({
+												type: "register",
+												address: 0,
+												value: parseInt(state.setpoint),
+												guiId,
+											});
+										}
 									}
 								}
 								outputStateCache[guiId] = state;
@@ -516,11 +579,12 @@ async function scheduleTick() {
 	} finally {
 		/*
 		 * Schedule the next tick only after this one fully completes.
-		 * Maintain ~500 ms wall-clock cadence by subtracting elapsed time.
+		 * Maintain dynamic cadence: 100 ms during active sequence runs, 500 ms idle.
 		 */
 		if (isPollingActive) {
 			const elapsed = Date.now() - tickStart;
-			const delay = Math.max(0, 500 - elapsed);
+			const targetCadence = isSequenceActive ? 100 : 500;
+			const delay = Math.max(0, targetCadence - elapsed);
 			pollingTimer = setTimeout(scheduleTick, delay);
 		}
 	}
@@ -1298,21 +1362,79 @@ ipcMain.handle("db:deleteDeviceRegister", async (event, id) => {
 	return await db.deleteDeviceRegister(id);
 });
 
-// Test Sequence execution
-ipcMain.handle("sequence:start", async (event, sequenceId) => {
-	log.info(
-		`[IPC] sequence:start — sequenceId=${sequenceId} | isSequenceActive: false -> true (polling loop suppressed)`,
-	);
-	isSequenceActive = true;
-	return { success: true };
+// Test Sequence Execution IPC
+ipcMain.handle("sequence:list", async () => {
+	sequenceRegistry.loadAll();
+	return sequenceRegistry.list();
 });
 
-ipcMain.handle("sequence:stop", async (event) => {
-	log.info(
-		"[IPC] sequence:stop — isSequenceActive: true -> false (polling loop will resume on next tick)",
-	);
-	isSequenceActive = false;
-	return { success: true };
+ipcMain.handle("sequence:get", async (event, id) => {
+	return sequenceRegistry.get(id);
+});
+
+ipcMain.handle("sequence:start", async (event, sequenceId, runOptions = {}) => {
+	log.info(`[IPC] sequence:start — sequenceId=${sequenceId}`);
+	const seq = sequenceRegistry.get(sequenceId);
+	if (!seq) {
+		log.error(`[IPC] sequence:start — sequence "${sequenceId}" not found`);
+		return { success: false, error: `Sequence "${sequenceId}" not found in registry` };
+	}
+	let metadata = {};
+	try {
+		metadata = await db.getTestMetadata();
+	} catch (e) {
+		log.warn("[IPC] sequence:start — failed to read test metadata from DB", e);
+	}
+
+	try {
+		const result = await sequenceRunner.start(seq, { ...runOptions, metadata });
+		return { success: true, result };
+	} catch (err) {
+		log.error(`[IPC] sequence:start — sequence error: ${err.message}`);
+		return { success: false, error: err.message };
+	}
+});
+
+ipcMain.handle("sequence:stop", async () => {
+	log.info("[IPC] sequence:stop — user requested abort");
+	return await sequenceRunner.abort();
+});
+
+ipcMain.handle("sequence:history", async (event, limit) => {
+	return await db.getSequenceRunHistory(limit || 50);
+});
+
+ipcMain.handle("sequence:getRun", async (event, id) => {
+	return await db.getSequenceRunById(id);
+});
+
+ipcMain.handle("sequence:exportCertificate", async (event, runId) => {
+	log.info(`[IPC] sequence:exportCertificate — runId=${runId}`);
+	try {
+		const run = await db.getSequenceRunById(runId);
+		if (!run) {
+			return { success: false, error: `Run #${runId} not found` };
+		}
+
+		const defaultFilename = `MPCS_Certificate_${run.sequence_id}_Run${run.id}_${Date.now()}.xlsx`;
+		const saveRes = await dialog.showSaveDialog(mainWindow, {
+			title: "Save Sequence Test Certificate",
+			defaultPath: path.join(app.getPath("documents"), defaultFilename),
+			filters: [{ name: "Excel Workbook", extensions: ["xlsx"] }],
+		});
+
+		if (saveRes.canceled || !saveRes.filePath) {
+			return { success: false, canceled: true };
+		}
+
+		const workbook = await generateSequenceCertificateWorkbook(run);
+		await workbook.xlsx.writeFile(saveRes.filePath);
+		log.info(`[IPC] Sequence certificate written to: ${saveRes.filePath}`);
+		return { success: true, filePath: saveRes.filePath };
+	} catch (err) {
+		log.error("[IPC] Failed to export sequence certificate:", err);
+		return { success: false, error: err.message };
+	}
 });
 
 // Hardware Calibration

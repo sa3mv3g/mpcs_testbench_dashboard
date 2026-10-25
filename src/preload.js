@@ -56,9 +56,36 @@ contextBridge.exposeInMainWorld("api", {
 	deleteDeviceRegister: (id) => ipcRenderer.invoke("db:deleteDeviceRegister", id),
 
 	// Sequence Engine API
-	startSequence: (sequenceId) =>
-		ipcRenderer.invoke("sequence:start", sequenceId),
+	listSequences: () => ipcRenderer.invoke("sequence:list"),
+	getSequence: (id) => ipcRenderer.invoke("sequence:get", id),
+	startSequence: (sequenceId, options) =>
+		ipcRenderer.invoke("sequence:start", sequenceId, options),
 	stopSequence: () => ipcRenderer.invoke("sequence:stop"),
+	getSequenceHistory: (limit) => ipcRenderer.invoke("sequence:history", limit),
+	getSequenceRun: (id) => ipcRenderer.invoke("sequence:getRun", id),
+	exportSequenceCertificate: (runId) =>
+		ipcRenderer.invoke("sequence:exportCertificate", runId),
+
+	onSequenceStarted: (callback) => {
+		ipcRenderer.removeAllListeners("sequence:started");
+		ipcRenderer.on("sequence:started", (event, data) => callback(data));
+	},
+	onSequenceStepUpdate: (callback) => {
+		ipcRenderer.removeAllListeners("sequence:step-update");
+		ipcRenderer.on("sequence:step-update", (event, data) => callback(data));
+	},
+	onSequenceStepProgress: (callback) => {
+		ipcRenderer.removeAllListeners("sequence:step-progress");
+		ipcRenderer.on("sequence:step-progress", (event, data) => callback(data));
+	},
+	onSequenceLog: (callback) => {
+		ipcRenderer.removeAllListeners("sequence:log");
+		ipcRenderer.on("sequence:log", (event, data) => callback(data));
+	},
+	onSequenceFinished: (callback) => {
+		ipcRenderer.removeAllListeners("sequence:finished");
+		ipcRenderer.on("sequence:finished", (event, data) => callback(data));
+	},
 
 	// Calibration API
 	performCalibration: (params) =>

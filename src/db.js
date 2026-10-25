@@ -99,6 +99,23 @@ function initDatabase(dbPath) {
                     timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
                     data_json TEXT,
                     FOREIGN KEY(session_id) REFERENCES manual_recording_sessions(id) ON DELETE CASCADE
+                )`);
+
+                db.run(`CREATE TABLE IF NOT EXISTS sequence_run_history (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    sequence_id TEXT NOT NULL,
+                    sequence_name TEXT NOT NULL,
+                    test_type TEXT DEFAULT 'positive',
+                    status TEXT NOT NULL,
+                    started_at DATETIME NOT NULL,
+                    completed_at DATETIME,
+                    duration_ms INTEGER,
+                    total_steps INTEGER DEFAULT 0,
+                    passed_steps INTEGER DEFAULT 0,
+                    failed_step_index INTEGER,
+                    failure_reason TEXT,
+                    step_details_json TEXT,
+                    metadata_json TEXT
                 )`, (err) => {
                     if (err) log.error("Error creating tables", err);
                     resolve();
@@ -596,6 +613,103 @@ function getRecordingSession(sessionId) {
     });
 }
 
+// --- Sequence Run History Operations ---
+function saveSequenceRun(run) {
+    return new Promise((resolve, reject) => {
+        if (!db) return reject(new Error("Database not initialized"));
+        db.run(
+            `INSERT INTO sequence_run_history (
+                sequence_id, sequence_name, test_type, status,
+                started_at, completed_at, duration_ms,
+                total_steps, passed_steps, failed_step_index,
+                failure_reason, step_details_json, metadata_json
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [
+                run.sequence_id,
+                run.sequence_name,
+                run.test_type || 'positive',
+                run.status,
+                run.started_at,
+                run.completed_at || null,
+                run.duration_ms || 0,
+                run.total_steps || 0,
+                run.passed_steps || 0,
+                run.failed_step_index != null ? run.failed_step_index : null,
+                run.failure_reason || null,
+                typeof run.step_details === 'string' ? run.step_details : JSON.stringify(run.step_details || []),
+                typeof run.metadata === 'string' ? run.metadata : JSON.stringify(run.metadata || {})
+            ],
+            function (err) {
+                if (err) {
+                    log.error("Error saving sequence run", err);
+                    reject(err);
+                } else {
+                    resolve({ id: this.lastID });
+                }
+            }
+        );
+    });
+}
+
+function getSequenceRunHistory(limit = 50) {
+    return new Promise((resolve, reject) => {
+        if (!db) return resolve([]);
+        db.all(
+            `SELECT id, sequence_id, sequence_name, test_type, status,
+                    started_at, completed_at, duration_ms, total_steps,
+                    passed_steps, failed_step_index, failure_reason,
+                    metadata_json
+             FROM sequence_run_history
+             ORDER BY id DESC LIMIT ?`,
+            [limit],
+            (err, rows) => {
+                if (err) {
+                    log.error("Error fetching sequence run history", err);
+                    reject(err);
+                } else {
+                    const parsed = (rows || []).map(r => {
+                        let meta = {};
+                        try { meta = r.metadata_json ? JSON.parse(r.metadata_json) : {}; } catch (e) {}
+                        return {
+                            ...r,
+                            metadata: meta
+                        };
+                    });
+                    resolve(parsed);
+                }
+            }
+        );
+    });
+}
+
+function getSequenceRunById(id) {
+    return new Promise((resolve, reject) => {
+        if (!db) return resolve(null);
+        db.get(
+            `SELECT * FROM sequence_run_history WHERE id = ?`,
+            [id],
+            (err, row) => {
+                if (err) {
+                    log.error(`Error fetching sequence run ${id}`, err);
+                    reject(err);
+                } else if (!row) {
+                    resolve(null);
+                } else {
+                    let steps = [];
+                    let meta = {};
+                    try { steps = row.step_details_json ? JSON.parse(row.step_details_json) : []; } catch (e) {}
+                    try { meta = row.metadata_json ? JSON.parse(row.metadata_json) : {}; } catch (e) {}
+                    resolve({
+                        ...row,
+                        step_details: steps,
+                        metadata: meta
+                    });
+                }
+            }
+        );
+    });
+}
+
 module.exports = {
     initDatabase,
     closeDatabase,
@@ -624,5 +738,8 @@ module.exports = {
     createRecordingSession,
     addRecordingSample,
     finishRecordingSession,
-    getRecordingSession
+    getRecordingSession,
+    saveSequenceRun,
+    getSequenceRunHistory,
+    getSequenceRunById
 };
