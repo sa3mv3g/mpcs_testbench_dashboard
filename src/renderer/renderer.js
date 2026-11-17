@@ -865,16 +865,358 @@ document.addEventListener("DOMContentLoaded", async () => {
 		});
 	}
 
-	// --- Sequence Logic ---
-	document.getElementById("btn-start-seq").addEventListener("click", async () => {
-		document.getElementById("seq-status").textContent = "Running...";
-		await window.api.startSequence(1);
-	});
+	// --- Action Sequence Dashboard Controller ---
+	const seqSelect = document.getElementById("seq-select");
+	const btnStartSeq = document.getElementById("btn-start-seq");
+	const btnStopSeq = document.getElementById("btn-stop-seq");
+	const chkDebugFreeze = document.getElementById("chk-debug-freeze");
+	const seqVerdictBadge = document.getElementById("seq-verdict-badge");
+	const seqStatusText = document.getElementById("seq-status-text");
+	const seqProgressBar = document.getElementById("seq-progress-bar");
+	const seqStepCountLbl = document.getElementById("seq-step-count-lbl");
+	const seqWatchdogInd = document.getElementById("seq-watchdog-indicator");
+	const seqWatchdogText = document.getElementById("seq-watchdog-text");
+	const seqDescLbl = document.getElementById("seq-desc-lbl");
+	const seqElapsedTime = document.getElementById("seq-elapsed-time");
+	const seqStepsTbody = document.getElementById("seq-steps-tbody");
+	const seqLogBox = document.getElementById("seq-log-box");
+	const btnClearSeqLog = document.getElementById("btn-clear-seq-log");
+	const btnExportSeqExcel = document.getElementById("btn-export-seq-excel");
+	const seqHistoryTbody = document.getElementById("seq-history-tbody");
+	const btnRefreshHistory = document.getElementById("btn-refresh-history");
+	const seqActiveBadge = document.getElementById("seq-active-badge");
 
-	document.getElementById("btn-stop-seq").addEventListener("click", async () => {
-		document.getElementById("seq-status").textContent = "Idle";
-		await window.api.stopSequence();
-	});
+	let activeSeqTimer = null;
+	let seqStartTime = null;
+	let lastFinishedRunId = null;
+
+	const formatSeqMs = (ms) => {
+		const totalSec = Math.floor(ms / 1000);
+		const mins = String(Math.floor(totalSec / 60)).padStart(2, "0");
+		const secs = String(totalSec % 60).padStart(2, "0");
+		const tenths = Math.floor((ms % 1000) / 100);
+		return `${mins}:${secs}.${tenths}`;
+	};
+
+	const appendSeqLog = (msg) => {
+		if (!seqLogBox) return;
+		const line = document.createElement("div");
+		line.textContent = msg;
+		seqLogBox.appendChild(line);
+		seqLogBox.scrollTop = seqLogBox.scrollHeight;
+	};
+
+	const loadSequencesDropdown = async () => {
+		if (!seqSelect || !window.api || !window.api.listSequences) return;
+		try {
+			const list = await window.api.listSequences();
+			seqSelect.innerHTML = "";
+
+			const masterGroup = document.createElement("optgroup");
+			masterGroup.label = "Master Commissioning Suite";
+
+			const opGroup = document.createElement("optgroup");
+			opGroup.label = "Subsystem Operational Tests (Positive)";
+
+			const faultGroup = document.createElement("optgroup");
+			faultGroup.label = "Fault Injection & Protection (Negative)";
+
+			list.forEach((item) => {
+				const opt = document.createElement("option");
+				opt.value = item.id;
+				opt.textContent = `${item.id}: ${item.name}`;
+				opt.dataset.desc = item.description || "";
+				opt.dataset.steps = item.stepCount;
+
+				if (item.id === "TS-00") {
+					masterGroup.appendChild(opt);
+				} else if (item.type === "negative") {
+					faultGroup.appendChild(opt);
+				} else {
+					opGroup.appendChild(opt);
+				}
+			});
+
+			if (masterGroup.children.length > 0) seqSelect.appendChild(masterGroup);
+			if (opGroup.children.length > 0) seqSelect.appendChild(opGroup);
+			if (faultGroup.children.length > 0) seqSelect.appendChild(faultGroup);
+
+			onSequenceSelectionChanged();
+		} catch (err) {
+			console.error("Failed to load sequence list:", err);
+		}
+	};
+
+	const onSequenceSelectionChanged = async () => {
+		if (!seqSelect || !window.api || !window.api.getSequence) return;
+		const id = seqSelect.value;
+		if (!id) return;
+
+		try {
+			const seq = await window.api.getSequence(id);
+			if (!seq) return;
+
+			if (seqDescLbl) {
+				seqDescLbl.textContent = seq.description || seq.name;
+			}
+			if (seqStepCountLbl) {
+				seqStepCountLbl.textContent = `Steps: 0 / ${seq.steps ? seq.steps.length : 1}`;
+			}
+
+			// Render steps table in ready state
+			if (seqStepsTbody) {
+				seqStepsTbody.innerHTML = "";
+				const steps = seq.steps || [{ name: seq.name }];
+				steps.forEach((st, idx) => {
+					const tr = document.createElement("tr");
+					tr.id = `seq-step-row-${idx}`;
+					tr.style.borderBottom = "1px solid #f1f5f9";
+					tr.innerHTML = `
+						<td style="padding: 6px 8px; color: #64748b; font-weight: bold;">${idx + 1}</td>
+						<td style="padding: 6px 8px; font-weight: 500; color: #1e293b;">${st.name}</td>
+						<td style="padding: 6px 8px; text-align: center; color: #64748b; font-family: monospace;" id="seq-step-time-${idx}">-</td>
+						<td style="padding: 6px 8px; text-align: center;" id="seq-step-badge-${idx}">
+							<span style="background: #f1f5f9; color: #64748b; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: bold;">READY</span>
+						</td>
+					`;
+					seqStepsTbody.appendChild(tr);
+				});
+			}
+
+			// Reset verdict badge
+			if (seqVerdictBadge) {
+				seqVerdictBadge.textContent = "STANDBY";
+				seqVerdictBadge.style.backgroundColor = "#64748b";
+			}
+			if (seqStatusText) {
+				seqStatusText.textContent = `Ready to execute "${seq.name}". Click Run Sequence.`;
+			}
+			if (seqProgressBar) seqProgressBar.style.width = "0%";
+			if (btnExportSeqExcel) btnExportSeqExcel.style.display = "none";
+		} catch (err) {
+			console.error("Failed to load sequence details:", err);
+		}
+	};
+
+	const loadSequenceHistory = async () => {
+		if (!seqHistoryTbody || !window.api || !window.api.getSequenceHistory) return;
+		try {
+			const runs = await window.api.getSequenceHistory(20);
+			seqHistoryTbody.innerHTML = "";
+			if (!runs || runs.length === 0) {
+				seqHistoryTbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: #94a3b8; padding: 18px;">No test history recorded yet</td></tr>`;
+				return;
+			}
+
+			runs.forEach((r) => {
+				const tr = document.createElement("tr");
+				tr.style.borderBottom = "1px solid #f1f5f9";
+				const statusColor = r.status === "PASS" ? "#16a34a" : r.status === "FAIL" ? "#dc2626" : "#f59e0b";
+				const statusBg = r.status === "PASS" ? "#dcfce7" : r.status === "FAIL" ? "#fee2e2" : "#fef3c7";
+				const dateStr = r.started_at ? r.started_at.replace("T", " ").substring(0, 19) : "-";
+				const durStr = r.duration_ms ? `${(r.duration_ms / 1000).toFixed(1)}s` : "-";
+
+				tr.innerHTML = `
+					<td style="padding: 6px 8px; font-weight: bold; color: #64748b;">#${r.id}</td>
+					<td style="padding: 6px 8px; font-weight: 500; color: #0f172a;">${r.sequence_name} (${r.sequence_id})</td>
+					<td style="padding: 6px 8px; text-align: center; font-size: 11px; text-transform: uppercase; color: #475569;">${r.test_type}</td>
+					<td style="padding: 6px 8px; text-align: center;">
+						<span style="background: ${statusBg}; color: ${statusColor}; font-weight: bold; padding: 2px 8px; border-radius: 4px; font-size: 11px;">${r.status}</span>
+					</td>
+					<td style="padding: 6px 8px; font-family: monospace; font-size: 11px; color: #475569;">${dateStr}</td>
+					<td style="padding: 6px 8px; text-align: center; font-family: monospace;">${durStr}</td>
+					<td style="padding: 6px 8px; text-align: center; color: #64748b;">${r.passed_steps || 0}/${r.total_steps || 0}</td>
+				`;
+				seqHistoryTbody.appendChild(tr);
+			});
+		} catch (err) {
+			console.error("Failed to load sequence history:", err);
+		}
+	};
+
+	if (seqSelect) {
+		seqSelect.addEventListener("change", onSequenceSelectionChanged);
+	}
+
+	if (btnStartSeq) {
+		btnStartSeq.addEventListener("click", async () => {
+			const seqId = seqSelect ? seqSelect.value : null;
+			if (!seqId) {
+				alert("Please select a sequence to run.");
+				return;
+			}
+			const debugFreeze = chkDebugFreeze ? chkDebugFreeze.checked : false;
+
+			btnStartSeq.style.display = "none";
+			if (btnStopSeq) btnStopSeq.style.display = "inline-flex";
+			if (seqActiveBadge) seqActiveBadge.style.display = "inline-block";
+			if (btnExportSeqExcel) btnExportSeqExcel.style.display = "none";
+
+			seqStartTime = Date.now();
+			if (activeSeqTimer) clearInterval(activeSeqTimer);
+			activeSeqTimer = setInterval(() => {
+				if (seqElapsedTime && seqStartTime) {
+					seqElapsedTime.textContent = formatSeqMs(Date.now() - seqStartTime);
+				}
+			}, 100);
+
+			appendSeqLog(`=== STARTING SEQUENCE: ${seqId} ===`);
+			try {
+				await window.api.startSequence(seqId, { debugFreezeOnFailure: debugFreeze });
+			} catch (err) {
+				appendSeqLog(`[ERROR] ${err.message}`);
+			}
+		});
+	}
+
+	if (btnStopSeq) {
+		btnStopSeq.addEventListener("click", async () => {
+			appendSeqLog(">>> OPERATOR PRESSED EMERGENCY STOP / ABORT <<<");
+			await window.api.stopSequence();
+		});
+	}
+
+	if (btnClearSeqLog) {
+		btnClearSeqLog.addEventListener("click", () => {
+			if (seqLogBox) seqLogBox.innerHTML = "";
+		});
+	}
+
+	if (btnRefreshHistory) {
+		btnRefreshHistory.addEventListener("click", loadSequenceHistory);
+	}
+
+	// Register IPC Event Listeners
+	if (window.api && window.api.onSequenceStarted) {
+		window.api.onSequenceStarted((data) => {
+			if (seqVerdictBadge) {
+				seqVerdictBadge.textContent = "RUNNING";
+				seqVerdictBadge.style.backgroundColor = "#0284c7";
+			}
+			if (seqStatusText) {
+				seqStatusText.textContent = `Running ${data.sequenceName}...`;
+			}
+		});
+	}
+
+	if (window.api && window.api.onSequenceStepUpdate) {
+		window.api.onSequenceStepUpdate((data) => {
+			const { stepIndex, totalSteps, stepName, status, durationMs, error } = data;
+			if (seqStepCountLbl) {
+				seqStepCountLbl.textContent = `Step: ${stepIndex + 1} / ${totalSteps}`;
+			}
+			if (seqProgressBar && totalSteps > 0) {
+				const pct = Math.round(((stepIndex + (status === "PASS" ? 1 : 0.5)) / totalSteps) * 100);
+				seqProgressBar.style.width = `${pct}%`;
+			}
+
+			const badgeEl = document.getElementById(`seq-step-badge-${stepIndex}`);
+			const timeEl = document.getElementById(`seq-step-time-${stepIndex}`);
+			const rowEl = document.getElementById(`seq-step-row-${stepIndex}`);
+
+			if (rowEl) {
+				if (status === "RUNNING") {
+					rowEl.style.backgroundColor = "#fef9c3";
+				} else if (status === "PASS") {
+					rowEl.style.backgroundColor = "#f0fdf4";
+				} else if (status === "FAIL") {
+					rowEl.style.backgroundColor = "#fef2f2";
+				}
+			}
+
+			if (timeEl && durationMs != null) {
+				timeEl.textContent = `${durationMs}ms`;
+			}
+
+			if (badgeEl) {
+				if (status === "RUNNING") {
+					badgeEl.innerHTML = `<span style="background: #fef08a; color: #854d0e; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: bold;">RUNNING</span>`;
+				} else if (status === "PASS") {
+					badgeEl.innerHTML = `<span style="background: #bbf7d0; color: #166534; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: bold;">PASS</span>`;
+				} else if (status === "FAIL") {
+					badgeEl.innerHTML = `<span style="background: #fecaca; color: #991b1b; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: bold;" title="${error || ''}">FAIL</span>`;
+				}
+			}
+		});
+	}
+
+	if (window.api && window.api.onSequenceStepProgress) {
+		window.api.onSequenceStepProgress((data) => {
+			if (seqWatchdogInd && seqWatchdogText) {
+				seqWatchdogInd.style.display = "inline";
+				const remaining = Math.max(0, data.timeoutMs - data.elapsed);
+				seqWatchdogText.textContent = `${data.signalTag} == ${data.expectedValue} (${(remaining / 1000).toFixed(1)}s left)`;
+			}
+		});
+	}
+
+	if (window.api && window.api.onSequenceLog) {
+		window.api.onSequenceLog((data) => {
+			appendSeqLog(data.message);
+		});
+	}
+
+	if (window.api && window.api.onSequenceFinished) {
+		window.api.onSequenceFinished((data) => {
+			if (activeSeqTimer) clearInterval(activeSeqTimer);
+			if (btnStartSeq) btnStartSeq.style.display = "inline-flex";
+			if (btnStopSeq) btnStopSeq.style.display = "none";
+			if (seqActiveBadge) seqActiveBadge.style.display = "none";
+			if (seqWatchdogInd) seqWatchdogInd.style.display = "none";
+
+			lastFinishedRunId = data.runId;
+
+			if (seqVerdictBadge) {
+				seqVerdictBadge.textContent = data.status;
+				seqVerdictBadge.style.backgroundColor =
+					data.status === "PASS" ? "#16a34a" : data.status === "FAIL" ? "#dc2626" : "#f59e0b";
+			}
+
+			if (seqStatusText) {
+				if (data.status === "PASS") {
+					seqStatusText.textContent = `Completed Successfully! All ${data.passedSteps}/${data.totalSteps} steps passed (${(data.durationMs / 1000).toFixed(1)}s).`;
+				} else if (data.status === "FAIL") {
+					seqStatusText.textContent = `Test FAILED: ${data.failureReason || "Assertion failure"} (${(data.durationMs / 1000).toFixed(1)}s).`;
+				} else {
+					seqStatusText.textContent = `Test Aborted by Operator (${(data.durationMs / 1000).toFixed(1)}s).`;
+				}
+			}
+
+			if (btnExportSeqExcel) {
+				btnExportSeqExcel.style.display = "inline-flex";
+			}
+
+			loadSequenceHistory();
+		});
+	}
+
+	if (btnExportSeqExcel) {
+		btnExportSeqExcel.addEventListener("click", async () => {
+			if (!lastFinishedRunId) {
+				alert("No test run available to export.");
+				return;
+			}
+			btnExportSeqExcel.disabled = true;
+			btnExportSeqExcel.textContent = "Generating Certificate...";
+			try {
+				const res = await window.api.exportSequenceCertificate(lastFinishedRunId);
+				if (res && res.success) {
+					window.showStatus(`Test certificate exported: ${res.filePath}`);
+				} else if (res && !res.canceled) {
+					window.showStatus(`Export failed: ${res.error}`, true);
+				}
+			} catch (err) {
+				window.showStatus(`Export error: ${err.message}`, true);
+			} finally {
+				btnExportSeqExcel.disabled = false;
+				btnExportSeqExcel.textContent = "📊 Export Test Certificate (.xlsx)";
+			}
+		});
+	}
+
+	// Trigger initial sequence dropdown & history load
+	loadSequencesDropdown();
+	loadSequenceHistory();
 
 	// --- Raw Registers Explorer Logic ---
 	let currentRawDevIp = "";
