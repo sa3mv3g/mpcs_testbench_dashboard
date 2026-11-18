@@ -3,14 +3,22 @@
 ## Glossary
 
 * **Test Sequence**
-  * *Definition*: A defined array of automated testing steps. A sequence can execute Modbus writes to Output ports, enforce timing delays, and read Input ports to compare against expected values.
+  * *Definition*: A defined array of automated testing steps viewed from the Locomotive / MPCS perspective. A sequence applies stimulus to locomotive input signals (`I-xx`), enforces timing delays, and reads locomotive output signals (`O-xx`) to evaluate Test Assertions against expected states.
   * *Replaces*: "Presets" or "Scenarios".
+* **Stimulus Signal**
+  * *Definition*: A locomotive input signal (prefixed with `I-`, e.g., `I-00` to `I-127`) representing 110V DC driver cab switches, safety relay contacts, air pressure governors, or auxiliary contactor feedbacks entering the MPCS. In the Sequence Engine, stimulus signals are driven (set, cleared, pulsed) via `bench.set()` or `bench.pulse()`, which the harness maps to the appropriate Testbench DAQ output coil (`do-X-Y`).
+* **Response Signal**
+  * *Definition*: A locomotive output signal (prefixed with `O-`, e.g., `O-00` to `O-79`) representing contactor coils (DJ, Line Contactors, C118), electro-valves (VEPT, EM Valve), indicator lamps (LSDJ), or warning buzzers driven by the MPCS. In the Sequence Engine, response signals are monitored and asserted via `bench.expect()`, which the harness maps to reading the appropriate Testbench DAQ discrete input bit (`di-X-Y`).
 * **Test Assertion**
-  * *Definition*: The evaluation criteria within a Test Sequence step. It consists of a target Read port, an Expected Value, a Tolerance Band (e.g., ± 0.2V), and a settle Timeout. Used to generate a Pass/Fail result.
+  * *Definition*: The evaluation criteria within a Test Sequence step. It consists of a target Response Signal (`O-xx`) or analog channel, an Expected Value, an optional Tolerance Band (for analog), and a settle Timeout. Used to generate a Pass/Fail result.
 * **Sequence Engine**
   * *Definition*: The component in the Main process responsible for parsing and executing Test Sequences step-by-step. It evaluates Test Assertions in real-time, logs the Pass/Fail results to SQLite, and halts the sequence on critical failures.
 * **Sequence Lockout**
   * *Definition*: A safety mechanism that locks/disables the Manual Dashboard controls while a Test Sequence is executing, preventing human interference with automated states.
+* **Sequence Test Harness**
+  * *Definition*: The programmatic API provided to Test Sequences running in the Main process (`bench.set`, `bench.pulse`, `bench.expect`, `bench.wait`, `bench.assert`). It translates logical signal tags (e.g., `I-00`, `O-28`) into physical Modbus commands and assertion evaluations against the high-speed 100ms polling cache.
+* **Post-Sequence Safe Teardown**
+  * *Definition*: The automated safety routine executed immediately upon sequence completion, failure, or manual abort. It drives all physical driver stimulus outputs to Low (0V / De-energized) and resets stored Setpoints in SQLite to Default State (0), preventing accidental relay energization or coil burnout. If the operator selects "Debug Freeze on Failure", this teardown is temporarily bypassed until manual reset.
 * **Manual Dashboard**
   * *Definition*: A UI view that exactly mirrors the physical Testbench Front Panel. Controls are organized by I/O type and labeled with their unique physical port numbers, independent of the underlying network architecture.
 * **Sequence Builder Dashboard**
@@ -26,9 +34,9 @@
 * **Output Confirmation State**
   * *Definition*: A per-output state machine, owned by the Main Process, describing the relationship between a Setpoint and its Process Value: **SYNCED** (Process Value matches Setpoint), **PENDING** (Setpoint changed recently and a write is awaiting confirmation within a short grace window — shown neutrally, never as a fault), **MISMATCH** (Process Value still disagrees after the grace window — shown as a fault, e.g. a device reset, triggering a corrective write), and **FAULT** (a terminal state after N consecutive corrective writes have failed, e.g. due to a Modbus exception; enforcement stops until the next user interaction).
 * **Continuous State Enforcement**
-  * *Definition*: The mechanism by which the Main Process keeps the physical hardware outputs matching their Setpoints during manual operation. When an output reaches the MISMATCH state, the polling loop queues a corrective Modbus write to force the hardware back into compliance. During Test Sequences this enforcement is suspended; on sequence completion the hardware snaps back to the stored Setpoints.
+  * *Definition*: The mechanism by which the Main Process keeps the physical hardware outputs matching their Setpoints during manual operation. When an output reaches the MISMATCH state, the polling loop queues a corrective Modbus write to force the hardware back into compliance. During Test Sequences this enforcement is suspended. On sequence completion, abort, or failure, the Sequence Engine performs Post-Sequence Safe Teardown by setting all physical driver outputs and stored Setpoints to the Default State (0/Off) (unless the operator explicitly selected "Debug Freeze on Failure" for electrical multimeter inspection). Continuous State Enforcement then resumes with the hardware safely de-energized.
 * **Default State**
-  * *Definition*: The safe, de-energised target for all Manual Dashboard outputs: every digital-out and analog-out Setpoint set explicitly to 0/Off. The "Reset All to Default" action upserts an explicit 0 for every output (it does not delete the stored Setpoints), ensuring enforcement has a concrete target to drive the hardware toward.
+  * *Definition*: The safe, de-energised target for all Manual Dashboard outputs: every digital-out and analog-out Setpoint set explicitly to 0/Off. Serves as the target for both the manual "Reset All to Default" action and automated Post-Sequence Safe Teardown, ensuring enforcement has a concrete target to drive the hardware toward.
 * **Manual Snapshot**
   * *Definition*: A user-triggered action from the Manual Dashboard that captures the exact current state of all mapped signals and saves it to the SQLite database as a discrete "Manual Log Entry", independent of automated sequences.
 * **Manual Test Report**
@@ -56,6 +64,7 @@
 * **Modbus IPC Boundary**: All Modbus TCP/IP network communication occurs strictly in the Main process using async/await. The Renderer process only receives state updates and sends intents.
 * **Modbus Data Formatting**: All analog values are handled natively as pre-scaled **IEEE-754 32-bit floats** directly by the DAQ firmware (spanning two 16-bit Modbus registers). The application does not apply manual UI multipliers/offsets, but handles standard 32-bit float parsing and endianness.
 * **UI Separation (Front Panel vs Hardware)**: The **Manual Dashboard** provides a 1:1 digital twin of the physical testbench using the Signal Mapping abstraction. The **Calibration Dashboard** follows the same abstract label structure (e.g., calibrating `AO-05` directly) to ensure maintenance is intuitive for the operator.
+* **Dynamic Sequence Polling Rate**: During active Test Sequence execution, the Main Process polling interval accelerates to 100 ms across active digital and analog registers, reducing verification latency and ensuring compliance with sub-second railway watchdog timers (e.g. 1.0s contactor feedback, 4.0s DJ window).
 * **Manual 1 Hz Recording Orchestration**: Continuous time-series data logging during manual testing is strictly orchestrated by the Main Process. When a recording session is active, the Main Process captures the state of all 204 indicators every 1000 ms directly from its polling cache and commits a single JSON-payload row to SQLite (`manual_recording_samples`), emitting lightweight progress tick events to the Renderer. If any device is disconnected or offline, its channels are recorded with `"--"` without interrupting the session clock.
 * **Data Logging Strategy**: To prevent database bloat, timeseries data is **only** logged to SQLite when a Test Sequence is actively running, when a Manual Recording Session is actively running, OR when the user explicitly triggers a **Manual Snapshot**. During standard idle UI monitoring, the continuous polling data is transient.
 * **Application Logging**: Utilizing `electron-log` for centralized, daily rotating log files across both the Main and Renderer processes to ensure crash post-mortem capabilities.

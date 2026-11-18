@@ -18,6 +18,9 @@ const db = new sqlite3.Database(dbPath);
 const registersPath = path.join(__dirname, 'tests', 'resource', 'jerry_registers.json');
 const registersData = JSON.parse(fs.readFileSync(registersPath, 'utf8'));
 
+// Import BASE_PORT from mpcs-8board-simulator.js
+const { BASE_PORT } = require('./tests/mpcs-8board-simulator');
+
 db.serialize(() => {
     // 0. Drop existing tables if any
     db.run(`DROP TABLE IF EXISTS manual_dashboard_layout`);
@@ -68,8 +71,10 @@ db.serialize(() => {
     const stmtRegister = db.prepare(`INSERT INTO device_registers (device_id, type, address, description) VALUES (?, ?, ?, ?)`);
 
     for (let i = 1; i <= 8; i++) {
-        // Different IPs, e.g., 192.168.1.100, 192.168.1.101, ...
-        stmtDevice.run(`Controller ${i}`, `192.168.0.${200 - 1 + i}`, 502, 0x5555, 0xDDDD);
+        // Assign IP as 127.0.0.1 and port based on BASE_PORT
+        const ip = '127.0.0.1';
+        const port = BASE_PORT + i - 1; // BASE_PORT is 15601, so board 1 uses 15601, board 2 uses 15602, etc.
+        stmtDevice.run(`Controller ${i}`, ip, port, 0x5555, 0xDDDD);
 
         // Add registers for this device based on jerry_registers.json
         const types = {
@@ -346,7 +351,7 @@ db.serialize(() => {
                         } else {
                             const signalId = this.lastID;
                             if (mapping.pos_x !== undefined && mapping.pos_y !== undefined) {
-                                db.run(`INSERT INTO manual_dashboard_layout (signal_id, pos_x, pos_y) VALUES (?, ?, ?)`,
+                                db.run(`INSERT INTO manual_dashboard_layout (signal_id, pos_x, pos_y) VALUES (?, ?, ?)`, 
                                     [signalId, mapping.pos_x, mapping.pos_y]);
                             }
                         }
@@ -361,4 +366,3 @@ db.serialize(() => {
         db.close();
     });
 });
-
